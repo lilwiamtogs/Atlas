@@ -1,9 +1,9 @@
-const TIME_PATTERN = /(?<!\d)(\d{1,2}[:.]\d{2}\s*(?:a\.?m\.?|p\.?m\.?|nn)?)(?!\d)/gi;
+const TIME_PATTERN = /(?<!\d)(\d{1,2}[:.]\d{2}\s*(?:a\.?m\.?|p\.?m\.?|[ap]|nn)?)(?!\d)/gi;
 const DAY_WORDS = { sunday: 0, sun: 0, monday: 1, mon: 1, tuesday: 2, tue: 2, tues: 2, wednesday: 3, wed: 3, thursday: 4, thu: 4, thur: 4, thurs: 4, friday: 5, fri: 5, saturday: 6, sat: 6 };
 
 function to24Hour(value) {
   const compact = value.toLowerCase().replace(/[.\s]/g, '');
-  const match = compact.match(/^(\d{1,2}):?(\d{2})(am|pm|nn)?$/);
+  const match = compact.match(/^(\d{1,2}):?(\d{2})(a|am|p|pm|nn)?$/);
   if (!match) return '';
   const minutes = match[2] || '00';
   if (!match[3]) {
@@ -12,15 +12,15 @@ function to24Hour(value) {
   }
   if (match[3] === 'nn') return `12:${minutes}`;
   let hours = Number(match[1]) % 12;
-  if (match[3] === 'pm') hours += 12;
+  if (match[3] === 'p' || match[3] === 'pm') hours += 12;
   return `${String(hours).padStart(2, '0')}:${minutes}`;
 }
 
 function resolvedTimeRange(matches) {
   let start = to24Hour(matches[0][0]);
   const end = to24Hour(matches[1][0]);
-  const startHasMeridiem = /(?:a\.?m\.?|p\.?m\.?|nn)/i.test(matches[0][0]);
-  const endIsPm = /p\.?m\.?/i.test(matches[1][0]);
+  const startHasMeridiem = /(?:a\.?m\.?|p\.?m\.?|[ap]|nn)/i.test(matches[0][0]);
+  const endIsPm = /p(?:\.?m\.?)?/i.test(matches[1][0]);
   if (!startHasMeridiem && endIsPm && start && end) {
     const startHour = Number(start.slice(0, 2));
     const endRawHour = Number(matches[1][0].match(/\d{1,2}/)?.[0] || 0);

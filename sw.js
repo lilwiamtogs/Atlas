@@ -1,4 +1,4 @@
-const CACHE_NAME = 'atlas-shell-v85';
+const CACHE_NAME = 'atlas-shell-v86';
 const APP_SHELL = [
   './',
   './index.html',
@@ -37,7 +37,7 @@ const APP_SHELL = [
   './js/services/notifications.js',
   './js/services/schedule.js',
   './js/services/scheduleArchives.js',
-  './js/services/scheduleParser.js?v=44',
+  './js/services/scheduleParser.js?v=45',
   './js/services/tasks.js',
   './js/utils/html.js',
   './js/utils/animations.js',

@@ -3,7 +3,7 @@ import Store from '../store.js';
 import { escapeHtml } from '../utils/html.js';
 import { DAY_NAMES } from '../utils/time.js';
 import { scanScheduleImage } from '../services/ocr.js?v=41';
-import { parseScheduleText } from '../services/scheduleParser.js?v=44';
+import { parseScheduleText } from '../services/scheduleParser.js?v=45';
 import {
   loadSchedule,
   removeImportedSchedule,
