@@ -7,6 +7,8 @@
 html {
   background: var(--bg);
   font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   transition: background-color 180ms ease;
 }
 
@@ -26,6 +28,16 @@ button,
 input {
   color: inherit;
   font: inherit;
+}
+
+button,
+a,
+input,
+select,
+textarea,
+summary,
+label {
+  -webkit-tap-highlight-color: transparent;
 }
 
 button {

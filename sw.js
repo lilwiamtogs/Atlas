@@ -1,20 +1,20 @@
-const CACHE_NAME = 'atlas-shell-v76';
+const CACHE_NAME = 'atlas-shell-v85';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
   './css/variables.css?v=2',
-  './css/global.css',
+  './css/global.css?v=2',
   './css/layout.css?v=43',
-  './css/components.css?v=74',
+  './css/components.css?v=85',
   './data/defaultSchedule.json',
   './assets/icons/atlas-192.png',
   './assets/icons/atlas-512.png',
   './assets/icons/atlas-brand.png',
   './assets/icons/atlas-maskable.png',
-  './js/app.js?v=62',
-  './js/atlas.js?v=62',
-  './js/router.js?v=61',
+  './js/app.js?v=70',
+  './js/atlas.js?v=70',
+  './js/router.js?v=69',
   './js/store.js',
   './js/components/classItem.js',
   './js/components/atmosphere.js?v=3',
@@ -29,7 +29,7 @@ const APP_SHELL = [
   './js/components/taskList.js',
   './js/components/themeToggle.js',
   './js/components/welcomeScreen.js?v=43',
-  './js/services/ocr.js?v=36',
+  './js/services/ocr.js?v=41',
   './js/services/autosave.js',
   './js/services/notes.js?v=37',
   './js/services/pdfText.js?v=38',
@@ -37,19 +37,23 @@ const APP_SHELL = [
   './js/services/notifications.js',
   './js/services/schedule.js',
   './js/services/scheduleArchives.js',
-  './js/services/scheduleParser.js?v=37',
+  './js/services/scheduleParser.js?v=44',
   './js/services/tasks.js',
   './js/utils/html.js',
   './js/utils/animations.js',
   './js/utils/time.js',
   './js/views/home.js?v=44',
-  './js/views/importSchedule.js?v=51',
+  './js/views/importSchedule.js?v=58',
   './js/views/schedule.js?v=54',
   './js/views/classDetail.js?v=42'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {

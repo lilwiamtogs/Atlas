@@ -1,8 +1,8 @@
-# Atlas v0.2
+# Atlas v0.2.1
 
 Atlas is a mobile-first student planner built with plain HTML, CSS, and vanilla JavaScript ES modules.
 
-Version 0.2 introduces the cartographic atmosphere, responsive schedule cards, first-open guidance and feature help, expanded schedule recognition, reminders, notes, exams, and install-aware mobile onboarding.
+Version 0.2.1 improves mobile performance, update handling, schedule-image recognition, drag-and-drop importing, and manual class entry while preserving the Atlas v0.2 design.
 
 ## Import a schedule image
 

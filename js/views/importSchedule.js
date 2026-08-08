@@ -2,8 +2,8 @@ import PathSection from '../components/pathSection.js';
 import Store from '../store.js';
 import { escapeHtml } from '../utils/html.js';
 import { DAY_NAMES } from '../utils/time.js';
-import { scanScheduleImage } from '../services/ocr.js?v=36';
-import { parseScheduleText } from '../services/scheduleParser.js?v=37';
+import { scanScheduleImage } from '../services/ocr.js?v=41';
+import { parseScheduleText } from '../services/scheduleParser.js?v=44';
 import {
   loadSchedule,
   removeImportedSchedule,
@@ -176,6 +176,9 @@ function reviewPanel() {
       </label>
       <div class="archive-name-preview"><span>Saved as</span><strong id="archive-name-preview">${escapeHtml(archiveNameFor(draft))}</strong></div>
       <div class="review-list">${reviewRow(item, reviewIndex)}</div>
+      <div class="review-manual-actions">
+        <button class="secondary-action" id="add-review-class" type="button">Add another class</button>
+      </div>
       <div class="review-navigation">
         ${reviewIndex > 0 ? '<button class="secondary-action review-back" id="previous-class" type="button">Previous</button>' : '<span></span>'}
         ${reviewIndex < draft.classes.length - 1
@@ -240,7 +243,8 @@ export default {
       </header>
       ${PathSection('Image to schedule', `
         <p class="import-intro">Upload a clear screenshot or photo. Atlas reads it on this device, then lets you correct the result before anything is saved.</p>
-        ${filePicker()}`)}
+        ${filePicker()}
+        ${draft?.classes?.length ? '' : '<button class="secondary-action manual-class-start" id="add-class-manually" type="button">Add class manually</button>'}`)}
       ${reviewPanel()}
       ${savedSchedulesPanel(state)}
       ${imported ? PathSection('Current data', `
@@ -263,6 +267,31 @@ export default {
   },
 
   bind(router, state) {
+    const rememberReviewDetails = () => {
+      if (!draft) return;
+      draft.course = document.getElementById('import-course')?.value.trim() || draft.course || '';
+      draft.yearLevel = document.getElementById('import-year-level')?.value.trim() || draft.yearLevel || '';
+      draft.semester = document.getElementById('import-semester')?.value.trim() || draft.semester || 'Imported schedule';
+    };
+    const addManualClass = () => {
+      rememberReviewDetails();
+      if (!draft) {
+        draft = {
+          course: state.schedule.course || '',
+          yearLevel: state.schedule.yearLevel || '',
+          semester: state.schedule.semester || 'Imported schedule',
+          classes: [],
+          warnings: [],
+          documentType: 'classes',
+        };
+      }
+      draft.classes.push({ code: '', title: '', day: 1, start: '08:00', end: '09:00', room: '', instructor: '' });
+      reviewIndex = draft.classes.length - 1;
+      message = '';
+      router.render();
+    };
+    document.getElementById('add-class-manually')?.addEventListener('click', addManualClass);
+    document.getElementById('add-review-class')?.addEventListener('click', addManualClass);
     const openImageSourcePicker = () => {
       imageSourcePickerOpen = true;
       router.render();
@@ -287,9 +316,13 @@ export default {
       pendingScheduleReplacement = null;
       action?.();
     });
-    const handleScheduleImage = (event) => {
-      const [file] = event.target.files;
+    const useScheduleImage = (file) => {
       if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        message = 'Drop a PNG, JPG, or other image file.';
+        router.render();
+        return;
+      }
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       selectedFile = file;
       previewUrl = URL.createObjectURL(file);
@@ -298,8 +331,24 @@ export default {
       imageSourcePickerOpen = false;
       router.render();
     };
+    const handleScheduleImage = (event) => useScheduleImage(event.target.files?.[0]);
     document.getElementById('schedule-image-library')?.addEventListener('change', handleScheduleImage);
     document.getElementById('schedule-image-camera')?.addEventListener('change', handleScheduleImage);
+    const uploadZone = document.getElementById('open-image-source-picker');
+    uploadZone?.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'copy';
+      uploadZone.classList.add('is-dragging');
+    });
+    uploadZone?.addEventListener('dragleave', (event) => {
+      if (event.relatedTarget && uploadZone.contains(event.relatedTarget)) return;
+      uploadZone.classList.remove('is-dragging');
+    });
+    uploadZone?.addEventListener('drop', (event) => {
+      event.preventDefault();
+      uploadZone.classList.remove('is-dragging');
+      useScheduleImage(event.dataTransfer.files?.[0]);
+    });
 
     document.getElementById('scan-schedule')?.addEventListener('click', async () => {
       if (!selectedFile || scanning) return;
@@ -359,9 +408,7 @@ export default {
     });
 
     document.getElementById('previous-class')?.addEventListener('click', () => {
-      draft.course = document.getElementById('import-course').value.trim();
-      draft.yearLevel = document.getElementById('import-year-level').value.trim();
-      draft.semester = document.getElementById('import-semester').value.trim();
+      rememberReviewDetails();
       reviewIndex = Math.max(0, reviewIndex - 1);
       router.render();
     });
@@ -369,18 +416,14 @@ export default {
     document.getElementById('verify-class')?.addEventListener('click', () => {
       const form = document.getElementById('schedule-review-form');
       if (!form.reportValidity()) return;
-      draft.course = document.getElementById('import-course').value.trim();
-      draft.yearLevel = document.getElementById('import-year-level').value.trim();
-      draft.semester = document.getElementById('import-semester').value.trim();
+      rememberReviewDetails();
       reviewIndex = Math.min(draft.classes.length - 1, reviewIndex + 1);
       router.render();
     });
 
     document.getElementById('schedule-review-form')?.addEventListener('submit', (event) => {
       event.preventDefault();
-      draft.course = document.getElementById('import-course').value.trim();
-      draft.yearLevel = document.getElementById('import-year-level').value.trim();
-      draft.semester = document.getElementById('import-semester').value.trim();
+      rememberReviewDetails();
       requestScheduleReplacement(state, router, () => { try {
         const classes = draft.classes.map((item, index) => ({
           ...item,

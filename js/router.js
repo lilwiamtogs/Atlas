@@ -1,6 +1,6 @@
 import Home from './views/home.js?v=44';
 import Schedule from './views/schedule.js?v=54';
-import ImportSchedule from './views/importSchedule.js?v=51';
+import ImportSchedule from './views/importSchedule.js?v=58';
 import ClassDetail from './views/classDetail.js?v=42';
 import Navbar from './components/navbar.js';
 import DeveloperTools from './components/developerTools.js';
@@ -24,6 +24,7 @@ let helpOpen = false;
 let pendingHelpTarget = null;
 let suppressPageAnimation = false;
 let shouldAnimatePage = true;
+const atmosphereLayouts = new Map();
 
 function wait(milliseconds) {
   return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
@@ -82,7 +83,8 @@ const Router = {
       transitioning = true;
 
       const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (reduceMotion) {
+      const compactScreen = window.matchMedia('(max-width: 619px)').matches;
+      if (reduceMotion || compactScreen) {
         window.location.hash = `#/${route}`;
         transitioning = false;
         return;
@@ -147,21 +149,29 @@ const Router = {
       const plates = [...atmosphere.querySelectorAll('.cosmic-plate')];
       const labels = [...atmosphere.querySelectorAll('.coordinate-label')];
       const anchorFor = (index, count) => anchors[Math.round(index * Math.max(0, anchors.length - 1) / Math.max(1, count - 1))];
+      const savedAtmosphereLayout = atmosphereLayouts.get(route);
+      const plateTops = [];
       plates.forEach((plate, index) => {
         const anchor = anchorFor(index, plates.length);
         if (!anchor) return;
-        plate.style.top = `${anchor.offsetTop + (index ? 110 : 42)}px`;
+        const top = savedAtmosphereLayout?.plates?.[index] ?? anchor.offsetTop + (index ? 110 : 42);
+        plateTops.push(top);
+        plate.style.top = `${top}px`;
         main.append(plate);
       });
       const labelsPerAnchor = new Map();
+      const labelTops = [];
       labels.forEach((label, index) => {
         const anchor = anchorFor(index, labels.length);
         if (!anchor) return;
         const anchorCount = labelsPerAnchor.get(anchor) || 0;
         labelsPerAnchor.set(anchor, anchorCount + 1);
-        label.style.top = `${anchor.offsetTop + 24 + anchorCount * 24}px`;
+        const top = savedAtmosphereLayout?.labels?.[index] ?? anchor.offsetTop + 24 + anchorCount * 24;
+        labelTops.push(top);
+        label.style.top = `${top}px`;
         main.append(label);
       });
+      if (!savedAtmosphereLayout) atmosphereLayouts.set(route, { plates: plateTops, labels: labelTops });
       atmosphere.remove();
     }
 

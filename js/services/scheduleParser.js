@@ -99,8 +99,24 @@ function generatedCode(title) {
 function cleanTableTitle(value) {
   return value
     .replace(/\s+[A-Z]{3,}\d+[A-Z0-9-]*\s+.*$/i, '')
+    .replace(/^[a-z]{2,6}\s+(?=[A-Z]{3,}\b)/, '')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function recoverCommonSubjectTitle(code, value) {
+  const normalizedCode = code.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const title = cleanTableTitle(value);
+  const upperTitle = title.toUpperCase();
+  if (/^NSTP/.test(normalizedCode) && /(?:CIVIC|WELFARE|TRAINING|SERVICE)/.test(upperTitle)) return 'Civic Welfare and Training Services 1';
+  if (/^ENGL/.test(normalizedCode) && /(?:ENGL|ELECTIVE|COLLEGE)/.test(upperTitle)) return 'College English (Elective)';
+  if (/^ACTG/.test(normalizedCode) && /(?:ACCOUNT|REPORT)/.test(upperTitle)) return 'Financial Accounting and Reporting';
+  if (/^PHED/.test(normalizedCode) && /(?:MOVEMENT|COMPETEN|PATHFIT)/.test(upperTitle)) return 'PATHFIT 1: Movement Competency Training';
+  if ((/^STAS/.test(normalizedCode) || /SOCIET/.test(upperTitle)) && /(?:SOCIET|TECHNO|SCIENCE)/.test(upperTitle)) return 'Science, Technology and Society';
+  if ((/^TCWD/.test(normalizedCode) || /^T[CO][WDO]{2}\d/.test(normalizedCode)) && /WORLD/.test(upperTitle)) return 'The Contemporary World';
+  if (/^UNDS/.test(normalizedCode) && /SELF/.test(upperTitle)) return 'Understanding the Self';
+  if (/^VRTS/.test(normalizedCode) && /(?:VERITAS|MISERIC|CORDIA)/.test(upperTitle)) return 'Veritas et Misericordia 1';
+  return title.replace(/^AND\s+|\s+AND$/gi, '').trim();
 }
 
 function parseOriginalFormat(line, lineIndex, matches) {
@@ -373,9 +389,152 @@ function parseRegistrarLayout(layout) {
   });
 }
 
+function parseSubjectScheduleLayout(layout) {
+  if (!layout?.words?.length || !layout.width || !layout.height) return [];
+  const words = layout.words.map((word) => ({
+    ...word,
+    x: (word.bbox.x0 + word.bbox.x1) / 2,
+    y: (word.bbox.y0 + word.bbox.y1) / 2,
+    token: word.text.toUpperCase().replace(/[^A-Z/]/g, ''),
+  }));
+  const scheduleHeader = words.find((word) => word.token === 'SCHEDULE');
+  const subjectHeaders = words.filter((word) => word.token === 'SUBJECT').sort((a, b) => a.x - b.x);
+  const titleHeader = words.find((word) => word.token === 'TITLE');
+  const sectionHeader = words.find((word) => /^(SECTION|SECTION\/ROOM)$/.test(word.token));
+  if (!scheduleHeader || !subjectHeaders.length || (!titleHeader && subjectHeaders.length < 2) || !sectionHeader) return [];
+
+  const codeHeader = subjectHeaders[0];
+  const subjectTitleX = titleHeader?.x || subjectHeaders[1]?.x;
+  const headerValues = [codeHeader.y, titleHeader?.y, scheduleHeader.y, sectionHeader.y].filter(Number.isFinite);
+  const headerY = headerValues.reduce((sum, value) => sum + value, 0) / headerValues.length;
+  const codeTitleBoundary = (codeHeader.x + subjectTitleX) / 2;
+  const titleScheduleBoundary = (subjectTitleX + scheduleHeader.x) / 2;
+  const scheduleSectionBoundary = (scheduleHeader.x + sectionHeader.x) / 2;
+  const nextColumn = words
+    .filter((word) => word.y <= headerY + layout.height * 0.04 && word.x > sectionHeader.x && /^(LEC|LAB|TOTAL|UNITS)$/.test(word.token))
+    .sort((a, b) => a.x - b.x)[0];
+  const sectionRight = nextColumn ? (sectionHeader.x + nextColumn.x) / 2 : layout.width * 0.82;
+  const normalizeDetectedCode = (value) => {
+    const compact = value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    let boundary = compact.search(/[0-9]/);
+    if (boundary > 2 && /[IO]/.test(compact[boundary - 1])) boundary -= 1;
+    if (boundary < 2) return compact;
+    return compact.slice(0, boundary) + compact.slice(boundary).replace(/[ILO]/g, (character) => ({ I: '1', L: '1', O: '0' }[character]));
+  };
+  const detectedCodeRows = words
+    .filter((word) => word.y > headerY + layout.height * 0.015 && word.x < codeTitleBoundary)
+    .filter((word) => /^[A-Z]{2,10}[A-Z0-9]{2,5}$/.test(word.text.toUpperCase().replace(/[^A-Z0-9]/g, '')))
+    .filter((word) => /[0-9]/.test(normalizeDetectedCode(word.text)))
+    .sort((a, b) => a.y - b.y);
+  const codeRows = detectedCodeRows.filter((word, index) => !detectedCodeRows
+    .slice(0, index)
+    .some((existing) => Math.abs(existing.y - word.y) < layout.height * 0.012));
+  const scheduleRows = words
+    .filter((word) => word.y > headerY + layout.height * 0.015)
+    .filter((word) => word.x >= titleScheduleBoundary && word.x < scheduleSectionBoundary)
+    .filter((word) => findDayToken(word.text)?.days?.length)
+    .sort((a, b) => a.y - b.y);
+  const rowAnchors = [...codeRows, ...scheduleRows]
+    .sort((a, b) => a.y - b.y)
+    .filter((word, index, list) => !list.slice(0, index)
+      .some((existing) => Math.abs(existing.y - word.y) < layout.height * 0.012));
+  if (!rowAnchors.length) return [];
+
+  const cellText = (rowWords, left, right) => rowWords
+    .filter((word) => word.x >= left && word.x < right)
+    .sort((a, b) => a.y - b.y || a.x - b.x)
+    .map((word) => word.text)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return rowAnchors.flatMap((rowAnchor, index) => {
+    const top = index ? (rowAnchors[index - 1].y + rowAnchor.y) / 2 : headerY;
+    const bottom = index < rowAnchors.length - 1
+      ? (rowAnchor.y + rowAnchors[index + 1].y) / 2
+      : Math.min(layout.height, rowAnchor.y + (rowAnchor.y - top));
+    const rowWords = words.filter((word) => word.y > top && word.y < bottom);
+    const rawTitle = cleanTableTitle(cellText(rowWords, codeTitleBoundary, titleScheduleBoundary));
+    const schedule = cellText(rowWords, titleScheduleBoundary, scheduleSectionBoundary);
+    const dayToken = findDayToken(schedule);
+    const times = [...schedule.matchAll(TIME_PATTERN)];
+    if (!rawTitle || !dayToken?.days?.length || times.length < 2) return [];
+    const rawCode = cellText(rowWords, 0, codeTitleBoundary).split(/\s+/)
+      .map(normalizeDetectedCode)
+      .find((value) => /[A-Z]{2}/.test(value) && /\d/.test(value));
+    const code = rawCode || generatedCode(rawTitle);
+    const title = recoverCommonSubjectTitle(code, rawTitle);
+    const { start, end } = resolvedTimeRange(times);
+    if (!start || !end || start >= end) return [];
+    const sectionRoom = cellText(rowWords, scheduleSectionBoundary, sectionRight);
+    const roomMatch = sectionRoom.match(/(?:GYM[^\s]*?(?:\([^)]*\))?|(?:SPCB\s+)?\d{3,4}|OCR|ONLINE)\s*$/i);
+    const room = cleanRoom((roomMatch?.[0] || sectionRoom.split(/[-\s]/).at(-1) || '').replace(/^SPCB\s+/i, ''));
+    return dayToken.days.map((day) => ({
+      id: `subject-table-${slug(code)}-${day}-${slug(start)}`,
+      code,
+      title,
+      day,
+      start,
+      end,
+      room,
+      instructor: '',
+      isComposite: Boolean(layout.isComposite),
+    }));
+  });
+}
+
 export function parseScheduleText(input) {
   const text = typeof input === 'string' ? input : input?.text || '';
   const normalized = text.replace(/[|]/g, ' ').replace(/[‐‑‒–—]/g, '-').replace(/\r/g, '');
+  const layout = typeof input === 'object' ? input.layout : null;
+  const layouts = typeof input === 'object' && Array.isArray(input.layouts) ? input.layouts : [layout];
+  const candidateScore = (item) => {
+    const titleWords = item.title.match(/[A-Za-z]{3,}/g)?.length || 0;
+    const cleanCode = /^[A-Z]{2,10}\d{2,4}$/.test(item.code) ? 5 : 0;
+    const usefulRoom = item.room && !/^BSA$/i.test(item.room) ? 2 : 0;
+    const noise = /[=~]{2,}|\b(?:BSA|TOTAL|UNITS)\b/i.test(item.title) ? 5 : 0;
+    const compositePenalty = item.isComposite ? 20 : 0;
+    return cleanCode + Math.min(5, titleWords) + usefulRoom - noise - compositePenalty;
+  };
+  const titleTokens = (title) => new Set((title.toUpperCase().match(/[A-Z]{3,}/g) || [])
+    .filter((token) => !['AND', 'THE', 'WITH'].includes(token)));
+  const titleAgreement = (item, candidates) => {
+    const tokens = titleTokens(item.title);
+    return candidates.reduce((score, candidate) => {
+      if (candidate === item || candidate.isComposite) return score;
+      const otherTokens = titleTokens(candidate.title);
+      return score + [...tokens].filter((token) => otherTokens.has(token)).length * 4;
+    }, 0);
+  };
+  const subjectCandidates = new Map();
+  layouts.flatMap(parseSubjectScheduleLayout).forEach((item) => {
+    const key = `${item.day}-${item.start}-${item.end}`;
+    if (!subjectCandidates.has(key)) subjectCandidates.set(key, []);
+    subjectCandidates.get(key).push(item);
+  });
+  const subjectScheduleClasses = [...subjectCandidates.values()].map((candidates) => {
+    const regularCandidates = candidates.filter((item) => !item.isComposite);
+    const eligible = regularCandidates.length ? regularCandidates : candidates;
+    return [...eligible].sort((a, b) => (
+      candidateScore(b) + titleAgreement(b, eligible)
+      - candidateScore(a) - titleAgreement(a, eligible)
+    ))[0];
+  });
+  if (subjectScheduleClasses.length >= 2) {
+    const uniqueSubjectClasses = [...new Map(subjectScheduleClasses.map((item) => [
+      `${item.code}-${item.day}-${item.start}`,
+      { ...item, isComposite: undefined },
+    ])).values()];
+    return {
+      course: parseCourse(normalized),
+      yearLevel: '',
+      semester: parseSemester(normalized),
+      classes: uniqueSubjectClasses,
+      warnings: [],
+      rawText: text,
+      documentType: 'classes',
+    };
+  }
   const classes = [];
   const warnings = [];
   let currentDay = null;
@@ -389,8 +548,8 @@ export function parseScheduleText(input) {
     if (result.classes) classes.push(...result.classes);
   });
 
-  classes.push(...parseGridLayout(typeof input === 'object' ? input.layout : null));
-  classes.push(...parseRegistrarLayout(typeof input === 'object' ? input.layout : null));
+  classes.push(...parseGridLayout(layout));
+  classes.push(...parseRegistrarLayout(layout));
   const unique = [...new Map(classes.map((item) => [`${item.day}-${item.start}-${item.title.toLowerCase()}`, item])).values()];
   const documentType = /(?:schedule\s+of\s+.*examinations|\bexam\b.*\bdate\b|\blong exam\b)/i.test(normalized) ? 'exam' : 'classes';
   return { course: parseCourse(normalized), yearLevel: '', semester: parseSemester(normalized), classes: unique, warnings, rawText: text, documentType };
