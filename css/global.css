@@ -1,0 +1,67 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+  font-size: 16px;
+  transition: background-color 180ms ease;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  overflow-x: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--ui-font);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+button,
+input {
+  color: inherit;
+  font: inherit;
+}
+
+button {
+  width: fit-content;
+  border-radius: 15px;
+  cursor: pointer;
+}
+
+h1,
+h2,
+h3,
+p,
+dl,
+dd {
+  margin: 0;
+}
+
+h1,
+h2,
+h3 {
+  color: var(--display-text);
+  font-family: var(--display-font);
+  font-weight: 500;
+}
+
+code {
+  color: var(--primary-light);
+  font-family: inherit;
+}
+
+::selection {
+  background: var(--primary);
+  color: var(--bg);
+}
+
+:focus-visible {
+  outline: 1px solid var(--primary-light);
+  outline-offset: 4px;
+}

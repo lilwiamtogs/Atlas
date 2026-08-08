@@ -1,0 +1,94 @@
+import { escapeHtml } from '../utils/html.js';
+import { hasCompleteScheduleData } from '../services/autosave.js';
+
+export default function SettingsPanel(state, message = '') {
+  const supported = typeof Notification !== 'undefined' && 'serviceWorker' in navigator;
+  const permission = supported ? Notification.permission : 'unsupported';
+  const enabled = Boolean(state.notificationSettings?.enabled && permission === 'granted');
+  const autoSaveEnabled = Boolean(state.autoSaveSettings?.enabled);
+  const canAutoSave = hasCompleteScheduleData(state.schedule);
+  const installed = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const canInstall = document.documentElement.classList.contains('can-install-atlas');
+  const appleDevice = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const featureRequestLink = `mailto:williamtogonon@gmail.com?subject=${encodeURIComponent('Atlas feature request')}&body=${encodeURIComponent(`Hi William,
+
+Feature name:
+
+What would you like Atlas to do?
+
+Why would this be useful?
+
+Anything else:
+`)}`;
+
+  return `
+    <div class="settings-screen" id="settings-screen">
+      <section class="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <header class="settings-header">
+          <div>
+            <p class="eyebrow">Atlas</p>
+            <h2 id="settings-title">Settings</h2>
+          </div>
+          <button class="settings-close" id="close-settings" type="button" aria-label="Close settings">×</button>
+        </header>
+
+        <div class="settings-section settings-appearance">
+          <div class="settings-section-copy">
+            <strong>Appearance</strong>
+            <span>Use Atlas in light or dark mode.</span>
+          </div>
+          <button class="settings-theme-toggle" id="settings-theme-toggle" type="button" aria-label="Switch to ${state.theme === 'dark' ? 'light' : 'dark'} mode">
+            <span>${state.theme === 'dark' ? 'Dark' : 'Light'}</span>
+            <span class="theme-toggle-track"><span class="theme-toggle-thumb"></span></span>
+          </button>
+        </div>
+
+        <div class="settings-section settings-notifications">
+          <div class="notification-settings-heading">
+            <div>
+              <strong>${enabled ? 'Reminders enabled' : 'Notifications'}</strong>
+              <span>${permission === 'denied' ? 'Blocked in browser settings' : 'Class, assignment, workload, and exam alerts'}</span>
+            </div>
+            <button class="${enabled ? 'secondary-action' : 'primary-action'}" id="${enabled ? 'disable-notifications' : 'enable-notifications'}" type="button" ${supported && permission !== 'denied' ? '' : 'disabled'}>${enabled ? 'Turn off' : 'Enable'}</button>
+          </div>
+          <ul class="notification-rule-list">
+            <li>Classes · 15 minutes before</li>
+            <li>Assignments · 14, 7, 3, and 1 day before</li>
+            <li>Busy week · 3 or more tasks within 7 days</li>
+            <li>Tests & exams · 7 days before</li>
+          </ul>
+          <p class="notification-limit">Atlas checks reminders while the app is open. Fully closed delivery will require a Web Push server.</p>
+          ${message ? `<p class="settings-message" role="status">${escapeHtml(message)}</p>` : ''}
+        </div>
+
+        <div class="settings-section settings-autosave">
+          <div class="notification-settings-heading">
+            <div>
+              <strong>${autoSaveEnabled ? 'Autosave enabled' : 'Schedule autosave'}</strong>
+              <span>${canAutoSave ? 'Keeps one saved semester updated after task and note changes.' : 'Complete Current Data on the Import page first.'}</span>
+            </div>
+            <button class="${autoSaveEnabled ? 'secondary-action' : 'primary-action'}" id="${autoSaveEnabled ? 'disable-autosave' : 'enable-autosave'}" type="button" ${canAutoSave || autoSaveEnabled ? '' : 'disabled'}>${autoSaveEnabled ? 'Turn off' : 'Enable'}</button>
+          </div>
+        </div>
+
+        <div class="settings-section settings-install">
+          <div class="notification-settings-heading">
+            <div>
+              <strong>${installed ? 'Atlas is installed' : 'Install Atlas'}</strong>
+              <span>${installed ? 'Updates are applied automatically when Atlas is reopened.' : canInstall ? 'Add Atlas to this device for offline access.' : appleDevice ? 'Use Share, then “Add to Home Screen.”' : 'Use your browser menu and choose “Install app.”'}</span>
+            </div>
+            ${!installed && canInstall ? '<button class="primary-action" id="settings-install-app" type="button">Install</button>' : ''}
+          </div>
+        </div>
+
+        <div class="settings-section settings-contact">
+          <div class="settings-section-copy">
+            <strong>Have an idea for Atlas?</strong>
+            <span>Send a feature request using a ready-made email template.</span>
+          </div>
+          <a class="secondary-action settings-email-link" href="${featureRequestLink}">Request a feature <span aria-hidden="true">↗</span></a>
+          <span class="settings-email-address">williamtogonon@gmail.com</span>
+        </div>
+      </section>
+    </div>`;
+}
