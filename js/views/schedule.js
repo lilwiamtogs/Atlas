@@ -150,7 +150,7 @@ function personalDayPlanner(day, tasks, notes, now) {
     </article>`;
 }
 
-function bindCardAnimation(card) {
+function bindCardAnimation(card, cards) {
   const summary = card.querySelector(':scope > summary');
   if (!summary) return;
 
@@ -160,6 +160,13 @@ function bindCardAnimation(card) {
     const opening = !card.open;
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+    if (opening) {
+      cards.forEach((otherCard) => {
+        if (otherCard === card || !otherCard.open) return;
+        otherCard.querySelector(':scope > summary')?.click();
+      });
+    }
+
     if (reduceMotion || typeof card.animate !== 'function') {
       card.open = opening;
       return;
@@ -168,7 +175,10 @@ function bindCardAnimation(card) {
     card.dataset.animating = 'true';
     const startHeight = card.getBoundingClientRect().height;
     if (opening) card.open = true;
-    const endHeight = opening ? card.scrollHeight : summary.getBoundingClientRect().height;
+    else card.classList.add('is-collapsing');
+    const cardStyle = getComputedStyle(card);
+    const cardBorders = (Number.parseFloat(cardStyle.borderTopWidth) || 0) + (Number.parseFloat(cardStyle.borderBottomWidth) || 0);
+    const endHeight = (opening ? card.scrollHeight : summary.getBoundingClientRect().height) + cardBorders;
     card.style.overflow = 'hidden';
     const animation = card.animate(
       [{ height: `${startHeight}px` }, { height: `${endHeight}px` }],
@@ -177,6 +187,7 @@ function bindCardAnimation(card) {
 
     animation.addEventListener('finish', () => {
       if (!opening) card.open = false;
+      card.classList.remove('is-collapsing');
       card.style.removeProperty('overflow');
       card.style.removeProperty('height');
       delete card.dataset.animating;
@@ -250,8 +261,9 @@ export default {
       });
     });
     document.getElementById('print-schedule')?.addEventListener('click', () => window.print());
-    document.querySelectorAll('.class-card[data-class-id]').forEach((card) => {
-      bindCardAnimation(card);
+    const classCards = [...document.querySelectorAll('.class-card[data-class-id]')];
+    classCards.forEach((card) => {
+      bindCardAnimation(card, classCards);
       card.addEventListener('toggle', () => {
         if (card.open) openClassIds.add(card.dataset.classId);
         else openClassIds.delete(card.dataset.classId);

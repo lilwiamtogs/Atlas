@@ -2,8 +2,8 @@ import PathSection from '../components/pathSection.js';
 import Store from '../store.js';
 import { escapeHtml } from '../utils/html.js';
 import { DAY_NAMES } from '../utils/time.js';
-import { scanScheduleImage } from '../services/ocr.js?v=34';
-import { parseScheduleText } from '../services/scheduleParser.js?v=34';
+import { scanScheduleImage } from '../services/ocr.js?v=36';
+import { parseScheduleText } from '../services/scheduleParser.js?v=37';
 import {
   loadSchedule,
   removeImportedSchedule,
@@ -318,7 +318,9 @@ export default {
         reviewIndex = 0;
         message = draft.classes.length
           ? ''
-          : 'Atlas could not find schedule rows. Try a straighter, clearer image with the full table visible.';
+          : draft.documentType === 'exam'
+            ? 'Atlas recognized an examination schedule, not a recurring class schedule. Exam-image importing is not supported yet.'
+            : 'Atlas could not find schedule rows. Try a straighter, clearer image with the full table visible.';
       } catch (error) {
         console.error('Schedule scan failed.', error);
         message = 'The scan could not finish. Check your connection and try again.';

@@ -1,6 +1,18 @@
-const greetings = ['hi :)', 'yo', 'welcome', "what's up?"];
+const greetings = [
+  'hi :)',
+  'yo',
+  'welcome',
+  "what's up?",
+  'welcome back',
+  'good to see u',
+  'ur back!',
+  'back at it?',
+  'welcome, what’s up?',
+  'hey, ready?',
+];
 
 export function showWelcomeScreen({ fromSplash = false } = {}) {
+  document.documentElement.classList.add('atlas-welcoming');
   const screen = document.createElement('div');
   const greeting = greetings[Math.floor(Math.random() * greetings.length)];
 
@@ -28,4 +40,5 @@ export async function hideWelcomeScreen(screen) {
   }
 
   screen.remove();
+  document.documentElement.classList.remove('atlas-welcoming');
 }

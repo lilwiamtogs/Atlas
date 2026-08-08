@@ -1,6 +1,6 @@
-import Home from './views/home.js?v=38';
-import Schedule from './views/schedule.js?v=43';
-import ImportSchedule from './views/importSchedule.js?v=38';
+import Home from './views/home.js?v=44';
+import Schedule from './views/schedule.js?v=54';
+import ImportSchedule from './views/importSchedule.js?v=51';
 import ClassDetail from './views/classDetail.js?v=42';
 import Navbar from './components/navbar.js';
 import DeveloperTools from './components/developerTools.js';
@@ -12,11 +12,16 @@ import { requestNotificationAccess, saveNotificationSettings } from './services/
 import { disableAutoSave, enableAutoSave } from './services/autosave.js';
 import { formatClock, getNow } from './utils/time.js';
 import enhanceSelects from './components/selectEnhancer.js?v=43';
+import Atmosphere from './components/atmosphere.js?v=3';
+import HelpPanel, { helpTopics } from './components/helpPanel.js?v=3';
+import { showFirstOpenTutorial } from './components/onboarding.js?v=32';
 
 const routes = { home: Home, schedule: Schedule, import: ImportSchedule, class: ClassDetail };
 let transitioning = false;
 let settingsOpen = false;
 let settingsMessage = '';
+let helpOpen = false;
+let pendingHelpTarget = null;
 let suppressPageAnimation = false;
 let shouldAnimatePage = true;
 
@@ -36,7 +41,7 @@ function createPageTransition() {
 const Router = {
   init() {
     const installed = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-    if (installed && localStorage.getItem('atlas.tutorialComplete') === 'true' && localStorage.getItem('atlas.settingsIntroduced') !== 'true') {
+    if (installed && localStorage.getItem('atlas.tutorialComplete.v2') === 'true' && localStorage.getItem('atlas.settingsIntroduced') !== 'true') {
       settingsOpen = true;
       localStorage.setItem('atlas.settingsIntroduced', 'true');
     }
@@ -45,6 +50,15 @@ const Router = {
       shouldAnimatePage = true;
       this.render();
     });
+    document.getElementById('app')?.addEventListener('click', (event) => {
+      if (!event.target.closest('#replay-tutorial')) return;
+      event.preventDefault();
+      event.stopPropagation();
+      helpOpen = false;
+      document.getElementById('help-screen')?.remove();
+      document.getElementById('mobile-install-gate')?.remove();
+      window.setTimeout(() => showFirstOpenTutorial({ force: true }), 0);
+    }, true);
     Store.subscribe(() => this.render());
     this.render();
   },
@@ -104,7 +118,7 @@ const Router = {
 
     Store.get().currentView = route;
     app.innerHTML = `
-      <main id="main-content" class="app-main route-${route} ${shouldAnimatePage && !suppressPageAnimation ? 'page-enter-active' : ''}">${routes[route].render(state, now, context)}</main>
+      <main id="main-content" class="app-main route-${route} ${shouldAnimatePage && !suppressPageAnimation ? 'page-enter-active' : ''}">${Atmosphere(route)}${routes[route].render(state, now, context)}</main>
       <div class="app-controls">
         ${InstallButton()}
         ${ThemeToggle(state.theme)}
@@ -112,15 +126,61 @@ const Router = {
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"></path></svg>
         </button>
       </div>
-      ${Navbar(route === 'class' ? 'schedule' : route)}
+      <div class="nav-dock">
+        ${Navbar(route === 'class' ? 'schedule' : route)}
+        <button class="global-help-button" data-open-help type="button" aria-label="Open Atlas help">?</button>
+      </div>
       ${DeveloperTools.render(state, now, route)}
-      ${settingsOpen ? SettingsPanel(state, settingsMessage) : ''}`;
+      ${settingsOpen ? SettingsPanel(state, settingsMessage) : ''}
+      ${helpOpen ? HelpPanel() : ''}`;
 
-    app.querySelectorAll('#main-content > .confirm-screen, #main-content > .image-source-screen').forEach((overlay) => {
+    app.querySelectorAll('#main-content > .confirm-screen, #main-content > .image-source-screen, #main-content > .note-upload-screen').forEach((overlay) => {
       app.append(overlay);
     });
 
     enhanceSelects(app);
+
+    const atmosphere = app.querySelector('.atlas-atmosphere');
+    if (atmosphere) {
+      const main = app.querySelector('#main-content');
+      const anchors = [main.querySelector(':scope > .page-header'), ...main.querySelectorAll('.path-section')].filter(Boolean);
+      const plates = [...atmosphere.querySelectorAll('.cosmic-plate')];
+      const labels = [...atmosphere.querySelectorAll('.coordinate-label')];
+      const anchorFor = (index, count) => anchors[Math.round(index * Math.max(0, anchors.length - 1) / Math.max(1, count - 1))];
+      plates.forEach((plate, index) => {
+        const anchor = anchorFor(index, plates.length);
+        if (!anchor) return;
+        plate.style.top = `${anchor.offsetTop + (index ? 110 : 42)}px`;
+        main.append(plate);
+      });
+      const labelsPerAnchor = new Map();
+      labels.forEach((label, index) => {
+        const anchor = anchorFor(index, labels.length);
+        if (!anchor) return;
+        const anchorCount = labelsPerAnchor.get(anchor) || 0;
+        labelsPerAnchor.set(anchor, anchorCount + 1);
+        label.style.top = `${anchor.offsetTop + 24 + anchorCount * 24}px`;
+        main.append(label);
+      });
+      atmosphere.remove();
+    }
+
+    const atmospherePlates = [...app.querySelectorAll('.cosmic-plate')];
+    if ('IntersectionObserver' in window) {
+      let remainingAtmospherePlates = atmospherePlates.length;
+      const atmosphereObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add('is-drawing');
+          observer.unobserve(entry.target);
+          remainingAtmospherePlates -= 1;
+          if (remainingAtmospherePlates === 0) observer.disconnect();
+        });
+      }, { rootMargin: '12% 0px', threshold: 0.03 });
+      atmospherePlates.forEach((plate) => atmosphereObserver.observe(plate));
+    } else {
+      atmospherePlates.forEach((plate) => plate.classList.add('is-drawing'));
+    }
 
     app.querySelectorAll('[data-route]').forEach((button) => {
       button.addEventListener('click', () => this.go(button.dataset.route));
@@ -137,6 +197,42 @@ const Router = {
       settingsOpen = true;
       settingsMessage = '';
       this.render();
+    }));
+    app.querySelector('[data-open-help]')?.addEventListener('click', () => {
+      suppressPageAnimation = true;
+      helpOpen = true;
+      this.render();
+    });
+    const closeHelp = () => {
+      helpOpen = false;
+      document.getElementById('help-screen')?.remove();
+    };
+    document.getElementById('close-help')?.addEventListener('click', closeHelp);
+    document.getElementById('help-screen')?.addEventListener('click', (event) => {
+      if (event.target.id === 'help-screen') closeHelp();
+    });
+    app.querySelectorAll('.help-topic-summary').forEach((summary) => summary.addEventListener('click', () => {
+      const topic = summary.closest('.help-topic');
+      const willOpen = !topic.classList.contains('is-open');
+      app.querySelectorAll('.help-topic.is-open').forEach((openTopic) => {
+        openTopic.classList.remove('is-open');
+        openTopic.querySelector('.help-topic-summary')?.setAttribute('aria-expanded', 'false');
+      });
+      if (willOpen) {
+        topic.classList.add('is-open');
+        summary.setAttribute('aria-expanded', 'true');
+      }
+    }));
+    app.querySelectorAll('[data-help-action]').forEach((button) => button.addEventListener('click', () => {
+      const topic = helpTopics[Number(button.dataset.helpAction)];
+      pendingHelpTarget = topic.target;
+      closeHelp();
+      if (topic.settings) {
+        settingsOpen = true;
+        this.render();
+      } else {
+        this.go(topic.route);
+      }
     }));
     const closeSettings = () => {
       const screen = document.getElementById('settings-screen');
@@ -192,6 +288,17 @@ const Router = {
 
     routes[route].bind?.(this, state, now, context);
     DeveloperTools.bind(this);
+    if (pendingHelpTarget) {
+      const targetSelector = pendingHelpTarget;
+      pendingHelpTarget = null;
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+        const target = targetSelector.split(',').map((selector) => document.querySelector(selector.trim())).find(Boolean);
+        if (!target) return;
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.classList.add('help-target-highlight');
+        window.setTimeout(() => target.classList.remove('help-target-highlight'), 4000);
+      }));
+    }
     this.updateClock();
     shouldAnimatePage = false;
     suppressPageAnimation = false;

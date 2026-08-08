@@ -1772,6 +1772,167 @@
   backdrop-filter: blur(16px);
 }
 
+.nav-dock {
+  position: fixed;
+  z-index: 12;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  left: 50%;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 10px;
+  width: min-content;
+  transform: translateX(-50%);
+}
+
+.nav-dock .bottom-nav {
+  position: static;
+  width: min(330px, calc(100vw - 80px));
+  transform: none;
+}
+
+.global-help-button {
+  display: grid;
+  flex: 0 0 52px;
+  width: 52px;
+  height: 58px;
+  padding: 0;
+  place-items: center;
+  border: 1.5px solid var(--line);
+  border-radius: 30px;
+  background: var(--nav-bg);
+  color: var(--primary-light);
+  font: 700 0.72rem/1 var(--ui-font);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(16px);
+}
+
+.help-screen {
+  position: fixed;
+  z-index: 90;
+  inset: 0;
+  display: grid;
+  align-items: end;
+  background: rgba(8, 13, 10, 0.62);
+  backdrop-filter: blur(10px);
+  animation: confirm-screen-in 160ms ease both;
+}
+
+.help-panel {
+  width: 100%;
+  max-height: min(88vh, 760px);
+  padding: 24px 20px max(28px, env(safe-area-inset-bottom));
+  overflow: auto;
+  border-top: 1.5px solid var(--line);
+  border-radius: 30px 30px 0 0;
+  background: var(--surface);
+  scrollbar-width: none;
+}
+
+.help-panel::-webkit-scrollbar { display: none; }
+
+.help-intro {
+  margin: 4px 0 20px;
+  color: var(--text-muted);
+  font-size: 0.64rem;
+  line-height: 1.65;
+}
+
+.help-topic-list {
+  display: grid;
+  gap: 8px;
+}
+
+.help-topic {
+  border: 1.5px solid var(--line);
+  border-radius: 15px;
+  background: var(--bg);
+  overflow: hidden;
+  transition: border-color 220ms ease, background-color 220ms ease, box-shadow 220ms ease;
+}
+
+.help-topic.is-open {
+  border-color: var(--primary);
+  background: var(--surface-2);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
+}
+
+.help-topic-summary {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 15px 16px;
+  color: var(--text);
+  font-family: var(--display-font);
+  font-size: 1rem;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.help-topic-summary i {
+  font-style: normal;
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.help-topic.is-open .help-topic-summary i { transform: rotate(45deg); }
+
+.help-topic-content {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 300ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease;
+}
+
+.help-topic-content > div {
+  min-height: 0;
+  padding: 0 16px;
+  overflow: hidden;
+  transition: padding-bottom 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.help-topic.is-open .help-topic-content {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.help-topic.is-open .help-topic-content > div {
+  padding-bottom: 16px;
+}
+
+.help-topic p {
+  margin: 0 0 14px;
+  color: var(--text-muted);
+  font-size: 0.6rem;
+  line-height: 1.65;
+}
+
+.help-replay {
+  margin-top: 20px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: var(--primary-light);
+  font: 0.58rem/1.4 var(--ui-font);
+  letter-spacing: 0.06em;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.help-target-highlight {
+  position: relative;
+  z-index: 3;
+  animation: help-target-pulse 900ms ease-in-out 4;
+}
+
+@keyframes help-target-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary-light) 0%, transparent); }
+  50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--primary-light) 38%, transparent), 0 14px 34px rgba(0, 0, 0, 0.16); }
+}
+
 .settings-screen {
   position: fixed;
   z-index: 80;
@@ -2061,6 +2222,19 @@
 
   .app-controls {
     display: flex;
+  }
+
+  .help-screen {
+    place-items: center;
+    padding: 22px;
+  }
+
+  .help-panel {
+    width: min(100%, 500px);
+    padding: 28px;
+    border: 1.5px solid var(--line);
+    border-radius: 30px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.25);
   }
 
   .settings-screen {
@@ -2960,15 +3134,13 @@
 
 @media (min-width: 620px) {
   .bottom-nav {
-    right: 24px;
-    bottom: 24px;
-    left: auto;
     width: 330px;
     height: 58px;
     padding: 0;
     border: 1px solid var(--line);
-    transform: none;
   }
+
+  .nav-dock { bottom: 24px; }
 
   .developer-panel {
     right: 24px;
@@ -2990,6 +3162,7 @@
   }
 
   .app-controls,
+  .nav-dock,
   .bottom-nav,
   .developer-panel,
   .page-transition,
@@ -3050,4 +3223,494 @@
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Final Atlas design language */
+/* Atlas design-language experiment: hierarchy, path, semantics, motion. */
+:root {
+  --info: #7089a8;
+  --warning: #c89b55;
+  --danger: #b96a63;
+  --success: #6e9d72;
+  --surface-wash: rgba(122, 158, 135, 0.045);
+  --motion: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root[data-theme='light'] {
+  --surface-wash: rgba(122, 158, 135, 0.065);
+}
+
+.app-main {
+  position: relative;
+  padding-top: clamp(30px, 6vw, 58px);
+}
+
+.app-main > :not(.atlas-atmosphere) {
+  position: relative;
+  z-index: 1;
+}
+
+.atlas-atmosphere {
+  display: none;
+}
+
+.cosmic-plate {
+  position: absolute;
+  z-index: -1;
+  top: 110px;
+  left: 50%;
+  width: 100vw;
+  height: min(82vw, 820px);
+  transform: translate(-50%, calc(-30% + 8px));
+  color: var(--atmosphere-line);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+  overflow: visible;
+  vector-effect: non-scaling-stroke;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 650ms ease, transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.app-main > .cosmic-plate {
+  position: absolute;
+  z-index: 0;
+}
+
+.cosmic-plate.is-drawing {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, -30%);
+}
+
+.cosmic-planet {
+  opacity: 0.16;
+}
+
+.cosmic-galaxy {
+  opacity: 0.14;
+}
+
+.cosmic-orbits,
+.cosmic-eclipse {
+  opacity: 0.15;
+}
+
+.planet-ring {
+  opacity: 0.9;
+}
+
+.coordinate-label {
+  position: absolute;
+  z-index: -1;
+  top: 24px;
+  right: calc(50% - 48vw);
+  color: var(--atmosphere-label);
+  font: 0.48rem/1 var(--ui-font);
+  letter-spacing: 0.13em;
+  opacity: 0.24;
+  writing-mode: vertical-rl;
+}
+
+.app-main > .coordinate-label {
+  position: absolute;
+  z-index: 0;
+}
+
+.coordinate-label:nth-of-type(even) {
+  right: auto;
+  left: calc(50% - 48vw);
+  writing-mode: horizontal-tb;
+}
+
+.atmosphere-import .coordinate-label-1 {
+  top: 430px;
+  right: auto;
+  left: 6px;
+}
+
+.atlas-welcoming .cosmic-plate {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  transform: translate(-50%, calc(-30% + 8px)) !important;
+  transition: none !important;
+}
+
+:root[data-theme='dark'] .cosmic-planet { opacity: 0.19; }
+:root[data-theme='dark'] .cosmic-galaxy { opacity: 0.17; }
+:root[data-theme='dark'] .cosmic-orbits,
+:root[data-theme='dark'] .cosmic-eclipse { opacity: 0.18; }
+
+@keyframes atmosphere-arrive {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.page-header {
+  align-items: start !important;
+  margin-bottom: clamp(72px, 12vw, 112px);
+}
+
+.page-header .view-title,
+.page-header .clock-block {
+  align-self: start;
+  margin-top: 0;
+}
+
+.brand {
+  font-size: clamp(3.5rem, 13vw, 6.8rem);
+  transition: color 220ms ease, letter-spacing 300ms var(--motion);
+}
+
+.brand:hover {
+  color: var(--text);
+  letter-spacing: -0.025em;
+}
+
+.clock-block time {
+  color: var(--display-text);
+  font-family: var(--display-font);
+  font-size: clamp(1.65rem, 5vw, 2.5rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.view-title h1 {
+  max-width: 11ch;
+  font-size: clamp(2rem, 7vw, 3.4rem);
+  line-height: 0.98;
+}
+
+.path-section {
+  --path-gutter: 28px;
+  --path-axis: 5.5px;
+  margin-bottom: clamp(60px, 10vw, 94px);
+  padding-left: var(--path-gutter);
+}
+
+.path-section::before {
+  position: absolute;
+  top: 10px;
+  bottom: calc(-1 * clamp(60px, 10vw, 94px));
+  left: var(--path-axis);
+  width: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(var(--line), var(--line) 86%, transparent);
+  content: '';
+}
+
+.path-section:last-child::before {
+  bottom: 0;
+}
+
+.path-heading {
+  position: absolute;
+  top: 2px;
+  left: var(--path-axis);
+  margin: 0;
+  transform: translateX(-50%);
+}
+
+.path-ring {
+  width: 11px;
+  height: 11px;
+  background: var(--bg);
+  transition: transform 240ms var(--motion), background-color 200ms ease;
+}
+
+.path-line {
+  display: none;
+}
+
+.path-section.is-active > .path-heading .path-ring {
+  transform: scale(1.18);
+  border-color: var(--primary-light);
+  background: var(--primary-light);
+  animation: atlas-current 3.2s ease-in-out infinite;
+}
+
+.path-section > .eyebrow {
+  margin-bottom: 22px;
+}
+
+.route-home .hero-path-section {
+  min-height: 230px;
+  margin-bottom: clamp(78px, 13vw, 122px);
+  padding-top: 4px;
+}
+
+.route-home .hero-path-section .path-content,
+.route-home .hero-path-section .focus-class {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.route-home .hero-path-section .path-ring {
+  width: 15px;
+  height: 15px;
+  border-width: 2px;
+}
+
+.route-home .hero-path-section .eyebrow {
+  color: var(--text);
+  font-size: 0.72rem;
+}
+
+.route-home .hero-path-section .focus-code {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  padding: 5px 8px;
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  color: var(--primary-light);
+  font-size: 0.58rem;
+}
+
+.route-home .hero-path-section .focus-class h2 {
+  width: 100%;
+  max-width: 100%;
+  margin: 12px 0 16px;
+  overflow-wrap: anywhere;
+  font-size: clamp(2.8rem, 8vw, 4.8rem);
+  letter-spacing: -0.045em;
+  line-height: 0.96;
+}
+
+.route-home .path-section:nth-of-type(2) .focus-class h2 {
+  font-size: clamp(1.9rem, 6vw, 3rem);
+}
+
+.home-task,
+.home-exam,
+.exam-row {
+  border-width: 0 0 1px;
+  border-radius: 0;
+  background: transparent;
+}
+
+.home-task {
+  padding-inline: 0;
+}
+
+.home-task-dot {
+  border-color: var(--warning);
+}
+
+.home-task.is-urgent .home-task-dot {
+  border-color: var(--danger);
+  background: var(--danger);
+}
+
+.home-task.is-soon .home-task-dot {
+  border-color: var(--warning);
+  background: var(--warning);
+}
+
+.home-task-days {
+  padding: 4px 7px;
+  border: 1px solid var(--warning);
+  border-radius: 999px;
+  color: var(--warning);
+  font-size: 0.52rem;
+  text-transform: uppercase;
+}
+
+.home-exam-date,
+.exam-date {
+  border-color: var(--warning);
+  border-radius: 50%;
+}
+
+.class-card,
+.personal-planner-card,
+.add-exam-form {
+  border-width: 1.5px;
+  border-color: color-mix(in srgb, var(--primary) 52%, var(--line));
+  border-radius: 15px;
+  background-color: var(--surface);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+}
+
+.class-card {
+  background: var(--surface);
+  transition: border-color 320ms ease, background-color 320ms ease, box-shadow 320ms ease;
+}
+
+.class-card[open]:not(.is-collapsing) {
+  border-color: var(--primary);
+  background-color: var(--surface-2);
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.16);
+}
+
+.class-card > summary {
+  border-bottom: 1px solid transparent;
+  transition: border-color 260ms ease, transform 180ms var(--motion);
+}
+
+.class-card[open]:not(.is-collapsing) > summary {
+  border-bottom: 1px solid var(--line);
+}
+
+.class-card .class-main strong {
+  transition: color 280ms ease;
+}
+
+.class-card[open]:not(.is-collapsing) .class-main strong {
+  color: var(--text);
+}
+
+.class-card .class-marker {
+  transition: border-color 280ms ease, background-color 280ms ease, box-shadow 320ms ease;
+}
+
+.class-card[open]:not(.is-collapsing) .class-marker {
+  border-color: var(--primary-light);
+  background: var(--primary-light);
+  box-shadow: 0 0 0 3px var(--bg), 0 0 0 4px var(--primary);
+}
+
+.class-card-preview:hover,
+.class-card:has(> summary:hover) {
+  background: var(--surface-wash);
+}
+
+.class-item summary,
+.class-card-summary,
+.nav-item,
+.primary-action,
+.secondary-action,
+.upload-zone,
+.image-source-option {
+  transition: color 180ms ease, border-color 180ms ease, background-color 180ms ease, transform 180ms var(--motion);
+}
+
+.class-item summary:hover,
+.class-card-summary:hover {
+  transform: translateX(4px);
+}
+
+.primary-action,
+.secondary-action {
+  min-height: 42px;
+  padding: 12px 18px;
+  border-radius: 999px;
+}
+
+.primary-action:hover:not(:disabled),
+.secondary-action:hover:not(:disabled),
+.upload-zone:hover {
+  transform: translateY(-2px);
+}
+
+.primary-action:active:not(:disabled),
+.secondary-action:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+.upload-zone {
+  min-height: 240px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, transparent 49.8%, var(--line) 50%, transparent 50.2%), var(--surface-wash);
+}
+
+.add-exam-form,
+.add-exam-form > *,
+.task-form-field,
+.atlas-select,
+.atlas-enhanced-select,
+.atlas-select-trigger {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.add-exam-form input,
+.add-exam-form select,
+.add-exam-form .atlas-select-trigger {
+  width: 100%;
+}
+
+.upload-zone strong {
+  font-size: clamp(1.45rem, 5vw, 2.2rem);
+}
+
+.route-import .path-section:first-of-type .path-ring {
+  width: 15px;
+  height: 15px;
+  margin-left: -2px;
+  border: 4px double var(--info);
+}
+
+.route-import .path-section:first-of-type > .eyebrow {
+  color: var(--info);
+}
+
+.bottom-nav {
+  overflow: hidden;
+  border-color: rgba(169, 200, 179, 0.14);
+  border-radius: 30px;
+  background: var(--nav-bg);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+.nav-item {
+  position: relative;
+}
+
+.nav-item::after {
+  position: absolute;
+  right: 20%;
+  bottom: 0;
+  left: 20%;
+  height: 0;
+  transform: scaleX(0);
+  transform-origin: center;
+  background: var(--primary-light);
+  content: '';
+  transition: transform 260ms var(--motion);
+}
+
+.nav-item:hover {
+  background: rgba(122, 158, 135, 0.06);
+  color: var(--text);
+}
+
+.nav-item.is-active::after {
+  transform: scaleX(0);
+}
+
+.nav-item.is-active .nav-ring {
+  background: currentColor;
+}
+
+@keyframes atlas-current {
+  0%, 100% { box-shadow: 0 0 0 3px var(--bg), 0 0 0 4px var(--primary-light), 0 0 0 4px rgba(169, 200, 179, 0); }
+  50% { box-shadow: 0 0 0 3px var(--bg), 0 0 0 4px var(--primary-light), 0 0 0 10px rgba(169, 200, 179, 0.08); }
+}
+
+@media (min-width: 620px) {
+  .app-main { padding-inline: 34px; }
+  .page-header { align-items: flex-start !important; }
+  .route-home .hero-path-section { min-height: 280px; }
+}
+
+@media (max-width: 619px) {
+  .cosmic-plate {
+    left: 50%;
+    width: 190vw;
+    height: min(155vw, 780px);
+  }
+}
+
+@media (max-width: 430px) {
+  .add-exam-form { padding: 16px; }
+  .clock-block time { font-size: 1.35rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .path-section.is-active > .path-heading .path-ring { animation: none; }
+  .cosmic-plate { transition: none; }
 }

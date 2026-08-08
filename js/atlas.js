@@ -1,7 +1,7 @@
-import Router from './router.js?v=43';
+import Router from './router.js?v=61';
 import Store from './store.js';
 import { loadSchedule, scheduleSource } from './services/schedule.js';
-import { hideWelcomeScreen, showWelcomeScreen } from './components/welcomeScreen.js?v=41';
+import { hideWelcomeScreen, showWelcomeScreen } from './components/welcomeScreen.js?v=43';
 import { checkReminders } from './services/notifications.js';
 
 let renderedMinute = -1;

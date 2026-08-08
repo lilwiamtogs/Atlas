@@ -36,6 +36,13 @@ function wordsFromBlocks(blocks = []) {
     .map((word) => ({ text: word.text.trim(), bbox: word.bbox, confidence: word.confidence }));
 }
 
+function readingScore(data) {
+  const words = wordsFromBlocks(data.blocks);
+  const confidence = words.length ? words.reduce((sum, word) => sum + (word.confidence || 0), 0) / words.length : 0;
+  const timeTokens = data.text.match(/\b\d{1,2}[:.]\d{2}\s*(?:AM|PM)?\b/gi) || [];
+  return timeTokens.length * 12 + words.length * 0.25 + confidence;
+}
+
 export async function scanScheduleImage(file, onProgress = () => {}) {
   const preparedImage = await prepareImage(file);
   const tesseractModule = await import(OCR_MODULE_URL);
@@ -53,18 +60,28 @@ export async function scanScheduleImage(file, onProgress = () => {}) {
       user_defined_dpi: '300',
     });
     const result = await worker.recognize(preparedImage.blob, {}, { blocks: true, text: true });
-    const layout = {
-      width: preparedImage.width,
-      height: preparedImage.height,
-      words: wordsFromBlocks(result.data.blocks),
-    };
-    const timeTokens = result.data.text.match(/\b(?:AM|PM|NN)\b/gi) || [];
-    if (timeTokens.length >= 4 || layout.words.length >= 15) return { text: result.data.text, layout };
+    onProgress({ status: 'Reading schedule columns', progress: 0.76 });
+    await worker.setParameters({ tessedit_pageseg_mode: '4' });
+    const fallback = await worker.recognize(preparedImage.blob, {}, { blocks: true, text: true });
+    const readings = [result.data, fallback.data];
+    const recognizedTimes = readings.flatMap((reading) => reading.text.match(/\b\d{1,2}[:.]\d{2}\s*(?:AM|PM)?\b/gi) || []);
 
-    onProgress({ status: 'Trying a second reading', progress: 0.82 });
-    await worker.setParameters({ tessedit_pageseg_mode: '11' });
-    const fallback = await worker.recognize(file);
-    return { text: `${result.data.text}\n${fallback.data.text}`, layout };
+    if (recognizedTimes.length < 4) {
+      onProgress({ status: 'Checking sparse text', progress: 0.9 });
+      await worker.setParameters({ tessedit_pageseg_mode: '11' });
+      const sparse = await worker.recognize(preparedImage.blob, {}, { blocks: true, text: true });
+      readings.push(sparse.data);
+    }
+
+    const bestLayout = [...readings].sort((a, b) => readingScore(b) - readingScore(a))[0];
+    return {
+      text: readings.map((reading) => reading.text).join('\n'),
+      layout: {
+        width: preparedImage.width,
+        height: preparedImage.height,
+        words: wordsFromBlocks(bestLayout.blocks),
+      },
+    };
   } finally {
     await worker.terminate();
   }

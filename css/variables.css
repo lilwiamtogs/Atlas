@@ -9,6 +9,8 @@
   --text: #f3f5f4;
   --text-muted: #98a39d;
   --line: rgba(169, 200, 179, 0.12);
+  --atmosphere-line: #86a5ad;
+  --atmosphere-label: #9bb2b6;
   --nav-bg: rgba(15, 21, 18, 0.94);
   --success: #7ccb7c;
   --warning: #e5c56b;
@@ -30,6 +32,8 @@
   --text: #20382a;
   --text-muted: #5f7165;
   --line: rgba(53, 83, 62, 0.16);
+  --atmosphere-line: #78919a;
+  --atmosphere-label: #71878d;
   --nav-bg: rgba(255, 253, 247, 0.94);
   --success: #3f8649;
   --warning: #9a761f;

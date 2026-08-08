@@ -104,6 +104,8 @@ export default {
 
     const { classes } = state.schedule;
     const { today, current, next } = getClassState(classes, now);
+    const focus = current || next;
+    const focusLabel = current ? 'Current class' : 'Next class';
     const todayList = today.length
       ? today.map((item) => ClassItem(item, { current: item.id === current?.id })).join('')
       : empty(classes.length ? 'No classes scheduled today.' : 'Your schedule is empty. Add classes to data/defaultSchedule.json.');
@@ -124,8 +126,8 @@ export default {
           <span>${formatDate(now)}</span>
         </div>
       </header>
-      ${PathSection('Current class', focusClass(current, now, 'Current class'), { active: Boolean(current) })}
-      ${PathSection('Next', focusClass(next, now, 'Next class'))}
+      ${PathSection(focusLabel, focusClass(focus, now, focusLabel), { active: Boolean(focus), className: 'hero-path-section' })}
+      ${current && next ? PathSection('Next', focusClass(next, now, 'Next class')) : ''}
       ${hasUpcomingExams ? examsSection : ''}
       ${PathSection('Due / urgent', urgentTasks(state.tasks, classes, now), { className: 'tasks-preview' })}
       ${PathSection('Today', `<div class="agenda-list">${todayList}</div>`)}

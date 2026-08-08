@@ -1,15 +1,32 @@
-const TIME_PATTERN = /\b(\d{1,2}(?:[:.]\d{2})?\s*(?:a\.?m\.?|p\.?m\.?|nn))\b/gi;
+const TIME_PATTERN = /(?<!\d)(\d{1,2}[:.]\d{2}\s*(?:a\.?m\.?|p\.?m\.?|nn)?)(?!\d)/gi;
 const DAY_WORDS = { sunday: 0, sun: 0, monday: 1, mon: 1, tuesday: 2, tue: 2, tues: 2, wednesday: 3, wed: 3, thursday: 4, thu: 4, thur: 4, thurs: 4, friday: 5, fri: 5, saturday: 6, sat: 6 };
 
 function to24Hour(value) {
   const compact = value.toLowerCase().replace(/[.\s]/g, '');
-  const match = compact.match(/^(\d{1,2})(?::?(\d{2}))?(am|pm|nn)$/);
+  const match = compact.match(/^(\d{1,2}):?(\d{2})(am|pm|nn)?$/);
   if (!match) return '';
   const minutes = match[2] || '00';
+  if (!match[3]) {
+    const hours = Number(match[1]);
+    return hours <= 23 && Number(minutes) <= 59 ? `${String(hours).padStart(2, '0')}:${minutes}` : '';
+  }
   if (match[3] === 'nn') return `12:${minutes}`;
   let hours = Number(match[1]) % 12;
   if (match[3] === 'pm') hours += 12;
   return `${String(hours).padStart(2, '0')}:${minutes}`;
+}
+
+function resolvedTimeRange(matches) {
+  let start = to24Hour(matches[0][0]);
+  const end = to24Hour(matches[1][0]);
+  const startHasMeridiem = /(?:a\.?m\.?|p\.?m\.?|nn)/i.test(matches[0][0]);
+  const endIsPm = /p\.?m\.?/i.test(matches[1][0]);
+  if (!startHasMeridiem && endIsPm && start && end) {
+    const startHour = Number(start.slice(0, 2));
+    const endRawHour = Number(matches[1][0].match(/\d{1,2}/)?.[0] || 0);
+    if (startHour > 0 && startHour <= endRawHour && startHour < 12) start = `${String(startHour + 12).padStart(2, '0')}:${start.slice(3)}`;
+  }
+  return { start, end };
 }
 
 function parseDays(value) {
@@ -46,6 +63,8 @@ function parseSemester(text) {
 }
 
 function parseCourse(text) {
+  const section = text.match(/\bcourse\s*\/\s*year\s*(?:&|and)\s*section\s*:\s*([^\n]+)/i);
+  if (section) return section[1].replace(/\s+/g, ' ').trim();
   const labeled = text.match(/\b(?:course|program|degree)\s*[:\-]\s*([^\n]+)/i);
   if (labeled) return labeled[1].replace(/\s+/g, ' ').trim();
   const scheduleFor = text.match(/class\s+schedule\s+for\s*:\s*([^\n]+)/i);
@@ -126,13 +145,58 @@ function parseFlexibleFormat(line, currentDay, matches) {
   return { code: generatedCode(title), title, days, room, classKey: title };
 }
 
+function parseRegistrarTableRow(line, matches) {
+  const [startMatch, endMatch] = matches;
+  if (line.slice(0, startMatch.index).trim()) return null;
+  const afterTime = line.slice(endMatch.index + endMatch[0].length)
+    .replace(/^\s*[-â€“â€”|:]\s*/, '')
+    .trim();
+  const dayMatch = afterTime.match(/^(MWF|TTH|MW|MF|WF|TR|TH|M|T|W|R|F|S)\b/i);
+  if (!dayMatch) return null;
+  const days = parseDays(dayMatch[1]);
+  const row = afterTime.slice(dayMatch[0].length).trim();
+  const units = row.match(/\s+\d+\s*\/\s*\d+\s+/);
+  if (!units || !days.length) return null;
+
+  const subject = row.slice(0, units.index).trim();
+  const subjectMatch = subject.match(/^([A-Z]{2,10}(?:\s+(?:\d{1,3}[A-Z]?|[A-Z]{1,3}))?)\s+(.+)$/i);
+  if (!subjectMatch) return null;
+  const code = subjectMatch[1].replace(/\s+/g, ' ').toUpperCase();
+  const title = subjectMatch[2].replace(/\s+/g, ' ').trim();
+  const metadata = row.slice(units.index + units[0].length).trim();
+  const room = cleanRoom(metadata.match(/^\S+/)?.[0] || '');
+  if (!title) return null;
+  return { code, title, days, room, classKey: code };
+}
+
+function parseCourseListRow(line, matches) {
+  const [startMatch] = matches;
+  const beforeTime = line.slice(0, startMatch.index).trim();
+  if (!beforeTime) return null;
+  const dayMatch = beforeTime.match(/(MWF|TTH|MW|MF|WF|TR|TH|(?:[MTWRFS](?:\s*[\/,&]\s*[MTWRFS])+)|M|T|W|R|F|S)\s*$/i);
+  if (!dayMatch) return null;
+  const days = parseDays(dayMatch[1]);
+  const subject = beforeTime.slice(0, dayMatch.index).replace(/^\d+\s+/, '').trim();
+  const codeMatch = subject.match(/^([A-Z]{2,12}\d*[A-Z0-9-]*)\b\s*(.*)$/i);
+  if (!codeMatch || !days.length) return null;
+  const code = codeMatch[1].toUpperCase();
+  let title = codeMatch[2].trim();
+  if (/^(?:[A-Z]{2,}\d+\s+)?\d+(?:\.\d+)?$/i.test(title)) title = '';
+  title = title.replace(/^\d+(?:\.\d+)?\s+/, '').trim() || code;
+  const afterTime = line.slice(matches[1].index + matches[1][0].length).replace(/^\s*[-â€“â€”|:]\s*/, '').trim();
+  const room = cleanRoom(afterTime.match(/^[A-Z0-9-]+/i)?.[0] || '');
+  return { code, title, days, room, classKey: code };
+}
+
 function parseLine(line, lineIndex, currentDay) {
   const matches = [...line.matchAll(TIME_PATTERN)];
   if (matches.length < 2) return null;
-  const parsed = parseOriginalFormat(line, lineIndex, matches) || parseFlexibleFormat(line, currentDay, matches);
+  const parsed = parseRegistrarTableRow(line, matches)
+    || parseCourseListRow(line, matches)
+    || parseOriginalFormat(line, lineIndex, matches)
+    || parseFlexibleFormat(line, currentDay, matches);
   if (!parsed) return { warning: `Line ${lineIndex + 1}: schedule columns were not recognized.` };
-  const start = to24Hour(matches[0][0]);
-  const end = to24Hour(matches[1][0]);
+  const { start, end } = resolvedTimeRange(matches);
   if (!start || !end || start >= end) return { warning: `Line ${lineIndex + 1}: time range was not understood.` };
   return {
     classes: parsed.days.map((day) => ({
@@ -260,6 +324,55 @@ function parseGridLayout(layout) {
   return classes;
 }
 
+function parseRegistrarLayout(layout) {
+  if (!layout?.words?.length || !layout.width || !layout.height) return [];
+  const words = layout.words.map((word) => ({
+    ...word,
+    x: (word.bbox.x0 + word.bbox.x1) / 2,
+    y: (word.bbox.y0 + word.bbox.y1) / 2,
+    token: word.text.toUpperCase().replace(/[^A-Z/]/g, ''),
+  }));
+  const headerWords = words.filter((word) => /^(TIME|DAY|ROOM|FACULTY|UNIT\/HRS)$/.test(word.token));
+  if (!headerWords.some((word) => word.token === 'TIME') || !headerWords.some((word) => word.token === 'DAY') || !headerWords.some((word) => word.token === 'ROOM')) return [];
+  const headerY = headerWords.reduce((sum, word) => sum + word.y, 0) / headerWords.length;
+  const dayRows = words
+    .filter((word) => word.y > headerY && word.x >= layout.width * 0.13 && word.x <= layout.width * 0.25)
+    .map((word) => ({ ...word, days: findDayToken(word.text)?.days || [] }))
+    .filter((word) => word.days.length)
+    .sort((a, b) => a.y - b.y);
+  if (dayRows.length < 2) return [];
+
+  return dayRows.flatMap((dayRow, index) => {
+    const top = index ? (dayRows[index - 1].y + dayRow.y) / 2 : headerY;
+    const bottom = index < dayRows.length - 1 ? (dayRow.y + dayRows[index + 1].y) / 2 : Math.min(layout.height, dayRow.y + (dayRow.y - top));
+    const rowWords = words.filter((word) => word.y > top && word.y < bottom);
+    const cellText = (left, right) => rowWords
+      .filter((word) => word.x >= layout.width * left && word.x < layout.width * right)
+      .sort((a, b) => a.y - b.y || a.x - b.x)
+      .map((word) => word.text)
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const times = [...cellText(0, 0.17).matchAll(TIME_PATTERN)];
+    const code = cellText(0.20, 0.36).replace(/[^A-Z0-9 -]/gi, '').trim().toUpperCase();
+    const title = cellText(0.36, 0.66);
+    const room = cleanRoom(cellText(0.76, 0.85).split(/\s+/)[0] || '');
+    if (times.length < 2 || !code || !title) return [];
+    const { start, end } = resolvedTimeRange(times);
+    if (!start || !end || start >= end) return [];
+    return dayRow.days.map((day) => ({
+      id: `registrar-${slug(code)}-${day}-${slug(start)}`,
+      code,
+      title,
+      day,
+      start,
+      end,
+      room,
+      instructor: '',
+    }));
+  });
+}
+
 export function parseScheduleText(input) {
   const text = typeof input === 'string' ? input : input?.text || '';
   const normalized = text.replace(/[|]/g, ' ').replace(/[‐‑‒–—]/g, '-').replace(/\r/g, '');
@@ -277,6 +390,8 @@ export function parseScheduleText(input) {
   });
 
   classes.push(...parseGridLayout(typeof input === 'object' ? input.layout : null));
+  classes.push(...parseRegistrarLayout(typeof input === 'object' ? input.layout : null));
   const unique = [...new Map(classes.map((item) => [`${item.day}-${item.start}-${item.title.toLowerCase()}`, item])).values()];
-  return { course: parseCourse(normalized), yearLevel: '', semester: parseSemester(normalized), classes: unique, warnings, rawText: text };
+  const documentType = /(?:schedule\s+of\s+.*examinations|\bexam\b.*\bdate\b|\blong exam\b)/i.test(normalized) ? 'exam' : 'classes';
+  return { course: parseCourse(normalized), yearLevel: '', semester: parseSemester(normalized), classes: unique, warnings, rawText: text, documentType };
 }
