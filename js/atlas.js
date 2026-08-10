@@ -1,4 +1,4 @@
-import Router from './router.js?v=69';
+import Router from './router.js?v=70';
 import Store from './store.js';
 import { loadSchedule, scheduleSource } from './services/schedule.js';
 import { hideWelcomeScreen, showWelcomeScreen } from './components/welcomeScreen.js?v=43';
@@ -10,7 +10,8 @@ export default {
   async start() {
     const installed = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
     const welcomeScreen = showWelcomeScreen({ fromSplash: installed });
-    const minimumWelcomeTime = new Promise((resolve) => window.setTimeout(resolve, installed ? 1800 : 1700));
+    const compactScreen = window.matchMedia('(max-width: 619px), (pointer: coarse)').matches;
+    const minimumWelcomeTime = new Promise((resolve) => window.setTimeout(resolve, compactScreen ? 650 : installed ? 1200 : 1100));
     Router.init();
 
     try {
@@ -27,6 +28,7 @@ export default {
     await minimumWelcomeTime;
     await hideWelcomeScreen(welcomeScreen);
     checkReminders(Store.get(), new Date()).catch((error) => console.error('Atlas reminder check failed.', error));
+    renderedMinute = new Date().getMinutes();
 
     setInterval(() => {
       Router.updateClock();

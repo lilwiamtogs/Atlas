@@ -1,4 +1,4 @@
-const CACHE_NAME = 'atlas-shell-v86';
+const CACHE_NAME = 'atlas-shell-v88';
 const APP_SHELL = [
   './',
   './index.html',
@@ -6,22 +6,22 @@ const APP_SHELL = [
   './css/variables.css?v=2',
   './css/global.css?v=2',
   './css/layout.css?v=43',
-  './css/components.css?v=85',
+  './css/components.css?v=87',
   './data/defaultSchedule.json',
   './assets/icons/atlas-192.png',
   './assets/icons/atlas-512.png',
   './assets/icons/atlas-brand.png',
   './assets/icons/atlas-maskable.png',
-  './js/app.js?v=70',
-  './js/atlas.js?v=70',
-  './js/router.js?v=69',
+  './js/app.js?v=72',
+  './js/atlas.js?v=71',
+  './js/router.js?v=70',
   './js/store.js',
   './js/components/classItem.js',
   './js/components/atmosphere.js?v=3',
   './js/components/developerTools.js',
   './js/components/installButton.js',
   './js/components/navbar.js',
-  './js/components/onboarding.js?v=32',
+  './js/components/onboarding.js?v=33',
   './js/components/helpPanel.js?v=3',
   './js/components/settingsPanel.js',
   './js/components/selectEnhancer.js?v=43',
@@ -70,9 +70,14 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   if (event.request.mode === 'navigate') {
+    const networkResponse = fetch(event.request).then((response) => {
+      if (response.ok) caches.open(CACHE_NAME).then((cache) => cache.put('./index.html', response.clone()));
+      return response;
+    });
     event.respondWith(
-      fetch(event.request).catch(() => caches.match('./index.html'))
+      caches.match('./index.html').then((cached) => cached || networkResponse).catch(() => networkResponse)
     );
+    event.waitUntil(networkResponse.catch(() => undefined));
     return;
   }
 

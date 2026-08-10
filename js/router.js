@@ -14,7 +14,7 @@ import { formatClock, getNow } from './utils/time.js';
 import enhanceSelects from './components/selectEnhancer.js?v=43';
 import Atmosphere from './components/atmosphere.js?v=3';
 import HelpPanel, { helpTopics } from './components/helpPanel.js?v=3';
-import { showFirstOpenTutorial } from './components/onboarding.js?v=32';
+import { showFirstOpenTutorial } from './components/onboarding.js?v=33';
 
 const routes = { home: Home, schedule: Schedule, import: ImportSchedule, class: ClassDetail };
 let transitioning = false;
@@ -115,12 +115,14 @@ const Router = {
           noteId: routeParts[2] === 'note' ? decodeURIComponent(routeParts[3] || '') : '',
         }
       : {};
+    const lightweightMobile = window.matchMedia('(max-width: 619px), (pointer: coarse)').matches;
+    const atmosphereMarkup = lightweightMobile ? '' : Atmosphere(route);
 
     document.documentElement.dataset.theme = state.theme;
 
     Store.get().currentView = route;
     app.innerHTML = `
-      <main id="main-content" class="app-main route-${route} ${shouldAnimatePage && !suppressPageAnimation ? 'page-enter-active' : ''}">${Atmosphere(route)}${routes[route].render(state, now, context)}</main>
+      <main id="main-content" class="app-main route-${route} ${shouldAnimatePage && !suppressPageAnimation ? 'page-enter-active' : ''}">${atmosphereMarkup}${routes[route].render(state, now, context)}</main>
       <div class="app-controls">
         ${InstallButton()}
         ${ThemeToggle(state.theme)}

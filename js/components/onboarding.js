@@ -18,6 +18,9 @@ export function markInstallKnown() {
 export function showInstallGate(canPrompt = false) {
   if (!isMobileWeb()) return null;
   document.getElementById('mobile-install-gate')?.remove();
+  // A fresh prompt means the browser no longer considers Atlas installed.
+  // This recovers when the PWA was removed without clearing website storage.
+  if (canPrompt) localStorage.removeItem(INSTALL_KEY);
   const installKnown = localStorage.getItem(INSTALL_KEY) === 'true';
   const appleDevice = /iPhone|iPad|iPod/i.test(navigator.userAgent);
   const gate = document.createElement('div');
@@ -34,9 +37,14 @@ export function showInstallGate(canPrompt = false) {
         <strong>${installKnown ? 'Open the installed Atlas' : appleDevice ? 'On iPhone or iPad' : 'Install from your browser'}</strong>
         <span>${installKnown ? 'Return to your home screen and open Atlas from its app icon.' : appleDevice ? 'Tap Share, then choose “Add to Home Screen.”' : 'Open the browser menu and choose “Install app” or “Add to Home screen.”'}</span>
       </div>
+      ${installKnown ? '<button class="text-button reinstall-atlas" id="reinstall-atlas" type="button">I uninstalled Atlas</button>' : ''}
       <p class="install-gate-hint">${installKnown ? 'You can safely close this browser tab.' : 'Already installed? Open Atlas from your home screen.'}</p>
     </section>`;
   document.body.append(gate);
+  gate.querySelector('#reinstall-atlas')?.addEventListener('click', () => {
+    localStorage.removeItem(INSTALL_KEY);
+    showInstallGate(canPrompt);
+  });
   return gate;
 }
 
