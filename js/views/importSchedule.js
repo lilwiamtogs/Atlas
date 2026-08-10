@@ -3,7 +3,8 @@ import Store from '../store.js';
 import { escapeHtml } from '../utils/html.js';
 import { DAY_NAMES } from '../utils/time.js';
 import { scanScheduleImage } from '../services/ocr.js?v=41';
-import { parseScheduleText } from '../services/scheduleParser.js?v=45';
+import { scanScheduleWithAi } from '../services/aiSchedule.js?v=2';
+import { parseScheduleText } from '../services/scheduleParser.js?v=46';
 import {
   loadSchedule,
   removeImportedSchedule,
@@ -24,6 +25,8 @@ let selectedFile = null;
 let previewUrl = '';
 let draft = null;
 let scanning = false;
+let aiOffered = false;
+let scanStatus = 'Preparing OCR...';
 let message = '';
 let reviewIndex = 0;
 let archiveDirectoryOpen = false;
@@ -77,12 +80,13 @@ function filePicker() {
       <button class="primary-action" id="scan-schedule" type="button" ${scanning ? 'disabled' : ''}>
         ${scanning ? 'Scanning…' : 'Scan this image'}
       </button>
+      ${aiOffered ? '<button class="secondary-action" id="scan-schedule-ai" type="button">Improve with free AI</button>' : ''}
       <button class="secondary-action change-image-action" id="change-schedule-image" type="button">Change image</button>
       </div>` : ''}
     ${scanning ? `
       <div class="scan-progress" aria-live="polite">
         <div class="progress-track"><span id="progress-fill"></span></div>
-        <p id="scan-status">Preparing OCR…</p>
+        <p id="scan-status">${escapeHtml(scanStatus)}</p>
       </div>` : ''}
     ${message ? `<p class="import-message" role="status">${escapeHtml(message)}</p>` : ''}`;
 }
@@ -327,6 +331,7 @@ export default {
       selectedFile = file;
       previewUrl = URL.createObjectURL(file);
       draft = null;
+      aiOffered = false;
       message = '';
       imageSourcePickerOpen = false;
       router.render();
@@ -353,6 +358,7 @@ export default {
     document.getElementById('scan-schedule')?.addEventListener('click', async () => {
       if (!selectedFile || scanning) return;
       scanning = true;
+      scanStatus = 'Preparing private on-device scan...';
       message = '';
       router.render();
 
@@ -365,14 +371,39 @@ export default {
         });
         draft = parseScheduleText(text);
         reviewIndex = 0;
-        message = draft.classes.length
+        aiOffered = draft.classes.length < 2 && draft.documentType !== 'exam';
+        message = draft.classes.length >= 2
           ? ''
+          : draft.classes.length === 1
+            ? 'Atlas found only one class. You can review it or improve the scan with free AI.'
           : draft.documentType === 'exam'
             ? 'Atlas recognized an examination schedule, not a recurring class schedule. Exam-image importing is not supported yet.'
-            : 'Atlas could not find schedule rows. Try a straighter, clearer image with the full table visible.';
+            : 'Atlas could not find schedule rows. Try the free AI scan or choose a clearer image.';
       } catch (error) {
         console.error('Schedule scan failed.', error);
-        message = 'The scan could not finish. Check your connection and try again.';
+        aiOffered = true;
+        message = 'The private scan could not finish. You can try the free AI scan.';
+      } finally {
+        scanning = false;
+        router.render();
+      }
+    });
+
+    document.getElementById('scan-schedule-ai')?.addEventListener('click', async () => {
+      if (!selectedFile || scanning) return;
+      scanning = true;
+      aiOffered = false;
+      scanStatus = 'Sending this image to Atlas AI...';
+      message = 'The free AI scan sends this schedule image to Cloudflare for processing.';
+      router.render();
+      try {
+        draft = await scanScheduleWithAi(selectedFile);
+        reviewIndex = 0;
+        message = '';
+      } catch (error) {
+        console.error('Atlas AI scan failed.', error);
+        aiOffered = true;
+        message = error.message;
       } finally {
         scanning = false;
         router.render();

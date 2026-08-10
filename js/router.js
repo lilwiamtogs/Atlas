@@ -1,6 +1,6 @@
 import Home from './views/home.js?v=44';
 import Schedule from './views/schedule.js?v=54';
-import ImportSchedule from './views/importSchedule.js?v=58';
+import ImportSchedule from './views/importSchedule.js?v=60';
 import ClassDetail from './views/classDetail.js?v=42';
 import Navbar from './components/navbar.js';
 import DeveloperTools from './components/developerTools.js';
@@ -84,19 +84,21 @@ const Router = {
 
       const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const compactScreen = window.matchMedia('(max-width: 619px)').matches;
-      if (reduceMotion || compactScreen) {
+      if (reduceMotion) {
         window.location.hash = `#/${route}`;
         transitioning = false;
         return;
       }
 
       const overlay = createPageTransition();
+      if (compactScreen) overlay.classList.add('is-mobile');
       requestAnimationFrame(() => overlay.classList.add('is-covering'));
-      await wait(430);
+      await wait(compactScreen ? 520 : 650);
       window.location.hash = `#/${route}`;
       await new Promise((resolve) => requestAnimationFrame(resolve));
+      await wait(compactScreen ? 90 : 120);
       overlay.classList.add('is-revealing');
-      await wait(430);
+      await wait(compactScreen ? 520 : 650);
       overlay.remove();
       transitioning = false;
     }
@@ -116,7 +118,7 @@ const Router = {
         }
       : {};
     const lightweightMobile = window.matchMedia('(max-width: 619px), (pointer: coarse)').matches;
-    const atmosphereMarkup = lightweightMobile ? '' : Atmosphere(route);
+    const atmosphereMarkup = Atmosphere(route);
 
     document.documentElement.dataset.theme = state.theme;
 
@@ -178,7 +180,9 @@ const Router = {
     }
 
     const atmospherePlates = [...app.querySelectorAll('.cosmic-plate')];
-    if ('IntersectionObserver' in window) {
+    if (lightweightMobile) {
+      atmospherePlates.forEach((plate) => plate.classList.add('is-drawing'));
+    } else if ('IntersectionObserver' in window) {
       let remainingAtmospherePlates = atmospherePlates.length;
       const atmosphereObserver = new IntersectionObserver((entries, observer) => {
         entries.forEach((entry) => {

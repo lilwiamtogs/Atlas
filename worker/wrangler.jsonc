@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "atlas-vision-api",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-10",
+  "ai": {
+    "binding": "AI"
+  },
+  "observability": {
+    "enabled": true
+  }
+}
