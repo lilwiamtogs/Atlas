@@ -3305,6 +3305,11 @@
   opacity: 0.14;
 }
 
+.cosmic-plate-feature .cosmic-galaxy {
+  opacity: 0.32;
+  stroke-width: 1.35;
+}
+
 .cosmic-orbits,
 .cosmic-eclipse {
   opacity: 0.15;
@@ -3717,6 +3722,24 @@
     padding-inline: max(18px, env(safe-area-inset-left)) max(18px, env(safe-area-inset-right));
   }
 
+  .route-schedule .page-header {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 58px;
+  }
+
+  .route-schedule .brand { font-size: clamp(3.25rem, 17vw, 4.4rem); }
+  .route-schedule .view-title h1 { font-size: clamp(1.85rem, 9.5vw, 2.6rem); }
+  .route-schedule .week-list { gap: 34px; }
+  .route-schedule .day-section { min-height: 0; }
+  .route-schedule .day-section.is-empty > .eyebrow { margin-bottom: 9px; }
+
+  .empty-day-state {
+    color: var(--text-muted);
+    font-size: 0.57rem;
+    line-height: 1.5;
+  }
+
   .page-header,
   .week-list,
   .path-section,
@@ -3781,6 +3804,20 @@
     height: min(155vw, 780px);
     transition: none;
     contain: layout paint;
+  }
+
+  .cosmic-plate-feature {
+    width: 235vw;
+    height: min(190vw, 900px);
+  }
+
+  .cosmic-plate-feature .cosmic-galaxy {
+    opacity: 0.42;
+    stroke-width: 1.6;
+  }
+
+  .cosmic-plate-feature.is-drawing {
+    opacity: 0.72;
   }
 
   .cosmic-plate.is-drawing {

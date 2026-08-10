@@ -54,7 +54,7 @@ function eclipse(side = 'right') {
 }
 
 function plate(content, index) {
-  return `<svg class="atmosphere-plate cosmic-plate cosmic-plate-${index}" viewBox="0 0 1000 820" preserveAspectRatio="xMidYMid meet">${content}</svg>`;
+  return `<svg class="atmosphere-plate cosmic-plate cosmic-plate-${index}${index === 1 ? ' cosmic-plate-feature' : ''}" viewBox="0 0 1000 820" preserveAspectRatio="xMidYMid meet">${content}</svg>`;
 }
 
 function nextAtmosphereSeed() {
@@ -73,10 +73,10 @@ function nextAtmosphereSeed() {
 const atmosphereSeed = nextAtmosphereSeed();
 
 const baseDesigns = [
-  () => [planet('right'), orbitField('left'), galaxy('right')],
+  () => [galaxy('right'), planet('right'), orbitField('left')],
   () => [galaxy('left'), eclipse('right'), planet('left', true)],
-  () => [orbitField('right'), planet('left'), galaxy('right')],
-  () => [eclipse('left'), galaxy('right'), orbitField('left')],
+  () => [galaxy('right'), orbitField('right'), planet('left')],
+  () => [galaxy('left'), eclipse('left'), orbitField('left')],
 ];
 
 export default function Atmosphere(route) {

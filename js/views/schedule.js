@@ -217,8 +217,8 @@ export default {
               taskContent: TaskList(tasks, now, editingTaskId),
               fullPage: true,
             });
-          }).join('')}${personalDayPlanner(entry.day, state.tasks, state.notes || [], now)}</div>`,
-          { active: entry.day === now.getDay(), className: 'day-section' },
+          }).join('')}${personalDayPlanner(entry.day, state.tasks, state.notes || [], now) || (entry.classes.length ? '' : '<p class="empty-day-state">No classes scheduled</p>')}</div>`,
+          { active: entry.day === now.getDay(), className: `day-section ${entry.classes.length ? '' : 'is-empty'}` },
         )).join('');
 
     return `

@@ -1,5 +1,5 @@
 import Home from './views/home.js?v=44';
-import Schedule from './views/schedule.js?v=54';
+import Schedule from './views/schedule.js?v=55';
 import ImportSchedule from './views/importSchedule.js?v=60';
 import ClassDetail from './views/classDetail.js?v=42';
 import Navbar from './components/navbar.js';
@@ -12,7 +12,7 @@ import { requestNotificationAccess, saveNotificationSettings } from './services/
 import { disableAutoSave, enableAutoSave } from './services/autosave.js';
 import { formatClock, getNow } from './utils/time.js';
 import enhanceSelects from './components/selectEnhancer.js?v=43';
-import Atmosphere from './components/atmosphere.js?v=3';
+import Atmosphere from './components/atmosphere.js?v=4';
 import HelpPanel, { helpTopics } from './components/helpPanel.js?v=3';
 import { showFirstOpenTutorial } from './components/onboarding.js?v=33';
 
@@ -41,12 +41,9 @@ function createPageTransition() {
 
 const Router = {
   init() {
-    const installed = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-    if (installed && localStorage.getItem('atlas.tutorialComplete.v2') === 'true' && localStorage.getItem('atlas.settingsIntroduced') !== 'true') {
-      settingsOpen = true;
-      localStorage.setItem('atlas.settingsIntroduced', 'true');
-    }
     window.addEventListener('hashchange', () => {
+      settingsOpen = false;
+      helpOpen = false;
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       shouldAnimatePage = true;
       this.render();
