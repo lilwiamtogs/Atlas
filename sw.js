@@ -1,4 +1,4 @@
-const CACHE_NAME = 'atlas-shell-v94';
+const CACHE_NAME = 'atlas-shell-v95';
 const APP_SHELL = [
   './',
   './index.html',
@@ -6,7 +6,7 @@ const APP_SHELL = [
   './css/variables.css?v=2',
   './css/global.css?v=2',
   './css/layout.css?v=43',
-  './css/components.css?v=91',
+  './css/components.css?v=92',
   './data/defaultSchedule.json',
   './assets/icons/atlas-192.png',
   './assets/icons/atlas-512.png',

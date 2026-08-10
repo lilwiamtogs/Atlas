@@ -1,8 +1,8 @@
-# Atlas v0.2.3
+# Atlas v0.3.3
 
 Atlas is a mobile-first student planner built with plain HTML, CSS, and vanilla JavaScript ES modules.
 
-Version 0.2.3 improves mobile startup reliability, responsive sizing, page transitions, and reinstall recovery while reducing rendering work on mobile devices. It retains the schedule-image recognition improvements from Atlas v0.2.2.
+Version 0.3.3 fixes the mobile installation and tutorial overlays by sizing them against the dynamic viewport, keeping cards centered and proportional across mobile browsers and the installed app. It also refreshes the offline app shell so existing installations receive the corrected layout.
 
 ## Import a schedule image
 
