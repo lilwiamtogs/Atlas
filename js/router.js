@@ -1,5 +1,5 @@
 import Home from './views/home.js?v=45';
-import Schedule from './views/schedule.js?v=59';
+import Schedule from './views/schedule.js?v=61';
 import ImportSchedule from './views/importSchedule.js?v=62';
 import ClassDetail from './views/classDetail.js?v=42';
 import Navbar from './components/navbar.js';
@@ -88,18 +88,16 @@ const Router = {
       }
 
       if (compactScreen) {
-        const currentPage = document.getElementById('main-content');
-        if (currentPage && typeof currentPage.animate === 'function') {
-          try {
-            await currentPage.animate([
-              { opacity: 1, transform: 'translate3d(0, 0, 0)' },
-              { opacity: 0, transform: 'translate3d(-8px, 0, 0)' },
-            ], { duration: 110, easing: 'ease-in' }).finished;
-          } catch {
-            // Navigation may safely continue if the visual animation is cancelled.
-          }
-        }
+        const overlay = createPageTransition();
+        overlay.classList.add('is-mobile');
+        requestAnimationFrame(() => overlay.classList.add('is-covering'));
+        await wait(350);
         window.location.hash = `#/${route}`;
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        await wait(40);
+        overlay.classList.add('is-revealing');
+        await wait(350);
+        overlay.remove();
         transitioning = false;
         return;
       }

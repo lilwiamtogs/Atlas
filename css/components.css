@@ -3773,6 +3773,7 @@
   .route-schedule .brand { font-size: clamp(3.25rem, 17vw, 4.4rem); }
   .route-schedule .view-title h1 { font-size: clamp(1.85rem, 9.5vw, 2.6rem); }
   .route-schedule .week-list { gap: 34px; }
+  .route-schedule .week-list { overflow-anchor: none; }
   .route-schedule .week-list > .path-section { margin-bottom: 0; }
   .route-schedule .week-list > .path-section::before { bottom: -34px; }
   .route-schedule .day-section { min-height: 0; }
@@ -3809,22 +3810,37 @@
   }
 
   .page-transition.is-mobile {
+    position: fixed;
+    inset: 0;
     display: grid;
+    width: auto;
+    height: auto;
+    contain: strict;
     background: transparent;
   }
 
   .page-transition.is-mobile span {
     display: block;
-    transition-duration: 360ms;
+    transform: translate3d(-102%, 0, 0);
+    will-change: transform;
+    transition-duration: 280ms;
     transition-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
   }
 
   .page-transition.is-mobile span:nth-child(2) {
-    transition-delay: 55ms;
+    transition-delay: 22ms;
   }
 
   .page-transition.is-mobile span:nth-child(3) {
-    transition-delay: 110ms;
+    transition-delay: 44ms;
+  }
+
+  .page-transition.is-mobile.is-covering span {
+    transform: translate3d(0, 0, 0);
+  }
+
+  .page-transition.is-mobile.is-revealing span {
+    transform: translate3d(102%, 0, 0);
   }
 
   .welcome-screen::before {
@@ -4100,6 +4116,10 @@
     display: none;
   }
 
+  .page-transition.is-mobile {
+    display: grid;
+  }
+
   .class-card,
   .class-card > summary,
   .class-card .class-main strong,
@@ -4115,6 +4135,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .page-transition.is-mobile { display: none; }
   .path-section.is-active > .path-heading .path-ring { animation: none; }
   .cosmic-plate { transition: none; }
 }

@@ -175,6 +175,32 @@ function personalDayPlanner(day, tasks, notes, now) {
     </article>`;
 }
 
+function captureScheduleLayout() {
+  const targets = document.querySelectorAll([
+    '.route-schedule .week-list > .path-section',
+    '.route-schedule .week-tools-grid',
+    '.route-schedule .schedule-print-action',
+  ].join(','));
+  return new Map([...targets].map((element) => [element, element.getBoundingClientRect().top]));
+}
+
+function animateScheduleLayout(previousPositions) {
+  const animations = [];
+  previousPositions.forEach((previousTop, element) => {
+    if (!element.isConnected) return;
+    const offset = previousTop - element.getBoundingClientRect().top;
+    if (Math.abs(offset) < 0.5) return;
+    animations.push(element.animate([
+      { transform: `translate3d(0, ${offset}px, 0)` },
+      { transform: 'translate3d(0, 0, 0)' },
+    ], {
+      duration: 210,
+      easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+    }).finished.catch(() => {}));
+  });
+  return animations;
+}
+
 function bindCardAnimation(card, cards) {
   const summary = card.querySelector(':scope > summary');
   const reveal = card.querySelector(':scope > .class-details-reveal');
@@ -186,44 +212,51 @@ function bindCardAnimation(card, cards) {
     const opening = !card.open;
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    if (opening) {
-      cards.forEach((otherCard) => {
-        if (otherCard === card || !otherCard.open) return;
-        otherCard.open = false;
-        otherCard.classList.remove('is-expanded');
-      });
-      card.open = true;
-      card.classList.add('is-expanded');
-    }
-
-    if (!reveal || reduceMotion || typeof reveal.animate !== 'function') {
+    const setCardState = () => {
+      if (opening) {
+        cards.forEach((otherCard) => {
+          if (otherCard === card || !otherCard.open) return;
+          otherCard.open = false;
+          otherCard.classList.remove('is-expanded');
+        });
+      }
       card.open = opening;
       card.classList.toggle('is-expanded', opening);
+    };
+
+    if (!reveal || reduceMotion || typeof reveal.animate !== 'function') {
+      setCardState();
       return;
     }
 
     card.dataset.animating = 'true';
-    const frames = opening
-      ? [
-          { opacity: 0, transform: 'translate3d(0, -6px, 0)' },
-          { opacity: 1, transform: 'translate3d(0, 0, 0)' },
-        ]
-      : [
-          { opacity: 1, transform: 'translate3d(0, 0, 0)' },
-          { opacity: 0, transform: 'translate3d(0, -4px, 0)' },
-        ];
-    try {
-      await reveal.animate(frames, {
-        duration: opening ? 170 : 110,
-        easing: opening ? 'cubic-bezier(0.22, 1, 0.36, 1)' : 'ease-in',
-      }).finished;
-    } catch {
-      // A rerender can safely cancel this purely visual transition.
+    if (!opening) {
+      try {
+        await reveal.animate([
+          { opacity: 1 },
+          { opacity: 0 },
+        ], { duration: 85, easing: 'ease-in', fill: 'both' }).finished;
+      } catch {
+        // A rerender can safely cancel this purely visual transition.
+      }
     }
-    if (!opening && card.isConnected) {
-      card.open = false;
-      card.classList.remove('is-expanded');
-    }
+
+    const previousPositions = captureScheduleLayout();
+    setCardState();
+    const layoutAnimations = animateScheduleLayout(previousPositions);
+    const revealAnimation = opening
+      ? reveal.animate([
+          { opacity: 0 },
+          { opacity: 1 },
+        ], {
+          duration: 180,
+          delay: 20,
+          easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+          fill: 'both',
+        }).finished.catch(() => {})
+      : Promise.resolve();
+
+    await Promise.all([...layoutAnimations, revealAnimation]);
     delete card.dataset.animating;
   });
 }

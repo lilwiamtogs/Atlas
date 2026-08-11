@@ -1,4 +1,4 @@
-const CACHE_NAME = 'atlas-shell-v100';
+const CACHE_NAME = 'atlas-shell-v103';
 const APP_SHELL = [
   './',
   './index.html',
@@ -6,15 +6,15 @@ const APP_SHELL = [
   './css/variables.css?v=2',
   './css/global.css?v=2',
   './css/layout.css?v=43',
-  './css/components.css?v=96',
+  './css/components.css?v=98',
   './data/defaultSchedule.json',
   './assets/icons/atlas-192.png',
   './assets/icons/atlas-512.png',
   './assets/icons/atlas-brand.png',
   './assets/icons/atlas-maskable.png',
-  './js/app.js?v=83',
-  './js/atlas.js?v=82',
-  './js/router.js?v=81',
+  './js/app.js?v=86',
+  './js/atlas.js?v=85',
+  './js/router.js?v=84',
   './js/store.js',
   './js/components/classItem.js?v=2',
   './js/components/atmosphere.js?v=4',
@@ -45,7 +45,7 @@ const APP_SHELL = [
   './js/utils/time.js',
   './js/views/home.js?v=45',
   './js/views/importSchedule.js?v=62',
-  './js/views/schedule.js?v=59',
+  './js/views/schedule.js?v=61',
   './js/views/classDetail.js?v=42'
 ];
 

@@ -1,8 +1,8 @@
-# Atlas v0.3.5
+# Atlas v0.3.6
 
 Atlas is a mobile-first student planner built with plain HTML, CSS, and vanilla JavaScript ES modules.
 
-Version 0.3.5 completes the mobile-width and navigation fixes and restores smooth card and page transitions using only compositor-friendly opacity and transform animation. Atlas AI now sends the existing on-device OCR transcript to its Cloudflare Worker first, uses image conversion only as a fallback, validates recurring class rows, retries structured parsing, and handles 12/24-hour time conversion more reliably.
+Version 0.3.6 refines mobile motion without sacrificing the corrected responsive layout. Class cards now use a FLIP transition so surrounding sections move smoothly without animated-height reflow or scroll-anchor bounce. Mobile page navigation restores Atlas's three-strip wipe as a short, fixed-viewport, transform-only animation with reduced-motion support.
 
 ## Import a schedule image
 
