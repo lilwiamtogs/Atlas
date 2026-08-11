@@ -25,14 +25,16 @@ export default function ClassItem(item, options = {}) {
   }
 
   return `
-    <details class="class-item ${card ? 'class-card' : ''} ${current ? 'is-current' : ''}" data-class-id="${escapeHtml(item.id)}" ${open ? 'open' : ''}>
+    <details class="class-item ${card ? 'class-card' : ''} ${current ? 'is-current' : ''} ${open ? 'is-expanded' : ''}" data-class-id="${escapeHtml(item.id)}" ${open ? 'open' : ''}>
       <summary>${summaryContent}</summary>
-      <div class="class-details">
-        <p class="class-detail"><span>Time</span>${formatTime(item.start)} — ${formatTime(item.end)}</p>
-        <p class="class-detail"><span>Room</span>${escapeHtml(item.room) || 'Not set'}</p>
-        ${instructor}
-        ${taskContent}
-        ${fullPage ? `<button class="secondary-action open-class-page" type="button" data-open-class="${escapeHtml(item.id)}"><span>Open class page</span><span aria-hidden="true">→</span></button>` : ''}
+      <div class="class-details-reveal">
+        <div class="class-details">
+          <p class="class-detail"><span>Time</span>${formatTime(item.start)} — ${formatTime(item.end)}</p>
+          <p class="class-detail"><span>Room</span>${escapeHtml(item.room) || 'Not set'}</p>
+          ${instructor}
+          ${taskContent}
+          ${fullPage ? `<button class="secondary-action open-class-page" type="button" data-open-class="${escapeHtml(item.id)}"><span>Open class page</span><span aria-hidden="true">→</span></button>` : ''}
+        </div>
       </div>
     </details>`;
 }

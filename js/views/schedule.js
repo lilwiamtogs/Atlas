@@ -1,5 +1,5 @@
 import PathSection from '../components/pathSection.js';
-import ClassItem from '../components/classItem.js';
+import ClassItem from '../components/classItem.js?v=2';
 import TaskList from '../components/taskList.js?v=2';
 import Store from '../store.js';
 import { createTask, saveTasks, sortTasks } from '../services/tasks.js';
@@ -179,6 +179,29 @@ function bindCardAnimation(card, cards) {
   const summary = card.querySelector(':scope > summary');
   if (!summary) return;
 
+  const setOpen = (target, opening) => {
+    window.clearTimeout(Number(target.dataset.closeTimer || 0));
+    delete target.dataset.closeTimer;
+    if (opening) {
+      target.open = true;
+      target.dataset.cardState = 'opening';
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (target.open && target.dataset.cardState === 'opening') {
+          target.classList.add('is-expanded');
+          target.dataset.cardState = 'open';
+        }
+      }));
+      return;
+    }
+    target.dataset.cardState = 'closing';
+    target.classList.remove('is-expanded');
+    target.dataset.closeTimer = String(window.setTimeout(() => {
+      target.open = false;
+      delete target.dataset.closeTimer;
+      delete target.dataset.cardState;
+    }, 190));
+  };
+
   summary.addEventListener('click', (event) => {
     event.preventDefault();
     const opening = !card.open;
@@ -186,10 +209,10 @@ function bindCardAnimation(card, cards) {
     if (opening) {
       cards.forEach((otherCard) => {
         if (otherCard === card || !otherCard.open) return;
-        otherCard.open = false;
+        setOpen(otherCard, false);
       });
     }
-    card.open = opening;
+    setOpen(card, opening);
   });
 }
 

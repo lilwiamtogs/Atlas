@@ -1,5 +1,5 @@
 import PathSection from '../components/pathSection.js';
-import ClassItem from '../components/classItem.js';
+import ClassItem from '../components/classItem.js?v=2';
 import { escapeHtml } from '../utils/html.js';
 import { daysUntil, sortTasks, urgencyFor } from '../services/tasks.js';
 import { DAY_NAMES, formatDate, formatTime, getClassState } from '../utils/time.js';

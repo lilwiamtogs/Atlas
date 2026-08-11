@@ -1,5 +1,5 @@
-import Home from './views/home.js?v=44';
-import Schedule from './views/schedule.js?v=56';
+import Home from './views/home.js?v=45';
+import Schedule from './views/schedule.js?v=57';
 import ImportSchedule from './views/importSchedule.js?v=61';
 import ClassDetail from './views/classDetail.js?v=42';
 import Navbar from './components/navbar.js';
