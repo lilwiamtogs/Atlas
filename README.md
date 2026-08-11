@@ -1,20 +1,24 @@
-# Atlas v0.3.4
+# Atlas v0.3.5
 
 Atlas is a mobile-first student planner built with plain HTML, CSS, and vanilla JavaScript ES modules.
 
-Version 0.3.4 improves mobile layout and interaction reliability, removes laggy measured-height card animations, restores Settings and FAQ panel motion, and lets personal-day plans target a future week without exposing assignment-style due dates. Atlas AI now handles more response formats and retries empty or incomplete schedule results before failing.
+Version 0.3.5 completes the mobile-width and navigation fixes and restores smooth card and page transitions using only compositor-friendly opacity and transform animation. Atlas AI now sends the existing on-device OCR transcript to its Cloudflare Worker first, uses image conversion only as a fallback, validates recurring class rows, retries structured parsing, and handles 12/24-hour time conversion more reliably.
 
 ## Import a schedule image
 
 Open **Import** in the bottom navigation and choose a clear PNG, JPG, WebP, or camera photo of a tabular class schedule. Atlas uses Tesseract.js in the browser to read the image, converts recognized rows to the normal Atlas schedule structure, and requires a review before saving.
 
-- The image and recognized text stay in the browser.
+- The default private scan keeps the image and recognized text in the browser.
 - The first scan requires internet access to download the OCR engine and English recognition data.
 - Imported schedules are saved to `localStorage` under `atlas.schedule` and take priority over `data/defaultSchedule.json` on that device.
 - Multi-day codes such as `TF`, `MWF`, and `TTH` become separate class entries for each day.
 - Use **Restore default JSON schedule** from the Import view to remove the saved import.
 
 OCR is an assisted import, not an authority. Always verify the review screen, particularly `S`/`5`, room codes, AM/PM, and multi-day abbreviations.
+
+### Optional Atlas AI scan
+
+If the private scan cannot identify enough rows, Atlas offers an optional AI scan. Choosing it sends the schedule image and any available on-device OCR transcript to the Atlas Cloudflare Worker for processing. The worker prefers the supplied transcript, falls back to Cloudflare image-to-text conversion when necessary, and uses structured parsing with validation rather than accepting arbitrary model output. The rest of Atlas continues to work offline; the AI scan requires an internet connection.
 
 ## Run Atlas
 

@@ -1,5 +1,5 @@
 import Home from './views/home.js?v=45';
-import Schedule from './views/schedule.js?v=58';
+import Schedule from './views/schedule.js?v=59';
 import ImportSchedule from './views/importSchedule.js?v=62';
 import ClassDetail from './views/classDetail.js?v=42';
 import Navbar from './components/navbar.js';
@@ -81,21 +81,37 @@ const Router = {
 
       const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const compactScreen = window.matchMedia('(max-width: 619px)').matches;
-      if (reduceMotion || compactScreen) {
+      if (reduceMotion) {
+        window.location.hash = `#/${route}`;
+        transitioning = false;
+        return;
+      }
+
+      if (compactScreen) {
+        const currentPage = document.getElementById('main-content');
+        if (currentPage && typeof currentPage.animate === 'function') {
+          try {
+            await currentPage.animate([
+              { opacity: 1, transform: 'translate3d(0, 0, 0)' },
+              { opacity: 0, transform: 'translate3d(-8px, 0, 0)' },
+            ], { duration: 110, easing: 'ease-in' }).finished;
+          } catch {
+            // Navigation may safely continue if the visual animation is cancelled.
+          }
+        }
         window.location.hash = `#/${route}`;
         transitioning = false;
         return;
       }
 
       const overlay = createPageTransition();
-      if (compactScreen) overlay.classList.add('is-mobile');
       requestAnimationFrame(() => overlay.classList.add('is-covering'));
-      await wait(compactScreen ? 520 : 650);
+      await wait(650);
       window.location.hash = `#/${route}`;
       await new Promise((resolve) => requestAnimationFrame(resolve));
-      await wait(compactScreen ? 90 : 120);
+      await wait(120);
       overlay.classList.add('is-revealing');
-      await wait(compactScreen ? 520 : 650);
+      await wait(650);
       overlay.remove();
       transitioning = false;
     }

@@ -4103,10 +4103,14 @@
   .class-card,
   .class-card > summary,
   .class-card .class-main strong,
-  .class-card .class-marker,
-  .class-details-reveal {
+  .class-card .class-marker {
     animation: none;
     transition: none;
+  }
+
+  .class-details-reveal {
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
 }
 

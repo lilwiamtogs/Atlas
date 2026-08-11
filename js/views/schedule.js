@@ -177,11 +177,14 @@ function personalDayPlanner(day, tasks, notes, now) {
 
 function bindCardAnimation(card, cards) {
   const summary = card.querySelector(':scope > summary');
+  const reveal = card.querySelector(':scope > .class-details-reveal');
   if (!summary) return;
 
-  summary.addEventListener('click', (event) => {
+  summary.addEventListener('click', async (event) => {
     event.preventDefault();
+    if (card.dataset.animating === 'true') return;
     const opening = !card.open;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     if (opening) {
       cards.forEach((otherCard) => {
@@ -189,9 +192,39 @@ function bindCardAnimation(card, cards) {
         otherCard.open = false;
         otherCard.classList.remove('is-expanded');
       });
+      card.open = true;
+      card.classList.add('is-expanded');
     }
-    card.open = opening;
-    card.classList.toggle('is-expanded', opening);
+
+    if (!reveal || reduceMotion || typeof reveal.animate !== 'function') {
+      card.open = opening;
+      card.classList.toggle('is-expanded', opening);
+      return;
+    }
+
+    card.dataset.animating = 'true';
+    const frames = opening
+      ? [
+          { opacity: 0, transform: 'translate3d(0, -6px, 0)' },
+          { opacity: 1, transform: 'translate3d(0, 0, 0)' },
+        ]
+      : [
+          { opacity: 1, transform: 'translate3d(0, 0, 0)' },
+          { opacity: 0, transform: 'translate3d(0, -4px, 0)' },
+        ];
+    try {
+      await reveal.animate(frames, {
+        duration: opening ? 170 : 110,
+        easing: opening ? 'cubic-bezier(0.22, 1, 0.36, 1)' : 'ease-in',
+      }).finished;
+    } catch {
+      // A rerender can safely cancel this purely visual transition.
+    }
+    if (!opening && card.isConnected) {
+      card.open = false;
+      card.classList.remove('is-expanded');
+    }
+    delete card.dataset.animating;
   });
 }
 
