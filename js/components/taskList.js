@@ -9,15 +9,28 @@ function remainingLabel(dueDate, now) {
   return `${days} days remaining`;
 }
 
-function editTask(task) {
+function weekLabel(dueDate, now) {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const due = new Date(`${dueDate}T00:00:00`);
+  const mondayOffset = today.getDay() === 0 ? -6 : 1 - today.getDay();
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() + mondayOffset);
+  const week = Math.floor((due - weekStart) / 604800000);
+  if (week < 0) return 'Earlier plan';
+  if (week === 0) return 'This week';
+  if (week === 1) return 'Next week';
+  return `In ${week} weeks`;
+}
+
+function editTask(task, showDueDate) {
   return `
     <form class="task-edit-form" data-task-edit-form="${escapeHtml(task.id)}">
       <label>Task
         <input name="title" value="${escapeHtml(task.title)}" required>
       </label>
-      <label>Due date
+      ${showDueDate ? `<label>Due date
         <input name="dueDate" type="date" value="${escapeHtml(task.dueDate)}" required>
-      </label>
+      </label>` : ''}
       <div class="task-edit-actions">
         <button type="submit">Save</button>
         <button type="button" data-cancel-task>Edit later</button>
@@ -25,9 +38,12 @@ function editTask(task) {
     </form>`;
 }
 
-function taskRow(task, now, editingTaskId) {
-  if (task.id === editingTaskId) return editTask(task);
+function taskRow(task, now, editingTaskId, showDueDate) {
+  if (task.id === editingTaskId) return editTask(task, showDueDate);
   const urgency = urgencyFor(task, now);
+  const timing = showDueDate
+    ? `${remainingLabel(task.dueDate, now)} · ${escapeHtml(task.dueDate)}`
+    : weekLabel(task.dueDate, now);
 
   return `
     <article class="task-row is-${urgency}">
@@ -36,7 +52,7 @@ function taskRow(task, now, editingTaskId) {
       </button>
       <div class="task-copy">
         <strong>${escapeHtml(task.title)}</strong>
-        <span>${remainingLabel(task.dueDate, now)} · ${escapeHtml(task.dueDate)}</span>
+        <span>${timing}</span>
       </div>
       <div class="task-actions">
         <button type="button" data-edit-task="${escapeHtml(task.id)}">Edit</button>
@@ -45,7 +61,7 @@ function taskRow(task, now, editingTaskId) {
     </article>`;
 }
 
-export default function TaskList(tasks, now, editingTaskId = '') {
+export default function TaskList(tasks, now, editingTaskId = '', { showDueDate = true } = {}) {
   return `
     <section class="class-tasks" aria-label="Tasks">
       <div class="class-tasks-heading">
@@ -53,7 +69,7 @@ export default function TaskList(tasks, now, editingTaskId = '') {
         <span>${tasks.length}</span>
       </div>
       ${tasks.length
-        ? `<div class="task-list">${tasks.map((task) => taskRow(task, now, editingTaskId)).join('')}</div>`
+        ? `<div class="task-list">${tasks.map((task) => taskRow(task, now, editingTaskId, showDueDate)).join('')}</div>`
         : '<p class="no-class-tasks">No tasks for this class.</p>'}
     </section>`;
 }

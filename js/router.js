@@ -1,6 +1,6 @@
 import Home from './views/home.js?v=44';
-import Schedule from './views/schedule.js?v=55';
-import ImportSchedule from './views/importSchedule.js?v=60';
+import Schedule from './views/schedule.js?v=56';
+import ImportSchedule from './views/importSchedule.js?v=61';
 import ClassDetail from './views/classDetail.js?v=42';
 import Navbar from './components/navbar.js';
 import DeveloperTools from './components/developerTools.js';
@@ -13,7 +13,7 @@ import { disableAutoSave, enableAutoSave } from './services/autosave.js';
 import { formatClock, getNow } from './utils/time.js';
 import enhanceSelects from './components/selectEnhancer.js?v=43';
 import Atmosphere from './components/atmosphere.js?v=4';
-import HelpPanel, { helpTopics } from './components/helpPanel.js?v=3';
+import HelpPanel, { helpTopics } from './components/helpPanel.js?v=4';
 import { showFirstOpenTutorial } from './components/onboarding.js?v=33';
 
 const routes = { home: Home, schedule: Schedule, import: ImportSchedule, class: ClassDetail };
@@ -143,6 +143,13 @@ const Router = {
 
     enhanceSelects(app);
 
+    const openingOverlay = app.querySelector('#settings-screen, #help-screen');
+    if (openingOverlay) {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (openingOverlay.isConnected) openingOverlay.classList.add('is-visible');
+      }));
+    }
+
     const atmosphere = app.querySelector('.atlas-atmosphere');
     if (atmosphere) {
       const main = app.querySelector('#main-content');
@@ -218,7 +225,14 @@ const Router = {
     });
     const closeHelp = () => {
       helpOpen = false;
-      document.getElementById('help-screen')?.remove();
+      const screen = document.getElementById('help-screen');
+      if (!screen) return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        screen.remove();
+        return;
+      }
+      screen.classList.add('is-closing');
+      window.setTimeout(() => screen.remove(), 190);
     };
     document.getElementById('close-help')?.addEventListener('click', closeHelp);
     document.getElementById('help-screen')?.addEventListener('click', (event) => {

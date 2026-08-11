@@ -1,7 +1,7 @@
 const helpTopics = [
   { title: 'Import a schedule', body: 'Open Import, choose a clear screenshot, then review each detected class before saving.', route: 'import', target: '#open-image-source-picker, #scan-schedule, .route-import .path-section:first-of-type', action: 'Take me there' },
   { title: 'Fix a class Atlas read incorrectly', body: 'On Import, edit the detected code, title, days, time, and room before accepting the class.', route: 'import', target: '.review-card, #open-image-source-picker, .route-import .path-section:first-of-type', action: 'Take me there' },
-  { title: 'Add a task', body: 'Open Week and use Add Task. Choose a class or Personal Day, set the due date, then save it.', route: 'schedule', target: '#add-task-form', action: 'Take me there' },
+  { title: 'Add a task', body: 'Open Week and use Add Task. Class tasks use a due date; personal plans use a weekday and the week you want.', route: 'schedule', target: '#add-task-form', action: 'Take me there' },
   { title: 'Add or read notes', body: 'Open Week and use Add Note, or open a class card to revisit notes already attached to it.', route: 'schedule', target: '#attach-note-form', action: 'Take me there' },
   { title: 'Add a test or exam', body: 'On Now, enter its name, class, and date under Tests & Exams, then choose Add Test.', route: 'home', target: '#home-add-exam-form', action: 'Take me there' },
   { title: 'Edit a class', body: 'Open Week, expand a class card, then open its full class page to update the class details.', route: 'schedule', target: '.class-card[data-class-id]', action: 'Take me there' },

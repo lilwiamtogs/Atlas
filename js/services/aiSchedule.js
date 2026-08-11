@@ -17,7 +17,7 @@ export async function scanScheduleWithAi(file) {
   const controller = new AbortController();
   // Workers AI can need more than 45 seconds for a large schedule image,
   // especially on a phone connection or when the model retries malformed JSON.
-  const timeout = window.setTimeout(() => controller.abort(), 120_000);
+  const timeout = window.setTimeout(() => controller.abort(), 180_000);
   try {
     const response = await fetch(AI_SCAN_URL, {
       method: 'POST',
@@ -49,7 +49,7 @@ export async function scanScheduleWithAi(file) {
       documentType: 'classes',
     };
   } catch (error) {
-    if (error.name === 'AbortError') throw new Error('The free AI scan took more than two minutes. Please try again on a stable connection.');
+    if (error.name === 'AbortError') throw new Error('The free AI scan took more than three minutes. Please try again on a stable connection.');
     throw error;
   } finally {
     window.clearTimeout(timeout);

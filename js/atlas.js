@@ -1,4 +1,4 @@
-import Router from './router.js?v=76';
+import Router from './router.js?v=77';
 import Store from './store.js';
 import { loadSchedule, scheduleSource } from './services/schedule.js';
 import { hideWelcomeScreen, showWelcomeScreen } from './components/welcomeScreen.js?v=45';

@@ -1815,7 +1815,13 @@
   align-items: end;
   background: rgba(8, 13, 10, 0.62);
   backdrop-filter: blur(10px);
-  animation: confirm-screen-in 160ms ease both;
+  opacity: 0;
+}
+
+.personal-task-target {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .help-panel {
@@ -1826,8 +1832,14 @@
   border-top: 1.5px solid var(--line);
   border-radius: 30px 30px 0 0;
   background: var(--surface);
+  opacity: 0;
+  transform: translateY(28px);
+  transform-origin: bottom center;
   scrollbar-width: none;
 }
+
+.help-screen.is-visible { animation: confirm-screen-in 180ms ease both; }
+.help-screen.is-visible .help-panel { animation: settings-panel-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 .help-panel::-webkit-scrollbar { display: none; }
 
@@ -1941,7 +1953,7 @@
   align-items: end;
   background: rgba(8, 13, 10, 0.62);
   backdrop-filter: blur(10px);
-  animation: confirm-screen-in 160ms ease both;
+  opacity: 0;
 }
 
 .settings-panel {
@@ -1955,9 +1967,13 @@
   background: var(--surface);
   box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.24);
   transform-origin: bottom center;
-  animation: settings-panel-in 210ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  opacity: 0;
+  transform: translateY(28px);
   scrollbar-width: none;
 }
+
+.settings-screen.is-visible { animation: confirm-screen-in 180ms ease both; }
+.settings-screen.is-visible .settings-panel { animation: settings-panel-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 .settings-panel::-webkit-scrollbar {
   display: none;
@@ -2194,6 +2210,15 @@
   animation: settings-panel-out 180ms ease both;
 }
 
+.help-screen.is-closing {
+  pointer-events: none;
+  animation: settings-screen-out 180ms ease both;
+}
+
+.help-screen.is-closing .help-panel {
+  animation: settings-panel-out 180ms ease both;
+}
+
 .settings-theme-toggle {
   display: flex;
   flex: 0 0 auto;
@@ -2215,13 +2240,13 @@
 }
 
 @keyframes settings-panel-in {
-  from { transform: scaleY(0.97); opacity: 0; }
-  to { transform: scaleY(1); opacity: 1; }
+  from { transform: translateY(28px) scale(0.985); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
 }
 
 @keyframes settings-panel-out {
-  from { transform: scaleY(1); opacity: 1; }
-  to { transform: scaleY(0.98); opacity: 0; }
+  from { transform: translateY(0) scale(1); opacity: 1; }
+  to { transform: translateY(18px) scale(0.985); opacity: 0; }
 }
 
 @keyframes settings-screen-out {
@@ -2273,8 +2298,9 @@
     border-radius: 30px;
     box-shadow: 0 24px 70px rgba(0, 0, 0, 0.25);
     transform-origin: center;
-    animation-name: settings-dialog-in;
   }
+
+  .settings-screen.is-visible .settings-panel { animation-name: settings-dialog-in; }
 
   .settings-appearance {
     display: none;
@@ -3742,6 +3768,8 @@
   .route-schedule .brand { font-size: clamp(3.25rem, 17vw, 4.4rem); }
   .route-schedule .view-title h1 { font-size: clamp(1.85rem, 9.5vw, 2.6rem); }
   .route-schedule .week-list { gap: 34px; }
+  .route-schedule .week-list > .path-section { margin-bottom: 0; }
+  .route-schedule .week-list > .path-section::before { bottom: -34px; }
   .route-schedule .day-section { min-height: 0; }
   .route-schedule .day-section.is-empty > .eyebrow { margin-bottom: 9px; }
 
@@ -3847,6 +3875,19 @@
   .install-app {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
+  }
+
+  .settings-screen,
+  .help-screen {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .class-card[open] .class-details {
+    animation-duration: 140ms;
   }
 
   .class-card,

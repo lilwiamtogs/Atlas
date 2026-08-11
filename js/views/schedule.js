@@ -1,6 +1,6 @@
 import PathSection from '../components/pathSection.js';
 import ClassItem from '../components/classItem.js';
-import TaskList from '../components/taskList.js';
+import TaskList from '../components/taskList.js?v=2';
 import Store from '../store.js';
 import { createTask, saveTasks, sortTasks } from '../services/tasks.js';
 import { createNote, readNoteFile, saveNotes } from '../services/notes.js?v=37';
@@ -18,7 +18,16 @@ function dateInputValue(date = new Date()) {
   return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 10);
 }
 
-function targetFields(classes) {
+function dateForWeekday(day, weekOffset, now = new Date()) {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const mondayOffset = today.getDay() === 0 ? -6 : 1 - today.getDay();
+  const target = new Date(today);
+  target.setDate(today.getDate() + mondayOffset + Number(weekOffset || 0) * 7 + Number(day) - 1);
+  if (target < today) target.setDate(target.getDate() + 7);
+  return dateInputValue(target);
+}
+
+function targetFields(classes, { includeWeek = false } = {}) {
   const hasClasses = classes.length > 0;
   const defaultType = hasClasses ? 'class' : 'personal';
   return `
@@ -33,11 +42,20 @@ function targetFields(classes) {
           ${classes.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.code)} · ${escapeHtml(item.title)}</option>`).join('')}
         </select>
       </div>
-      <label class="task-form-field" data-personal-target ${defaultType === 'personal' ? '' : 'hidden'}>Day
-        <select name="personalDay" ${defaultType === 'personal' ? 'required' : ''}>
-          ${DAY_NAMES.slice(1, 7).map((day, index) => `<option value="${index + 1}">${day}</option>`).join('')}
-        </select>
-      </label>
+      <div class="personal-task-target" data-personal-target ${defaultType === 'personal' ? '' : 'hidden'}>
+        <label class="task-form-field">Day
+          <select name="personalDay" ${defaultType === 'personal' ? 'required' : ''}>
+            ${DAY_NAMES.slice(1, 7).map((day, index) => `<option value="${index + 1}">${day}</option>`).join('')}
+          </select>
+        </label>
+        ${includeWeek ? `<label class="task-form-field">Week
+          <select name="personalWeek" ${defaultType === 'personal' ? 'required' : ''}>
+            <option value="0">This week</option>
+            <option value="1">Next week</option>
+            ${[2, 3, 4, 5, 6, 7, 8].map((week) => `<option value="${week}">In ${week} weeks</option>`).join('')}
+          </select>
+        </label>` : ''}
+      </div>
     </div>`;
 }
 
@@ -90,17 +108,24 @@ function selectedTarget(data) {
   return data.get('targetType') === 'personal' ? `personal-day-${data.get('personalDay')}` : data.get('classId');
 }
 
+function selectedTaskDate(data) {
+  return data.get('targetType') === 'personal'
+    ? dateForWeekday(data.get('personalDay'), data.get('personalWeek'))
+    : data.get('dueDate');
+}
+
 function addTaskPanel(classes) {
   const today = dateInputValue();
+  const personalOnly = classes.length === 0;
 
   return `
     <form class="add-task-form" id="add-task-form">
       <label class="task-form-field">Task
         <input name="title" placeholder="e.g. Read chapter 4" required>
       </label>
-      ${targetFields(classes)}
-      <label class="task-form-field">Due date
-        <input name="dueDate" type="date" min="${today}" value="${today}" required>
+      ${targetFields(classes, { includeWeek: true })}
+      <label class="task-form-field" data-due-date-field ${personalOnly ? 'hidden' : ''}>Due date
+        <input name="dueDate" type="date" min="${today}" value="${today}" ${personalOnly ? '' : 'required'}>
       </label>
       <button class="primary-action add-task-button" type="submit">Add task</button>
     </form>`;
@@ -145,7 +170,7 @@ function personalDayPlanner(day, tasks, notes, now) {
         <div><p class="class-code">Personal</p><h3>Plans for ${DAY_NAMES[day]}</h3></div>
         <span>${dayTasks.length + dayNotes.length}</span>
       </div>
-      ${TaskList(dayTasks, now, editingTaskId)}
+      ${TaskList(dayTasks, now, editingTaskId, { showDueDate: false })}
       ${noteContent}
     </article>`;
 }
@@ -156,42 +181,15 @@ function bindCardAnimation(card, cards) {
 
   summary.addEventListener('click', (event) => {
     event.preventDefault();
-    if (card.dataset.animating === 'true') return;
     const opening = !card.open;
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     if (opening) {
       cards.forEach((otherCard) => {
         if (otherCard === card || !otherCard.open) return;
-        otherCard.querySelector(':scope > summary')?.click();
+        otherCard.open = false;
       });
     }
-
-    if (reduceMotion || typeof card.animate !== 'function') {
-      card.open = opening;
-      return;
-    }
-
-    card.dataset.animating = 'true';
-    const startHeight = card.getBoundingClientRect().height;
-    if (opening) card.open = true;
-    else card.classList.add('is-collapsing');
-    const cardStyle = getComputedStyle(card);
-    const cardBorders = (Number.parseFloat(cardStyle.borderTopWidth) || 0) + (Number.parseFloat(cardStyle.borderBottomWidth) || 0);
-    const endHeight = (opening ? card.scrollHeight : summary.getBoundingClientRect().height) + cardBorders;
-    card.style.overflow = 'hidden';
-    const animation = card.animate(
-      [{ height: `${startHeight}px` }, { height: `${endHeight}px` }],
-      { duration: 280, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
-    );
-
-    animation.addEventListener('finish', () => {
-      if (!opening) card.open = false;
-      card.classList.remove('is-collapsing');
-      card.style.removeProperty('overflow');
-      card.style.removeProperty('height');
-      delete card.dataset.animating;
-    }, { once: true });
+    card.open = opening;
   });
 }
 
@@ -255,7 +253,10 @@ export default {
         const classField = form.querySelector('[data-class-target]');
         const personalField = form.querySelector('[data-personal-target]');
         classField.querySelector('select[name="classId"]').required = type === 'class';
-        personalField.querySelector('select').required = type === 'personal';
+        personalField.querySelectorAll('select').forEach((select) => { select.required = type === 'personal'; });
+        form.querySelector('[data-due-date-field]')?.toggleAttribute('hidden', type === 'personal');
+        const dueDate = form.elements.dueDate;
+        if (dueDate) dueDate.required = type === 'class';
         await transitionTargetField(form, type);
         delete form.dataset.switching;
       });
@@ -280,7 +281,7 @@ export default {
       const task = createTask({
         title: data.get('title'),
         classId: selectedTarget(data),
-        dueDate: data.get('dueDate'),
+        dueDate: selectedTaskDate(data),
       });
       const tasks = saveTasks([...state.tasks, task]);
       Store.set(withAutoSave(state, { tasks }));
@@ -324,7 +325,7 @@ export default {
       Store.set({ tasks: saveTasks(state.tasks.map((task) => task.id === id ? {
         ...task,
         title: data.get('title'),
-        dueDate: data.get('dueDate'),
+        dueDate: data.get('dueDate') || state.tasks.find((task) => task.id === id)?.dueDate,
       } : task)) });
     });
 

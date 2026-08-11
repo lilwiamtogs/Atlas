@@ -54,10 +54,14 @@ function json(body, status, origin) {
 }
 
 function responseValue(result) {
-  const content = result?.choices?.[0]?.message?.content ?? result?.response ?? '';
+  const content = result?.choices?.[0]?.message?.content
+    ?? result?.response
+    ?? result?.result?.response
+    ?? result?.output_text
+    ?? '';
   if (content && typeof content === 'object' && !Array.isArray(content)) return content;
   if (typeof content === 'string') return content;
-  if (Array.isArray(content)) return content.map((part) => part?.text || '').join('');
+  if (Array.isArray(content)) return content.map((part) => part?.text || part?.content || '').join('');
   return '';
 }
 
@@ -80,14 +84,19 @@ function parseModelJson(value) {
   }
 }
 
-function modelRequest(image, structured = true) {
+function modelRequest(image, structured = true, attempt = 0) {
+  const instructions = [
+    'Read this class schedule screenshot and return the complete schedule JSON.',
+    'Try again carefully. Return one valid JSON object only, with every readable recurring class row.',
+    'Inspect the timetable row by row. Return the required JSON object even when some optional text is unreadable.',
+  ];
   const request = {
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       {
         role: 'user',
         content: [
-          { type: 'text', text: 'Read this class schedule screenshot and return the complete schedule JSON.' },
+          { type: 'text', text: instructions[attempt] || instructions[2] },
           { type: 'image_url', image_url: { url: image } },
         ],
       },
@@ -156,16 +165,19 @@ export default {
         return json({ error: 'The image is too large. Choose an image under 7 MB.' }, 413, corsOrigin);
       }
 
-      let parsed;
-      try {
-        const result = await env.AI.run(MODEL, modelRequest(image));
-        parsed = parseModelJson(responseValue(result));
-      } catch (error) {
-        if (!/empty answer|incomplete schedule data/i.test(error?.message || '')) throw error;
-        const retry = await env.AI.run(MODEL, modelRequest(image, false));
-        parsed = parseModelJson(responseValue(retry));
+      let lastError;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          const result = await env.AI.run(MODEL, modelRequest(image, attempt === 0, attempt));
+          const schedule = normalizeSchedule(parseModelJson(responseValue(result)));
+          return json({ schedule }, 200, corsOrigin);
+        } catch (error) {
+          lastError = error;
+          const retryable = /empty answer|incomplete schedule data|could not find valid recurring class rows/i.test(error?.message || '');
+          if (!retryable || attempt === 2) throw error;
+        }
       }
-      return json({ schedule: normalizeSchedule(parsed) }, 200, corsOrigin);
+      throw lastError;
     } catch (error) {
       console.error('Atlas vision scan failed.', error);
       return json({ error: error?.message || 'The AI scan could not finish.' }, 502, corsOrigin);
