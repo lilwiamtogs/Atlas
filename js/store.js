@@ -4,6 +4,9 @@ import { loadArchives } from './services/scheduleArchives.js';
 import { loadExams } from './services/exams.js';
 import { loadNotificationSettings } from './services/notifications.js';
 import { loadAutoSaveSettings } from './services/autosave.js';
+import { loadSyncMetadata } from './sync/metadata.js';
+
+const syncMetadata = loadSyncMetadata();
 
 const state = {
   schedule: { semester: '', classes: [] },
@@ -13,6 +16,10 @@ const state = {
   exams: loadExams(),
   notificationSettings: loadNotificationSettings(),
   autoSaveSettings: loadAutoSaveSettings(),
+  account: { status: navigator.onLine ? 'loading' : 'offline', user: null, message: '', error: '' },
+  syncStatus: { state: navigator.onLine ? (syncMetadata.lastSyncedAt ? 'synced' : 'disabled') : 'offline', lastSyncedAt: syncMetadata.lastSyncedAt, error: '' },
+  account: { status: navigator.onLine ? 'loading' : 'offline', user: null, message: '', error: '' },
+  syncStatus: { state: navigator.onLine ? 'disabled' : 'offline', lastSyncedAt: '', error: '' },
   scheduleSource: 'Not loaded',
   scheduleError: '',
   currentView: 'home',

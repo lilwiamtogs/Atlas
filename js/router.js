@@ -328,6 +328,35 @@ const Router = {
       suppressPageAnimation = true;
       Store.set({ autoSaveSettings: disableAutoSave(state) });
     });
+    document.getElementById('atlas-sign-in-form')?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      suppressPageAnimation = true;
+      try {
+        const data = new FormData(event.currentTarget);
+        const { requestSignIn } = await import('./cloud/auth.js');
+        await requestSignIn(String(data.get('email') || '').trim());
+      } catch (error) {
+        Store.set({ account: { ...Store.get().account, error: error.message, message: '' } });
+      }
+    });
+    document.getElementById('sign-out-atlas')?.addEventListener('click', async () => {
+      suppressPageAnimation = true;
+      try {
+        const { signOut } = await import('./cloud/auth.js');
+        await signOut();
+      } catch (error) {
+        Store.set({ account: { ...Store.get().account, error: error.message, message: '' } });
+      }
+    });
+    document.getElementById('backup-atlas-now')?.addEventListener('click', async () => {
+      suppressPageAnimation = true;
+      try {
+        const { backUpNow } = await import('./sync/backup.js');
+        await backUpNow();
+      } catch (error) {
+        console.error('Atlas backup failed.', error);
+      }
+    });
 
     routes[route].bind?.(this, state, now, context);
     DeveloperTools.bind(this);

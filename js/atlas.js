@@ -1,8 +1,9 @@
-import Router from './router.js?v=84';
+import Router from './router.js?v=87';
 import Store from './store.js';
 import { loadSchedule, scheduleSource } from './services/schedule.js';
 import { hideWelcomeScreen, showWelcomeScreen } from './components/welcomeScreen.js?v=45';
 import { checkReminders } from './services/notifications.js';
+import { initializeAuth } from './cloud/auth.js';
 
 let renderedMinute = -1;
 
@@ -13,6 +14,16 @@ export default {
     const compactScreen = window.matchMedia('(max-width: 619px), (pointer: coarse)').matches;
     const minimumWelcomeTime = new Promise((resolve) => window.setTimeout(resolve, compactScreen ? 2400 : installed ? 2700 : 2500));
     Router.init();
+    import('./cloud/auth.js')
+      .then(({ initializeAuth }) => initializeAuth(Store))
+      .catch((error) => {
+        console.error('Atlas account setup failed.', error);
+        Store.set({
+          account: { status: navigator.onLine ? 'error' : 'offline', user: null, message: '', error: 'Cloud sign-in is temporarily unavailable.' },
+          syncStatus: { state: navigator.onLine ? 'error' : 'offline', lastSyncedAt: '', error: error.message },
+        });
+      });
+    initializeAuth(Store).catch((error) => console.error('Atlas account setup failed.', error));
 
     try {
       const result = await loadSchedule();

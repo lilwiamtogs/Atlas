@@ -1,6 +1,8 @@
-# Atlas v0.3.6
+# Atlas v0.4.0
 
-Atlas is a mobile-first student planner built with plain HTML, CSS, and vanilla JavaScript ES modules.
+Atlas is a local-first, mobile-first student planner built with plain HTML, CSS, and vanilla JavaScript ES modules.
+
+Version 0.4 begins Atlas cloud support. Supabase authentication is optional and lives alongside the existing offline storage architecture. A signed-in user can start a manual, revision-checked cloud backup; local planner data remains authoritative and is never replaced by this backup step. Automatic conflict-safe syncing will be enabled incrementally after backups are verified.
 
 Version 0.3.6 refines mobile motion without sacrificing the corrected responsive layout. Class cards now use a FLIP transition so surrounding sections move smoothly without animated-height reflow or scroll-anchor bounce. Mobile page navigation restores Atlas's three-strip wipe as a short, fixed-viewport, transform-only animation with reduced-motion support.
 

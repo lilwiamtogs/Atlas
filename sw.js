@@ -1,4 +1,4 @@
-const CACHE_NAME = 'atlas-shell-v105';
+const CACHE_NAME = 'atlas-shell-v109';
 const APP_SHELL = [
   './',
   './index.html',
@@ -6,16 +6,22 @@ const APP_SHELL = [
   './css/variables.css?v=2',
   './css/global.css?v=2',
   './css/layout.css?v=43',
-  './css/components.css?v=100',
+  './css/components.css?v=102',
   './data/defaultSchedule.json',
   './assets/icons/atlas-192.png',
   './assets/icons/atlas-512.png',
   './assets/icons/atlas-brand.png',
   './assets/icons/atlas-maskable.png',
-  './js/app.js?v=86',
-  './js/atlas.js?v=85',
-  './js/router.js?v=84',
+  './js/app.js?v=89',
+  './js/atlas.js?v=88',
+  './js/router.js?v=87',
   './js/store.js',
+  './js/cloud/config.js',
+  './js/cloud/client.js',
+  './js/cloud/auth.js',
+  './js/sync/metadata.js',
+  './js/sync/snapshot.js',
+  './js/sync/backup.js',
   './js/components/classItem.js?v=2',
   './js/components/atmosphere.js?v=4',
   './js/components/developerTools.js',
@@ -73,7 +79,12 @@ self.addEventListener('fetch', (event) => {
 
   if (event.request.mode === 'navigate') {
     const networkResponse = fetch(event.request).then((response) => {
-      if (response.ok) caches.open(CACHE_NAME).then((cache) => cache.put('./index.html', response.clone()));
+      if (response.ok) {
+        const responseForCache = response.clone();
+        caches.open(CACHE_NAME)
+          .then((cache) => cache.put('./index.html', responseForCache))
+          .catch(() => {});
+      }
       return response;
     });
     event.respondWith(
@@ -85,11 +96,14 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     fetch(event.request).then((response) => {
-        if (response.ok) {
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, response.clone()));
-        }
-        return response;
-      }).catch(() => caches.match(event.request))
+      if (response.ok) {
+        const responseForCache = response.clone();
+        caches.open(CACHE_NAME)
+          .then((cache) => cache.put(event.request, responseForCache))
+          .catch(() => {});
+      }
+      return response;
+    }).catch(() => caches.match(event.request))
   );
 });
 

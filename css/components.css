@@ -2186,6 +2186,128 @@
   gap: 12px;
 }
 
+.settings-account {
+  display: grid;
+  gap: 14px;
+}
+
+.account-settings-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.account-settings-heading > div {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.account-settings-heading strong {
+  overflow-wrap: anywhere;
+  color: var(--display-text);
+  font-family: var(--display-font);
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+
+.account-settings-heading > div > span,
+.account-message,
+.account-local-note,
+.account-sign-in-form label {
+  color: var(--text-muted);
+  font-size: 0.58rem;
+  line-height: 1.55;
+}
+
+.sync-status {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 0.5rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sync-status > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.sync-status.is-ready,
+.sync-status.is-synced { color: var(--success); }
+.sync-status.is-syncing { color: var(--warning); }
+.sync-status.is-offline { color: var(--text-muted); }
+.sync-status.is-error { color: var(--danger); }
+
+.account-sign-in-form {
+  display: grid;
+  gap: 7px;
+}
+
+.account-sign-in-form > div {
+  display: grid;
+  gap: 8px;
+}
+
+.account-sign-in-form input {
+  min-width: 0;
+  width: 100%;
+  padding: 12px 13px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.account-sign-in-form button,
+.account-action {
+  width: 100%;
+  margin-top: 0;
+}
+
+.account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.account-message {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.account-message.is-error {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
+  color: var(--danger);
+}
+
+.account-local-note {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+@media (min-width: 430px) {
+  .account-sign-in-form > div {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .account-sign-in-form button,
+  .account-action {
+    width: auto;
+  }
+}
+
 .settings-email-link {
   display: flex;
   align-items: center;
