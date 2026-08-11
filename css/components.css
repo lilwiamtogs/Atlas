@@ -693,6 +693,134 @@
   text-decoration: line-through;
 }
 
+.task-copy strong,
+.detail-assignment-copy strong,
+.note-directory-link strong,
+.note-reader h1 {
+  position: relative;
+  width: fit-content;
+}
+
+.task-copy strong::after,
+.detail-assignment-copy strong::after,
+.note-directory-link strong::after,
+.note-reader h1::after {
+  position: absolute;
+  top: 52%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  content: '';
+  pointer-events: none;
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+.is-striking .task-copy strong::after,
+.is-striking .detail-assignment-copy strong::after,
+.class-note-card.is-striking .note-directory-link strong::after,
+.note-reader.is-striking h1::after {
+  animation: atlas-strike-through 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes atlas-strike-through {
+  to { transform: scaleX(1); }
+}
+
+.route-home .today-section .path-content {
+  animation: today-section-open 420ms 120ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: top center;
+}
+
+@keyframes today-section-open {
+  from { opacity: 0; transform: translateY(14px) scaleY(0.96); }
+  to { opacity: 1; transform: translateY(0) scaleY(1); }
+}
+
+.atlas-date-trigger {
+  width: 100%;
+  min-height: 46px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+
+.atlas-calendar-screen {
+  position: fixed;
+  z-index: 160;
+  inset: 0;
+  display: grid;
+  padding: 20px;
+  place-items: center;
+  background: rgba(5, 9, 7, 0.7);
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.atlas-calendar-screen[hidden] { display: none; }
+.atlas-calendar-screen.is-visible { opacity: 1; }
+
+.atlas-calendar {
+  width: min(100%, 430px);
+  padding: clamp(18px, 5vw, 28px);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: var(--surface);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+  transform: translateY(12px) scale(0.98);
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.atlas-calendar-screen.is-visible .atlas-calendar { transform: translateY(0) scale(1); }
+
+.atlas-calendar-header,
+.atlas-calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.atlas-calendar-header h2 { margin: 3px 0 0; font-size: 1.35rem; }
+.atlas-calendar-close { padding: 8px 11px; font-size: 1.1rem; }
+.atlas-calendar-nav { margin: 20px 0 14px; }
+.atlas-calendar-nav button { min-width: 44px; padding: 9px 12px; }
+
+.atlas-calendar-weekdays,
+.atlas-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.atlas-calendar-weekdays { margin-bottom: 6px; color: var(--text-muted); font-size: 0.55rem; text-align: center; }
+
+.atlas-calendar-grid button,
+.atlas-calendar-blank {
+  aspect-ratio: 1;
+}
+
+.atlas-calendar-grid button {
+  display: grid;
+  padding: 0;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text);
+}
+
+.atlas-calendar-grid button:hover:not(:disabled),
+.atlas-calendar-grid button:focus-visible { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); }
+.atlas-calendar-grid button.is-today { border-color: var(--line); }
+.atlas-calendar-grid button.is-selected { background: var(--primary); color: var(--bg); }
+.atlas-calendar-grid button:disabled { opacity: 0.22; }
+
 .task-copy span,
 .no-class-tasks {
   color: var(--text-muted);
@@ -1617,6 +1745,18 @@
 
 .task-check {
   transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-striking .task-copy strong::after,
+  .is-striking .detail-assignment-copy strong::after,
+  .class-note-card.is-striking .note-directory-link strong::after,
+  .note-reader.is-striking h1::after {
+    animation: none;
+  }
+  .route-home .today-section .path-content { animation: none; }
+  .atlas-calendar-screen,
+  .atlas-calendar { transition: none; }
 }
 
 @keyframes confirm-screen-in {

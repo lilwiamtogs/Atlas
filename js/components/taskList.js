@@ -1,6 +1,11 @@
 import { escapeHtml } from '../utils/html.js';
 import { daysUntil, urgencyFor } from '../services/tasks.js';
 
+function formatDueTime(value) {
+  if (!value) return '';
+  return new Date(`2000-01-01T${value}:00`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
 function remainingLabel(dueDate, now) {
   const days = daysUntil(dueDate, now);
   if (days < 0) return `${Math.abs(days)} day${days === -1 ? '' : 's'} overdue`;
@@ -31,6 +36,9 @@ function editTask(task, showDueDate) {
       ${showDueDate ? `<label>Due date
         <input name="dueDate" type="date" value="${escapeHtml(task.dueDate)}" required>
       </label>` : ''}
+      <label>Due time
+        <input name="dueTime" type="time" value="${escapeHtml(task.dueTime || '23:59')}" required>
+      </label>
       <div class="task-edit-actions">
         <button type="submit">Save</button>
         <button type="button" data-cancel-task>Edit later</button>
@@ -42,8 +50,8 @@ function taskRow(task, now, editingTaskId, showDueDate) {
   if (task.id === editingTaskId) return editTask(task, showDueDate);
   const urgency = urgencyFor(task, now);
   const timing = showDueDate
-    ? `${remainingLabel(task.dueDate, now)} · ${escapeHtml(task.dueDate)}`
-    : weekLabel(task.dueDate, now);
+    ? `${remainingLabel(task.dueDate, now)} · ${escapeHtml(task.dueDate)}${task.dueTime ? ` · ${escapeHtml(formatDueTime(task.dueTime))}` : ''}`
+    : `${weekLabel(task.dueDate, now)}${task.dueTime ? ` · ${escapeHtml(formatDueTime(task.dueTime))}` : ''}`;
 
   return `
     <article class="task-row is-${urgency}">

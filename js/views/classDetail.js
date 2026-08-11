@@ -4,7 +4,7 @@ import { daysUntil, saveTasks, sortTasks, urgencyFor } from '../services/tasks.j
 import { createNote, readNoteFile, saveNotes } from '../services/notes.js?v=37';
 import { escapeHtml } from '../utils/html.js';
 import { DAY_NAMES, formatTime } from '../utils/time.js';
-import { transitionTaskRow } from '../utils/animations.js';
+import { transitionStrikeRemoval, transitionTaskRow } from '../utils/animations.js';
 import { createExam, saveExams } from '../services/exams.js';
 import { saveImportedSchedule } from '../services/schedule.js';
 import { withAutoSave } from '../services/autosave.js';
@@ -34,6 +34,9 @@ function assignmentRow(task, now) {
           <label>Due date
             <input name="dueDate" type="date" value="${escapeHtml(task.dueDate)}" required>
           </label>
+          <label>Due time
+            <input name="dueTime" type="time" value="${escapeHtml(task.dueTime || '23:59')}" required>
+          </label>
           <div class="class-task-edit-actions">
             <button type="submit">Save changes</button>
             <button type="button" id="cancel-class-task-edit">Cancel</button>
@@ -43,13 +46,17 @@ function assignmentRow(task, now) {
   }
 
   const days = daysUntil(task.dueDate, now);
-  const timing = task.completed
+  const timingLabel = task.completed
     ? `Completed · due ${task.dueDate}`
     : days < 0
       ? `${Math.abs(days)} day${days === -1 ? '' : 's'} overdue`
       : days === 0
         ? 'Due today'
         : `${days} day${days === 1 ? '' : 's'} remaining`;
+  const dueTime = task.dueTime
+    ? new Date(`2000-01-01T${task.dueTime}:00`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+    : '';
+  const timing = `${timingLabel}${dueTime ? ` · ${dueTime}` : ''}`;
 
   return `
     <article class="detail-assignment is-${urgencyFor(task, now)}">
@@ -81,7 +88,7 @@ function noteSection(notes) {
       <span>Newest first</span>
     </div>
     <div class="class-note-list">${notes.map((note) => `
-      <article class="class-note-card">
+      <article class="class-note-card" data-note-card="${escapeHtml(note.id)}">
         <button class="note-directory-link" type="button" data-open-note="${escapeHtml(note.id)}">
           <span class="note-file-icon" aria-hidden="true">${note.mimeType === 'application/pdf' ? 'PDF' : 'TXT'}</span>
           <span>
@@ -113,7 +120,7 @@ function noteReader(item, note) {
       <button class="secondary-action" id="note-back" type="button">← Class notes</button>
       <p class="eyebrow">${escapeHtml(item.code)} · Note</p>
     </header>
-    <article class="note-reader">
+    <article class="note-reader" data-note-reader="${escapeHtml(note.id)}">
       <p class="class-code">${isPdf ? 'PDF' : 'TXT'} note</p>
       <h1>${escapeHtml(note.name)}</h1>
       <p class="note-reader-file">${escapeHtml(note.fileName || 'Text note')}</p>
@@ -513,6 +520,7 @@ export default {
         ...task,
         title: data.get('title'),
         dueDate: data.get('dueDate'),
+        dueTime: data.get('dueTime'),
       } : task)) });
     });
 
@@ -547,8 +555,11 @@ export default {
       router.render();
     });
 
-    document.getElementById('confirm-note-delete')?.addEventListener('click', () => {
+    document.getElementById('confirm-note-delete')?.addEventListener('click', async () => {
       const noteId = pendingDeleteNoteId;
+      document.querySelector('.confirm-screen')?.remove();
+      const noteElement = document.querySelector(`[data-note-card="${CSS.escape(noteId)}"], [data-note-reader="${CSS.escape(noteId)}"]`);
+      await transitionStrikeRemoval(noteElement);
       pendingDeleteNoteId = '';
       Store.set({ notes: saveNotes(state.notes.filter((note) => note.id !== noteId)) });
       if (context.noteId) router.go(`class/${encodeURIComponent(context.classId)}`);

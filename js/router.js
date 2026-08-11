@@ -1,7 +1,7 @@
-import Home from './views/home.js?v=45';
-import Schedule from './views/schedule.js?v=61';
+import Home from './views/home.js?v=46';
+import Schedule from './views/schedule.js?v=62';
 import ImportSchedule from './views/importSchedule.js?v=62';
-import ClassDetail from './views/classDetail.js?v=42';
+import ClassDetail from './views/classDetail.js?v=44';
 import Navbar from './components/navbar.js';
 import DeveloperTools from './components/developerTools.js';
 import ThemeToggle from './components/themeToggle.js';
@@ -12,6 +12,7 @@ import { requestNotificationAccess, saveNotificationSettings } from './services/
 import { disableAutoSave, enableAutoSave } from './services/autosave.js';
 import { formatClock, getNow } from './utils/time.js';
 import enhanceSelects from './components/selectEnhancer.js?v=43';
+import enhanceDatePickers from './components/datePicker.js';
 import Atmosphere from './components/atmosphere.js?v=4';
 import HelpPanel, { helpTopics } from './components/helpPanel.js?v=4';
 import { showFirstOpenTutorial } from './components/onboarding.js?v=33';
@@ -156,6 +157,7 @@ const Router = {
     });
 
     enhanceSelects(app);
+    enhanceDatePickers(app);
 
     const openingOverlay = app.querySelector('#settings-screen, #help-screen');
     if (openingOverlay) {

@@ -10,6 +10,7 @@ function normalizeTask(task) {
     classId: String(task.classId),
     title: String(task.title).trim(),
     dueDate: task.dueDate,
+    dueTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(task.dueTime || '') ? task.dueTime : '',
     completed: Boolean(task.completed),
     createdAt: String(task.createdAt || new Date().toISOString()),
   };
@@ -19,6 +20,7 @@ export function sortTasks(tasks) {
   return [...tasks].sort((a, b) =>
     Number(a.completed) - Number(b.completed)
       || a.dueDate.localeCompare(b.dueDate)
+      || (a.dueTime || '23:59').localeCompare(b.dueTime || '23:59')
       || a.title.localeCompare(b.title)
   );
 }
@@ -38,12 +40,13 @@ export function saveTasks(tasks) {
   return normalized;
 }
 
-export function createTask({ classId, title, dueDate }) {
+export function createTask({ classId, title, dueDate, dueTime }) {
   return normalizeTask({
     id: globalThis.crypto?.randomUUID?.() || `task-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     classId,
     title,
     dueDate,
+    dueTime,
     completed: false,
     createdAt: new Date().toISOString(),
   });

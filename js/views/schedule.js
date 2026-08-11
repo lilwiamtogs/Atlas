@@ -1,6 +1,6 @@
 import PathSection from '../components/pathSection.js';
 import ClassItem from '../components/classItem.js?v=2';
-import TaskList from '../components/taskList.js?v=2';
+import TaskList from '../components/taskList.js?v=3';
 import Store from '../store.js';
 import { createTask, saveTasks, sortTasks } from '../services/tasks.js';
 import { createNote, readNoteFile, saveNotes } from '../services/notes.js?v=37';
@@ -127,6 +127,9 @@ function addTaskPanel(classes) {
       <label class="task-form-field" data-due-date-field ${personalOnly ? 'hidden' : ''}>Due date
         <input name="dueDate" type="date" min="${today}" value="${today}" ${personalOnly ? '' : 'required'}>
       </label>
+      <label class="task-form-field">Due time
+        <input name="dueTime" type="time" value="23:59" required>
+      </label>
       <button class="primary-action add-task-button" type="submit">Add task</button>
     </form>`;
 }
@@ -210,6 +213,8 @@ function bindCardAnimation(card, cards) {
     event.preventDefault();
     if (card.dataset.animating === 'true') return;
     const opening = !card.open;
+    const outgoingCard = opening ? cards.find((otherCard) => otherCard !== card && otherCard.open) : null;
+    const outgoingReveal = outgoingCard?.querySelector(':scope > .class-details-reveal');
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const setCardState = () => {
@@ -230,6 +235,18 @@ function bindCardAnimation(card, cards) {
     }
 
     card.dataset.animating = 'true';
+    if (outgoingCard) outgoingCard.dataset.animating = 'true';
+    const previousPositions = captureScheduleLayout();
+    if (outgoingReveal) {
+      try {
+        await outgoingReveal.animate([
+          { opacity: 1, transform: 'translateY(0)' },
+          { opacity: 0, transform: 'translateY(-8px)' },
+        ], { duration: 150, easing: 'ease-in', fill: 'both' }).finished;
+      } catch {
+        // A rerender can safely cancel this purely visual transition.
+      }
+    }
     if (!opening) {
       try {
         await reveal.animate([
@@ -241,7 +258,6 @@ function bindCardAnimation(card, cards) {
       }
     }
 
-    const previousPositions = captureScheduleLayout();
     setCardState();
     const layoutAnimations = animateScheduleLayout(previousPositions);
     const revealAnimation = opening
@@ -258,6 +274,7 @@ function bindCardAnimation(card, cards) {
 
     await Promise.all([...layoutAnimations, revealAnimation]);
     delete card.dataset.animating;
+    if (outgoingCard) delete outgoingCard.dataset.animating;
   });
 }
 
@@ -350,6 +367,7 @@ export default {
         title: data.get('title'),
         classId: selectedTarget(data),
         dueDate: selectedTaskDate(data),
+        dueTime: data.get('dueTime'),
       });
       const tasks = saveTasks([...state.tasks, task]);
       Store.set(withAutoSave(state, { tasks }));
@@ -394,6 +412,7 @@ export default {
         ...task,
         title: data.get('title'),
         dueDate: data.get('dueDate') || state.tasks.find((task) => task.id === id)?.dueDate,
+        dueTime: data.get('dueTime'),
       } : task)) });
     });
 

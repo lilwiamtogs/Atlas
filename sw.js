@@ -1,4 +1,4 @@
-const CACHE_NAME = 'atlas-shell-v103';
+const CACHE_NAME = 'atlas-shell-v105';
 const APP_SHELL = [
   './',
   './index.html',
@@ -6,7 +6,7 @@ const APP_SHELL = [
   './css/variables.css?v=2',
   './css/global.css?v=2',
   './css/layout.css?v=43',
-  './css/components.css?v=98',
+  './css/components.css?v=100',
   './data/defaultSchedule.json',
   './assets/icons/atlas-192.png',
   './assets/icons/atlas-512.png',
@@ -26,7 +26,8 @@ const APP_SHELL = [
   './js/components/settingsPanel.js',
   './js/components/selectEnhancer.js?v=43',
   './js/components/pathSection.js',
-  './js/components/taskList.js?v=2',
+  './js/components/taskList.js?v=3',
+  './js/components/datePicker.js',
   './js/components/themeToggle.js',
   './js/components/welcomeScreen.js?v=45',
   './js/services/ocr.js?v=41',
@@ -43,10 +44,10 @@ const APP_SHELL = [
   './js/utils/html.js',
   './js/utils/animations.js',
   './js/utils/time.js',
-  './js/views/home.js?v=45',
+  './js/views/home.js?v=46',
   './js/views/importSchedule.js?v=62',
-  './js/views/schedule.js?v=61',
-  './js/views/classDetail.js?v=42'
+  './js/views/schedule.js?v=62',
+  './js/views/classDetail.js?v=44'
 ];
 
 self.addEventListener('install', (event) => {

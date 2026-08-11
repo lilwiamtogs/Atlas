@@ -42,12 +42,15 @@ function urgentTasks(tasks, classes, now) {
     const subjectLabel = subject?.code || (personalDay ? `Personal · ${DAY_NAMES[Number(personalDay[1])]}` : 'Class');
     const days = daysUntil(task.dueDate, now);
     const remaining = days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? 'Today' : `${days}d left`;
+    const dueTime = task.dueTime
+      ? new Date(`2000-01-01T${task.dueTime}:00`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+      : '';
     return `
       <article class="home-task is-${urgencyFor(task, now)}">
         <span class="home-task-dot" aria-hidden="true"></span>
         <span class="home-task-copy">
           <strong>${escapeHtml(task.title)}</strong>
-          <span>${escapeHtml(subjectLabel)}</span>
+          <span>${escapeHtml(subjectLabel)}${dueTime ? ` · due ${escapeHtml(dueTime)}` : ''}</span>
         </span>
         <span class="home-task-days">${remaining}</span>
       </article>`;
@@ -130,7 +133,7 @@ export default {
       ${current && next ? PathSection('Next', focusClass(next, now, 'Next class')) : ''}
       ${hasUpcomingExams ? examsSection : ''}
       ${PathSection('Due / urgent', urgentTasks(state.tasks, classes, now), { className: 'tasks-preview' })}
-      ${PathSection('Today', `<div class="agenda-list">${todayList}</div>`)}
+      ${PathSection('Today', `<div class="agenda-list">${todayList}</div>`, { className: 'today-section' })}
       ${hasUpcomingExams ? '' : examsSection}
     `;
   },
