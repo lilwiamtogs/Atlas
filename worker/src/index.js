@@ -1,5 +1,9 @@
-const MODEL = '@cf/google/gemma-4-26b-a4b-it';
+const PARSER_MODELS = [
+  { id: '@cf/meta/llama-3.1-8b-instruct-fast', structured: true },
+  { id: '@cf/google/gemma-4-26b-a4b-it', structured: false },
+];
 const MAX_IMAGE_LENGTH = 10_000_000;
+const MAX_TEXT_LENGTH = 100_000;
 const ALLOWED_ORIGINS = new Set([
   'https://lilwiamtogs.github.io',
 ]);
@@ -29,8 +33,34 @@ Return only JSON with this exact shape:
   ]
 }
 Day numbers are Sunday=0, Monday=1, Tuesday=2, Wednesday=3, Thursday=4, Friday=5, Saturday=6.
-Use 24-hour HH:MM times. Keep every visible class. Put all meeting days for one identical class row in days.
-Use empty strings for missing course, yearLevel, semester, or room. Never invent unreadable values.`;
+Use 24-hour HH:MM times: 12 AM is 00:00, 12 PM is 12:00, and 1 PM through 11 PM must have 12 added (for example 1:00 PM is 13:00). Keep every visible class. Put all meeting days for one identical class row in days.
+Use empty strings for missing course, yearLevel, semester, or room. Never invent unreadable values.
+Every returned value must be supported by the transcription. If it has no clear recurring class rows, return an empty rows array.`;
+
+const SCHEDULE_SCHEMA = {
+  type: 'object',
+  properties: {
+    course: { type: 'string' },
+    yearLevel: { type: 'string' },
+    semester: { type: 'string' },
+    rows: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          code: { type: 'string' },
+          title: { type: 'string' },
+          days: { type: 'array', items: { type: 'integer', minimum: 0, maximum: 6 } },
+          start: { type: 'string' },
+          end: { type: 'string' },
+          room: { type: 'string' },
+        },
+        required: ['code', 'title', 'days', 'start', 'end', 'room'],
+      },
+    },
+  },
+  required: ['course', 'yearLevel', 'semester', 'rows'],
+};
 
 function corsHeaders(origin) {
   return {
@@ -57,6 +87,8 @@ function responseValue(result) {
   const content = result?.choices?.[0]?.message?.content
     ?? result?.response
     ?? result?.result?.response
+    ?? result?.result
+    ?? result?.answer
     ?? result?.output_text
     ?? '';
   if (content && typeof content === 'object' && !Array.isArray(content)) return content;
@@ -84,28 +116,55 @@ function parseModelJson(value) {
   }
 }
 
-function modelRequest(image, structured = true, attempt = 0) {
-  const instructions = [
-    'Read this class schedule screenshot and return the complete schedule JSON.',
-    'Try again carefully. Return one valid JSON object only, with every readable recurring class row.',
-    'Inspect the timetable row by row. Return the required JSON object even when some optional text is unreadable.',
-  ];
+function parserRequest(transcript, structured) {
   const request = {
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: instructions[attempt] || instructions[2] },
-          { type: 'image_url', image_url: { url: image } },
-        ],
-      },
+      { role: 'user', content: `Convert this timetable transcription into the required schedule JSON. Preserve every row.\n\n${transcript}` },
     ],
     temperature: 0,
     max_completion_tokens: 2400,
   };
-  if (structured) request.response_format = { type: 'json_object' };
+  if (structured) {
+    request.response_format = {
+      type: 'json_schema',
+      json_schema: SCHEDULE_SCHEMA,
+    };
+  }
   return request;
+}
+
+function imageFile(image) {
+  const match = image.match(/^data:(image\/(?:png|jpeg|webp));base64,(.+)$/is);
+  if (!match) throw new Error('Use a PNG, JPEG, or WebP image.');
+  const binary = atob(match[2]);
+  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  const extension = match[1] === 'image/jpeg' ? 'jpg' : match[1].split('/')[1];
+  return { name: `schedule.${extension}`, blob: new Blob([bytes], { type: match[1] }) };
+}
+
+async function transcribeSchedule(env, image) {
+  const result = await env.AI.toMarkdown(imageFile(image), {
+    conversionOptions: { output: { format: 'text' } },
+  });
+  if (result?.format === 'error') throw new Error(result.error || 'Atlas AI could not read the image.');
+  const transcript = String(result?.data || '').trim();
+  if (!transcript) throw new Error('Atlas AI could not read any text from the image.');
+  return transcript;
+}
+
+async function scheduleFromTranscript(env, transcript) {
+  let lastError;
+  for (const model of PARSER_MODELS) {
+    try {
+      const result = await env.AI.run(model.id, parserRequest(transcript, model.structured));
+      return normalizeSchedule(parseModelJson(responseValue(result)));
+    } catch (error) {
+      lastError = error;
+      console.warn(`Atlas schedule parser failed with ${model.id}.`, error?.message || error);
+    }
+  }
+  throw lastError;
 }
 
 function validTime(value) {
@@ -165,19 +224,14 @@ export default {
         return json({ error: 'The image is too large. Choose an image under 7 MB.' }, 413, corsOrigin);
       }
 
-      let lastError;
-      for (let attempt = 0; attempt < 3; attempt += 1) {
-        try {
-          const result = await env.AI.run(MODEL, modelRequest(image, attempt === 0, attempt));
-          const schedule = normalizeSchedule(parseModelJson(responseValue(result)));
-          return json({ schedule }, 200, corsOrigin);
-        } catch (error) {
-          lastError = error;
-          const retryable = /empty answer|incomplete schedule data|could not find valid recurring class rows/i.test(error?.message || '');
-          if (!retryable || attempt === 2) throw error;
-        }
-      }
-      throw lastError;
+      const suppliedText = typeof body?.text === 'string'
+        ? body.text.slice(0, MAX_TEXT_LENGTH).trim()
+        : '';
+      const transcript = suppliedText.length >= 20
+        ? suppliedText
+        : await transcribeSchedule(env, image);
+      const schedule = await scheduleFromTranscript(env, transcript);
+      return json({ schedule }, 200, corsOrigin);
     } catch (error) {
       console.error('Atlas vision scan failed.', error);
       return json({ error: error?.message || 'The AI scan could not finish.' }, 502, corsOrigin);

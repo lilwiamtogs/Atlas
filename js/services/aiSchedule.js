@@ -13,7 +13,7 @@ function slug(value) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-export async function scanScheduleWithAi(file) {
+export async function scanScheduleWithAi(file, ocrText = '') {
   const controller = new AbortController();
   // Workers AI can need more than 45 seconds for a large schedule image,
   // especially on a phone connection or when the model retries malformed JSON.
@@ -22,7 +22,10 @@ export async function scanScheduleWithAi(file) {
     const response = await fetch(AI_SCAN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: await fileToDataUrl(file) }),
+      body: JSON.stringify({
+        image: await fileToDataUrl(file),
+        text: String(ocrText || '').slice(0, 100_000),
+      }),
       signal: controller.signal,
     });
     const data = await response.json().catch(() => ({}));

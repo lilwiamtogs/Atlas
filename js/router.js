@@ -1,6 +1,6 @@
 import Home from './views/home.js?v=45';
-import Schedule from './views/schedule.js?v=57';
-import ImportSchedule from './views/importSchedule.js?v=61';
+import Schedule from './views/schedule.js?v=58';
+import ImportSchedule from './views/importSchedule.js?v=62';
 import ClassDetail from './views/classDetail.js?v=42';
 import Navbar from './components/navbar.js';
 import DeveloperTools from './components/developerTools.js';
@@ -81,7 +81,7 @@ const Router = {
 
       const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const compactScreen = window.matchMedia('(max-width: 619px)').matches;
-      if (reduceMotion) {
+      if (reduceMotion || compactScreen) {
         window.location.hash = `#/${route}`;
         transitioning = false;
         return;

@@ -3,7 +3,7 @@ import Store from '../store.js';
 import { escapeHtml } from '../utils/html.js';
 import { DAY_NAMES } from '../utils/time.js';
 import { scanScheduleImage } from '../services/ocr.js?v=41';
-import { scanScheduleWithAi } from '../services/aiSchedule.js?v=3';
+import { scanScheduleWithAi } from '../services/aiSchedule.js?v=4';
 import { parseScheduleText } from '../services/scheduleParser.js?v=46';
 import {
   loadSchedule,
@@ -397,7 +397,7 @@ export default {
       message = 'The free AI scan sends this schedule image to Cloudflare for processing.';
       router.render();
       try {
-        draft = await scanScheduleWithAi(selectedFile);
+        draft = await scanScheduleWithAi(selectedFile, draft?.rawText || '');
         reviewIndex = 0;
         message = '';
       } catch (error) {
