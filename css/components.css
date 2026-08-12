@@ -370,6 +370,11 @@
   display: none;
 }
 
+.personal-task-target[hidden],
+[data-class-target][hidden] {
+  display: none;
+}
+
 .week-tools-grid,
 .week-tools-grid > *,
 .week-tools-grid form,
@@ -3873,7 +3878,7 @@
 }
 
 .class-card.is-expanded > summary {
-  border-bottom: 1px solid var(--line);
+  border-bottom-color: transparent;
 }
 
 .class-card .class-main strong {
@@ -4078,23 +4083,22 @@
     width: auto;
     height: auto;
     contain: strict;
+    grid-template-rows: 1fr;
     background: transparent;
   }
 
   .page-transition.is-mobile span {
     display: block;
-    transform: translate3d(-102%, 0, 0);
+    height: 100%;
+    transform: translate3d(0, -102%, 0);
     will-change: transform;
-    transition-duration: 280ms;
+    transition-duration: 240ms;
     transition-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
   }
 
-  .page-transition.is-mobile span:nth-child(2) {
-    transition-delay: 22ms;
-  }
-
+  .page-transition.is-mobile span:nth-child(2),
   .page-transition.is-mobile span:nth-child(3) {
-    transition-delay: 44ms;
+    display: none;
   }
 
   .page-transition.is-mobile.is-covering span {
@@ -4102,7 +4106,7 @@
   }
 
   .page-transition.is-mobile.is-revealing span {
-    transform: translate3d(102%, 0, 0);
+    transform: translate3d(0, 102%, 0);
   }
 
   .welcome-screen::before {

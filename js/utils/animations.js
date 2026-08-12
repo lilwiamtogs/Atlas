@@ -51,3 +51,54 @@ export async function transitionTaskRow(row, completing) {
     // A rerender can cancel the animation safely.
   }
 }
+
+export async function transitionClassDisclosure(card, opening) {
+  if (!card || card.dataset.animating === 'true') return;
+  const reveal = card.querySelector(':scope > .class-details-reveal');
+  const summary = card.querySelector(':scope > summary');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reveal || !summary || reduceMotion || typeof card.animate !== 'function') {
+    card.open = opening;
+    card.classList.toggle('is-expanded', opening);
+    return;
+  }
+
+  card.dataset.animating = 'true';
+  const startHeight = card.getBoundingClientRect().height;
+  if (opening) {
+    card.open = true;
+    card.classList.add('is-expanded');
+  }
+  const cardStyle = getComputedStyle(card);
+  const collapsedHeight = summary.getBoundingClientRect().height
+    + Number.parseFloat(cardStyle.borderTopWidth || 0)
+    + Number.parseFloat(cardStyle.borderBottomWidth || 0);
+  const endHeight = opening ? card.scrollHeight : collapsedHeight;
+  card.style.height = `${startHeight}px`;
+  card.style.overflow = 'hidden';
+
+  const heightAnimation = card.animate(
+    [{ height: `${startHeight}px` }, { height: `${endHeight}px` }],
+    { duration: 230, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+  );
+  const contentAnimation = reveal.animate(
+    opening
+      ? [{ opacity: 0, transform: 'translateY(-6px)' }, { opacity: 1, transform: 'translateY(0)' }]
+      : [{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: 'translateY(-5px)' }],
+    { duration: opening ? 190 : 145, easing: opening ? 'ease-out' : 'ease-in', fill: 'both' },
+  );
+
+  try {
+    await Promise.all([heightAnimation.finished, contentAnimation.finished]);
+  } catch {
+    // A rerender can safely cancel this visual transition.
+  }
+  if (!opening) {
+    card.open = false;
+    card.classList.remove('is-expanded');
+  }
+  card.style.removeProperty('height');
+  card.style.removeProperty('overflow');
+  contentAnimation.cancel();
+  delete card.dataset.animating;
+}

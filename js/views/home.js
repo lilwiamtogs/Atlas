@@ -5,6 +5,7 @@ import { daysUntil, sortTasks, urgencyFor } from '../services/tasks.js';
 import { DAY_NAMES, formatDate, formatTime, getClassState } from '../utils/time.js';
 import Store from '../store.js';
 import { createExam, saveExams } from '../services/exams.js';
+import { transitionClassDisclosure } from '../utils/animations.js';
 
 let examMessage = '';
 
@@ -139,6 +140,12 @@ export default {
   },
 
   bind(router, state) {
+    document.querySelectorAll('.today-section details.class-item').forEach((card) => {
+      card.querySelector(':scope > summary')?.addEventListener('click', (event) => {
+        event.preventDefault();
+        transitionClassDisclosure(card, !card.open);
+      });
+    });
     document.getElementById('home-add-exam-form')?.addEventListener('submit', (event) => {
       event.preventDefault();
       try {

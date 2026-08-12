@@ -1,4 +1,4 @@
-const CACHE_NAME = 'atlas-shell-v109';
+const CACHE_NAME = 'atlas-shell-v113';
 const APP_SHELL = [
   './',
   './index.html',
@@ -6,15 +6,15 @@ const APP_SHELL = [
   './css/variables.css?v=2',
   './css/global.css?v=2',
   './css/layout.css?v=43',
-  './css/components.css?v=102',
+  './css/components.css?v=105',
   './data/defaultSchedule.json',
   './assets/icons/atlas-192.png',
   './assets/icons/atlas-512.png',
   './assets/icons/atlas-brand.png',
   './assets/icons/atlas-maskable.png',
-  './js/app.js?v=89',
-  './js/atlas.js?v=88',
-  './js/router.js?v=87',
+  './js/app.js?v=92',
+  './js/atlas.js?v=91',
+  './js/router.js?v=90',
   './js/store.js',
   './js/cloud/config.js',
   './js/cloud/client.js',
@@ -50,9 +50,9 @@ const APP_SHELL = [
   './js/utils/html.js',
   './js/utils/animations.js',
   './js/utils/time.js',
-  './js/views/home.js?v=46',
+  './js/views/home.js?v=47',
   './js/views/importSchedule.js?v=62',
-  './js/views/schedule.js?v=62',
+  './js/views/schedule.js?v=65',
   './js/views/classDetail.js?v=44'
 ];
 
@@ -87,10 +87,7 @@ self.addEventListener('fetch', (event) => {
       }
       return response;
     });
-    event.respondWith(
-      caches.match('./index.html').then((cached) => cached || networkResponse).catch(() => networkResponse)
-    );
-    event.waitUntil(networkResponse.catch(() => undefined));
+    event.respondWith(networkResponse.catch(() => caches.match('./index.html')));
     return;
   }
 

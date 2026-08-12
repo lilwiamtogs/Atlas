@@ -6,7 +6,7 @@ import { createTask, saveTasks, sortTasks } from '../services/tasks.js';
 import { createNote, readNoteFile, saveNotes } from '../services/notes.js?v=37';
 import { escapeHtml } from '../utils/html.js';
 import { DAY_NAMES, getClassState } from '../utils/time.js';
-import { transitionTaskRow } from '../utils/animations.js';
+import { transitionClassDisclosure, transitionTaskRow } from '../utils/animations.js';
 import { withAutoSave } from '../services/autosave.js';
 
 let noteMessage = '';
@@ -178,103 +178,18 @@ function personalDayPlanner(day, tasks, notes, now) {
     </article>`;
 }
 
-function captureScheduleLayout() {
-  const targets = document.querySelectorAll([
-    '.route-schedule .week-list > .path-section',
-    '.route-schedule .week-tools-grid',
-    '.route-schedule .schedule-print-action',
-  ].join(','));
-  return new Map([...targets].map((element) => [element, element.getBoundingClientRect().top]));
-}
-
-function animateScheduleLayout(previousPositions) {
-  const animations = [];
-  previousPositions.forEach((previousTop, element) => {
-    if (!element.isConnected) return;
-    const offset = previousTop - element.getBoundingClientRect().top;
-    if (Math.abs(offset) < 0.5) return;
-    animations.push(element.animate([
-      { transform: `translate3d(0, ${offset}px, 0)` },
-      { transform: 'translate3d(0, 0, 0)' },
-    ], {
-      duration: 210,
-      easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-    }).finished.catch(() => {}));
-  });
-  return animations;
-}
-
 function bindCardAnimation(card, cards) {
   const summary = card.querySelector(':scope > summary');
-  const reveal = card.querySelector(':scope > .class-details-reveal');
   if (!summary) return;
 
-  summary.addEventListener('click', async (event) => {
+  summary.addEventListener('click', (event) => {
     event.preventDefault();
-    if (card.dataset.animating === 'true') return;
     const opening = !card.open;
-    const outgoingCard = opening ? cards.find((otherCard) => otherCard !== card && otherCard.open) : null;
-    const outgoingReveal = outgoingCard?.querySelector(':scope > .class-details-reveal');
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    const setCardState = () => {
-      if (opening) {
-        cards.forEach((otherCard) => {
-          if (otherCard === card || !otherCard.open) return;
-          otherCard.open = false;
-          otherCard.classList.remove('is-expanded');
-        });
-      }
-      card.open = opening;
-      card.classList.toggle('is-expanded', opening);
-    };
-
-    if (!reveal || reduceMotion || typeof reveal.animate !== 'function') {
-      setCardState();
-      return;
-    }
-
-    card.dataset.animating = 'true';
-    if (outgoingCard) outgoingCard.dataset.animating = 'true';
-    const previousPositions = captureScheduleLayout();
-    if (outgoingReveal) {
-      try {
-        await outgoingReveal.animate([
-          { opacity: 1, transform: 'translateY(0)' },
-          { opacity: 0, transform: 'translateY(-8px)' },
-        ], { duration: 150, easing: 'ease-in', fill: 'both' }).finished;
-      } catch {
-        // A rerender can safely cancel this purely visual transition.
-      }
-    }
-    if (!opening) {
-      try {
-        await reveal.animate([
-          { opacity: 1 },
-          { opacity: 0 },
-        ], { duration: 85, easing: 'ease-in', fill: 'both' }).finished;
-      } catch {
-        // A rerender can safely cancel this purely visual transition.
-      }
-    }
-
-    setCardState();
-    const layoutAnimations = animateScheduleLayout(previousPositions);
-    const revealAnimation = opening
-      ? reveal.animate([
-          { opacity: 0 },
-          { opacity: 1 },
-        ], {
-          duration: 180,
-          delay: 20,
-          easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-          fill: 'both',
-        }).finished.catch(() => {})
-      : Promise.resolve();
-
-    await Promise.all([...layoutAnimations, revealAnimation]);
-    delete card.dataset.animating;
-    if (outgoingCard) delete outgoingCard.dataset.animating;
+    if (opening) cards.forEach((otherCard) => {
+      if (otherCard === card || !otherCard.open) return;
+      transitionClassDisclosure(otherCard, false);
+    });
+    transitionClassDisclosure(card, opening);
   });
 }
 
@@ -291,7 +206,7 @@ export default {
     const content = days.map((entry) => PathSection(
           entry.day === now.getDay() ? `${entry.name} · Today` : entry.name,
           `<div class="weekly-card-grid">${entry.classes.map((item) => {
-            const tasks = sortTasks(state.tasks.filter((task) => task.classId === item.id));
+            const tasks = sortTasks(state.tasks.filter((task) => task.classId === item.id && !task.completed));
             const editingThisClass = tasks.some((task) => task.id === editingTaskId);
             return ClassItem(item, {
               current: item.id === current?.id,
