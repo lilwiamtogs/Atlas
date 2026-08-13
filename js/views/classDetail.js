@@ -1,6 +1,6 @@
 import PathSection from '../components/pathSection.js';
 import Store from '../store.js';
-import { daysUntil, saveTasks, sortTasks, urgencyFor } from '../services/tasks.js';
+import { createTask, daysUntil, saveTasks, sortTasks, urgencyFor } from '../services/tasks.js';
 import { createNote, readNoteFile, saveNotes } from '../services/notes.js?v=37';
 import { escapeHtml } from '../utils/html.js';
 import { DAY_NAMES, formatTime } from '../utils/time.js';
@@ -16,7 +16,6 @@ let editingTaskId = '';
 let examMessage = '';
 let editingClass = false;
 let classMessage = '';
-let addingNote = false;
 
 function dateInputValue(date = new Date()) {
   const offset = date.getTimezoneOffset();
@@ -75,6 +74,23 @@ function assignmentSection(tasks, now, emptyMessage) {
   return tasks.length
     ? `<div class="detail-assignment-list">${tasks.map((task) => assignmentRow(task, now)).join('')}</div>`
     : `<p class="empty-state">${emptyMessage}</p>`;
+}
+
+function addTaskForm() {
+  const today = dateInputValue();
+  return `
+    <form class="add-task-form class-add-task-form" id="class-add-task-form">
+      <label class="task-form-field">Task
+        <input name="title" placeholder="e.g. Read chapter 4" required>
+      </label>
+      <label class="task-form-field">Due date
+        <input name="dueDate" type="date" min="${today}" value="${today}" required>
+      </label>
+      <label class="task-form-field">Due time
+        <input name="dueTime" type="time" value="23:59" required>
+      </label>
+      <button class="primary-action" type="submit">Add task</button>
+    </form>`;
 }
 
 function noteSection(notes) {
@@ -216,24 +232,6 @@ function addNoteForm() {
     </form>`;
 }
 
-function addNoteDialog() {
-  if (!addingNote) return '';
-  return `
-    <div class="note-upload-screen" id="note-upload-screen" role="dialog" aria-modal="true" aria-labelledby="note-upload-title" tabindex="-1">
-      <article class="note-upload-card">
-        <header class="note-upload-heading">
-          <div>
-            <p class="eyebrow">Class notes</p>
-            <h2 id="note-upload-title">Add a note</h2>
-          </div>
-          <button class="icon-button" id="close-note-upload" type="button" aria-label="Close add note">×</button>
-        </header>
-        <p class="note-upload-copy">Attach a TXT or PDF file to this class.</p>
-        ${addNoteForm()}
-      </article>
-    </div>`;
-}
-
 function examSection(exams, now) {
   const list = exams.length
     ? `<div class="exam-list">${exams.map((exam) => {
@@ -344,48 +342,16 @@ export default {
       </header>
       ${classProfile(item, state.schedule)}
       ${overdue.length ? PathSection('Needs attention', assignmentSection(overdue, now, ''), { active: true }) : ''}
-      ${PathSection('Upcoming assignments', assignmentSection(upcoming, now, 'No upcoming assignments.'))}
-      ${PathSection('Class notes', `${noteSection(notes)}
-        <div class="class-notes-add-action">
-          <button class="primary-action" id="open-note-upload" type="button">Add note</button>
-        </div>`)}
+      ${PathSection('Upcoming assignments', `${assignmentSection(upcoming, now, 'No upcoming assignments.')}${addTaskForm()}`)}
+      ${PathSection('Class notes', `${noteSection(notes)}${addNoteForm()}`)}
       ${PathSection('Past assignments', assignmentSection(past, now, 'Completed assignments will appear here.'))}
       ${PathSection('Tests & exams', examSection(exams, now))}
-      ${addNoteDialog()}
       ${deleteNoteDialog(state.notes || [])}`;
   },
 
   bind(router, state, now, context = {}) {
     document.getElementById('class-back')?.addEventListener('click', () => router.go('schedule'));
     document.getElementById('note-back')?.addEventListener('click', () => router.go(`class/${encodeURIComponent(context.classId)}`));
-    document.getElementById('open-note-upload')?.addEventListener('click', () => {
-      noteMessage = '';
-      addingNote = true;
-      router.render();
-    });
-    const noteUploadScreen = document.getElementById('note-upload-screen');
-    let noteUploadClosing = false;
-    const closeNoteUpload = async () => {
-      if (noteUploadClosing || !noteUploadScreen) return;
-      noteUploadClosing = true;
-      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      noteUploadScreen.classList.add('is-closing');
-      if (!reduceMotion) await new Promise((resolve) => window.setTimeout(resolve, 210));
-      addingNote = false;
-      noteMessage = '';
-      router.render();
-    };
-    document.getElementById('close-note-upload')?.addEventListener('click', closeNoteUpload);
-    noteUploadScreen?.addEventListener('click', (event) => {
-      if (event.target === noteUploadScreen) closeNoteUpload();
-    });
-    noteUploadScreen?.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape') closeNoteUpload();
-    });
-    if (noteUploadScreen) {
-      noteUploadScreen.focus();
-      document.getElementById('class-note-upload-form')?.querySelector('input[name="name"]')?.focus();
-    }
     const openNote = context.noteId ? state.notes.find((note) => note.id === context.noteId) : null;
     const noteSearchForm = document.getElementById('note-search-form');
     if (openNote && noteSearchForm) {
@@ -524,6 +490,19 @@ export default {
       } : task)) });
     });
 
+    document.getElementById('class-add-task-form')?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const data = new FormData(event.currentTarget);
+      const task = createTask({
+        classId: context.classId,
+        title: data.get('title'),
+        dueDate: data.get('dueDate'),
+        dueTime: data.get('dueTime'),
+      });
+      const tasks = saveTasks([...state.tasks, task]);
+      Store.set(withAutoSave(state, { tasks }));
+    });
+
     document.getElementById('add-exam-form')?.addEventListener('submit', (event) => {
       event.preventDefault();
       try {
@@ -605,11 +584,6 @@ export default {
         });
         noteMessage = '';
         const notes = saveNotes([...state.notes, note]);
-        noteUploadScreen?.classList.add('is-closing');
-        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-          await new Promise((resolve) => window.setTimeout(resolve, 210));
-        }
-        addingNote = false;
         Store.set(withAutoSave(state, { notes }));
       } catch (error) {
         noteMessage = error.name === 'QuotaExceededError'

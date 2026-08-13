@@ -1,25 +1,27 @@
-const CACHE_NAME = 'atlas-shell-v113';
+const CACHE_NAME = 'atlas-shell-v121';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
   './css/variables.css?v=2',
-  './css/global.css?v=2',
+  './css/global.css?v=3',
   './css/layout.css?v=43',
-  './css/components.css?v=105',
+  './css/components.css?v=110',
   './data/defaultSchedule.json',
   './assets/icons/atlas-192.png',
   './assets/icons/atlas-512.png',
   './assets/icons/atlas-brand.png',
   './assets/icons/atlas-maskable.png',
-  './js/app.js?v=92',
-  './js/atlas.js?v=91',
-  './js/router.js?v=90',
+  './js/app.js?v=99',
+  './js/atlas.js?v=98',
+  './js/router.js?v=96',
   './js/store.js',
   './js/cloud/config.js',
   './js/cloud/client.js',
   './js/cloud/auth.js',
   './js/sync/metadata.js',
+  './js/sync/merge.js',
+  './js/sync/remote.js',
   './js/sync/snapshot.js',
   './js/sync/backup.js',
   './js/components/classItem.js?v=2',
@@ -51,24 +53,20 @@ const APP_SHELL = [
   './js/utils/animations.js',
   './js/utils/time.js',
   './js/views/home.js?v=47',
-  './js/views/importSchedule.js?v=62',
-  './js/views/schedule.js?v=65',
-  './js/views/classDetail.js?v=44'
+  './js/views/importSchedule.js?v=63',
+  './js/views/schedule.js?v=67',
+  './js/views/classDetail.js?v=46'
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
-});
-
-self.addEventListener('message', (event) => {
-  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => Promise.all(
       keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
-    ))
+    )).then(() => self.clients.claim())
   );
 });
 

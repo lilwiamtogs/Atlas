@@ -4,6 +4,8 @@ Atlas is a local-first, mobile-first student planner built with plain HTML, CSS,
 
 Version 0.4 begins Atlas cloud support. Supabase authentication is optional and lives alongside the existing offline storage architecture. A signed-in user can start a manual, revision-checked cloud backup; local planner data remains authoritative and is never replaced by this backup step. Automatic conflict-safe syncing will be enabled incrementally after backups are verified.
 
+Phase 3 groundwork stores the common cloud snapshot behind each successful backup and introduces deterministic three-way merging. Atlas can distinguish local-only changes, remote-only changes, compatible additions or deletions, and true same-record conflicts. Applying downloaded or merged data remains disabled until conflict review and PDF restoration are implemented.
+
 Version 0.3.6 refines mobile motion without sacrificing the corrected responsive layout. Class cards now use a FLIP transition so surrounding sections move smoothly without animated-height reflow or scroll-anchor bounce. Mobile page navigation restores Atlas's three-strip wipe as a short, fixed-viewport, transform-only animation with reduced-motion support.
 
 ## Import a schedule image

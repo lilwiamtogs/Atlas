@@ -73,7 +73,7 @@ export async function backUpNow() {
     }
     if (writeError) throw writeError;
 
-    saveSyncMetadata({ ...metadata, revision: nextRevision, lastSyncedAt: now });
+    saveSyncMetadata({ ...metadata, revision: nextRevision, lastSyncedAt: now, baseSnapshot: payload });
     setStatus('synced', { lastSyncedAt: now });
   } catch (error) {
     setStatus(navigator.onLine ? 'error' : 'offline', { error: error.message });

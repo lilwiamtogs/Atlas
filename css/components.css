@@ -413,8 +413,14 @@
   transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.target-type-switch:has(button[data-target-type='personal'][aria-pressed='true'])::before {
+.target-type-switch[data-active-target='personal']::before {
   transform: translateX(calc(100% + 4px));
+}
+
+.target-field-stage > [data-class-target],
+.target-field-stage > [data-personal-target] {
+  transform-origin: center;
+  will-change: transform, opacity;
 }
 
 .target-type-switch button {
@@ -1752,6 +1758,30 @@
   transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
 }
 
+.class-add-task-form {
+  margin-top: 18px;
+}
+
+.class-note-upload-form {
+  margin-top: 18px;
+}
+
+@media (min-width: 760px) {
+  .class-add-task-form {
+    grid-template-columns: minmax(0, 1.6fr) minmax(150px, 0.8fr) minmax(130px, 0.65fr) auto;
+    align-items: end;
+  }
+
+  .class-note-upload-form {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) auto;
+    align-items: end;
+  }
+
+  .class-note-upload-form .note-message {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .is-striking .task-copy strong::after,
   .is-striking .detail-assignment-copy strong::after,
@@ -2647,21 +2677,28 @@
   pointer-events: none;
 }
 
+html.is-page-transitioning,
+html.is-page-transitioning body {
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
 .page-transition span {
   width: 100%;
   height: 102%;
   transform: translateX(-102%);
   background: var(--primary);
-  transition: transform 480ms cubic-bezier(0.65, 0, 0.35, 1);
+  transition: transform 360ms cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 .page-transition span:nth-child(2) {
-  transition-delay: 70ms;
+  transition-delay: 45ms;
   background: var(--primary-light);
 }
 
 .page-transition span:nth-child(3) {
-  transition-delay: 140ms;
+  transition-delay: 90ms;
 }
 
 .page-transition.is-covering span {
@@ -4092,7 +4129,7 @@
     height: 100%;
     transform: translate3d(0, -102%, 0);
     will-change: transform;
-    transition-duration: 240ms;
+    transition-duration: 420ms;
     transition-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
   }
 
@@ -4404,6 +4441,19 @@
   .page-transition.is-mobile { display: none; }
   .path-section.is-active > .path-heading .path-ring { animation: none; }
   .cosmic-plate { transition: none; }
+}
+
+/* Keep wide touchscreens from inheriting the intentionally oversized mobile plates. */
+@media (min-width: 620px) {
+  .route-schedule > .cosmic-plate {
+    width: 82vw;
+    height: min(58vw, 640px);
+  }
+
+  .route-schedule > .cosmic-plate-1 { left: 40%; }
+  .route-schedule > .cosmic-plate-2 { left: 60%; }
+  .route-schedule > .cosmic-plate-3 { left: 44%; }
+  .route-schedule > .cosmic-plate-feature { width: 92vw; height: min(66vw, 700px); }
 }
 .review-manual-actions,
 .manual-class-start {

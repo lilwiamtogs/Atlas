@@ -32,7 +32,7 @@ function targetFields(classes, { includeWeek = false } = {}) {
   const defaultType = hasClasses ? 'class' : 'personal';
   return `
     <input type="hidden" name="targetType" value="${defaultType}">
-    <div class="target-type-switch" aria-label="Assign to">
+    <div class="target-type-switch" data-active-target="${defaultType}" aria-label="Assign to">
       <button type="button" data-target-type="class" aria-pressed="${defaultType === 'class'}" ${hasClasses ? '' : 'disabled'}>Class</button>
       <button type="button" data-target-type="personal" aria-pressed="${defaultType === 'personal'}">Personal day</button>
     </div>
@@ -65,16 +65,20 @@ async function transitionTargetField(form, type) {
   const outgoing = type === 'class' ? personalField : classField;
   const incoming = type === 'class' ? classField : personalField;
   const stage = form.querySelector('.target-field-stage');
+  const dueField = form.querySelector('[data-due-date-field]');
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const direction = type === 'personal' ? 1 : -1;
 
   if (reduceMotion || typeof stage.animate !== 'function') {
     outgoing.hidden = true;
     incoming.hidden = false;
+    dueField?.toggleAttribute('hidden', type === 'personal');
     return;
   }
 
   const startHeight = stage.getBoundingClientRect().height;
   incoming.hidden = false;
+  if (dueField && type === 'class') dueField.hidden = false;
   const endHeight = incoming.getBoundingClientRect().height;
   incoming.style.position = 'absolute';
   incoming.style.inset = '0';
@@ -86,13 +90,27 @@ async function transitionTargetField(form, type) {
     [{ height: `${startHeight}px` }, { height: `${endHeight}px` }],
     { duration: 260, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' },
   );
+  const dueAnimation = dueField?.animate(
+    type === 'personal'
+      ? [{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: 'translateY(-6px)' }]
+      : [{ opacity: 0, transform: 'translateY(-6px)' }, { opacity: 1, transform: 'translateY(0)' }],
+    { duration: 180, delay: type === 'class' ? 70 : 0, easing: 'ease', fill: 'both' },
+  );
   await Promise.all([
     heightAnimation.finished,
-    outgoing.animate([{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: 'translateX(-10px)' }], { duration: 150, easing: 'ease-in', fill: 'forwards' }).finished,
-    incoming.animate([{ opacity: 0, transform: 'translateX(10px)' }, { opacity: 1, transform: 'translateX(0)' }], { duration: 230, delay: 70, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' }).finished,
+    dueAnimation?.finished || Promise.resolve(),
+    outgoing.animate([
+      { opacity: 1, transform: 'translateX(0) scale(1)' },
+      { opacity: 0, transform: `translateX(${-18 * direction}px) scale(0.985)` },
+    ], { duration: 150, easing: 'ease-in', fill: 'forwards' }).finished,
+    incoming.animate([
+      { opacity: 0, transform: `translateX(${18 * direction}px) scale(0.985)` },
+      { opacity: 1, transform: 'translateX(0) scale(1)' },
+    ], { duration: 230, delay: 55, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' }).finished,
   ]);
 
   outgoing.hidden = true;
+  if (dueField) dueField.hidden = type === 'personal';
   outgoing.getAnimations().forEach((animation) => animation.cancel());
   incoming.getAnimations().forEach((animation) => animation.cancel());
   incoming.style.removeProperty('position');
@@ -100,6 +118,7 @@ async function transitionTargetField(form, type) {
   incoming.style.removeProperty('opacity');
   stage.style.height = `${endHeight}px`;
   heightAnimation.cancel();
+  dueAnimation?.cancel();
   stage.style.removeProperty('height');
   stage.style.removeProperty('overflow');
 }
@@ -249,12 +268,12 @@ export default {
         if (form.elements.targetType.value === type || form.dataset.switching === 'true') return;
         form.dataset.switching = 'true';
         form.elements.targetType.value = type;
+        form.querySelector('.target-type-switch').dataset.activeTarget = type;
         form.querySelectorAll('.target-type-switch button').forEach((option) => option.setAttribute('aria-pressed', String(option === button)));
         const classField = form.querySelector('[data-class-target]');
         const personalField = form.querySelector('[data-personal-target]');
         classField.querySelector('select[name="classId"]').required = type === 'class';
         personalField.querySelectorAll('select').forEach((select) => { select.required = type === 'personal'; });
-        form.querySelector('[data-due-date-field]')?.toggleAttribute('hidden', type === 'personal');
         const dueDate = form.elements.dueDate;
         if (dueDate) dueDate.required = type === 'class';
         await transitionTargetField(form, type);

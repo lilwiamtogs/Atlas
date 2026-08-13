@@ -531,8 +531,28 @@ export default {
       }
     });
 
-    document.getElementById('toggle-archive-directory')?.addEventListener('click', () => {
-      archiveDirectoryOpen = !archiveDirectoryOpen;
+    document.getElementById('toggle-archive-directory')?.addEventListener('click', async (event) => {
+      if (!archiveDirectoryOpen) {
+        archiveDirectoryOpen = true;
+        router.render();
+        return;
+      }
+      const panel = document.querySelector('.archive-directory-panel');
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      event.currentTarget.setAttribute('aria-expanded', 'false');
+      if (panel && !reduceMotion && typeof panel.animate === 'function') {
+        const height = panel.getBoundingClientRect().height;
+        panel.style.overflow = 'hidden';
+        try {
+          await panel.animate([
+            { height: `${height}px`, opacity: 1, transform: 'translateY(0)' },
+            { height: '0px', opacity: 0, transform: 'translateY(-8px)' },
+          ], { duration: 220, easing: 'cubic-bezier(0.4, 0, 1, 1)' }).finished;
+        } catch {
+          // A rerender can safely cancel this visual transition.
+        }
+      }
+      archiveDirectoryOpen = false;
       router.render();
     });
 

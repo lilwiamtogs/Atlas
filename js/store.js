@@ -18,8 +18,6 @@ const state = {
   autoSaveSettings: loadAutoSaveSettings(),
   account: { status: navigator.onLine ? 'loading' : 'offline', user: null, message: '', error: '' },
   syncStatus: { state: navigator.onLine ? (syncMetadata.lastSyncedAt ? 'synced' : 'disabled') : 'offline', lastSyncedAt: syncMetadata.lastSyncedAt, error: '' },
-  account: { status: navigator.onLine ? 'loading' : 'offline', user: null, message: '', error: '' },
-  syncStatus: { state: navigator.onLine ? 'disabled' : 'offline', lastSyncedAt: '', error: '' },
   scheduleSource: 'Not loaded',
   scheduleError: '',
   currentView: 'home',

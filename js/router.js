@@ -1,7 +1,7 @@
 import Home from './views/home.js?v=47';
-import Schedule from './views/schedule.js?v=65';
-import ImportSchedule from './views/importSchedule.js?v=62';
-import ClassDetail from './views/classDetail.js?v=44';
+import Schedule from './views/schedule.js?v=67';
+import ImportSchedule from './views/importSchedule.js?v=63';
+import ClassDetail from './views/classDetail.js?v=46';
 import Navbar from './components/navbar.js';
 import DeveloperTools from './components/developerTools.js';
 import ThemeToggle from './components/themeToggle.js';
@@ -25,7 +25,6 @@ let helpOpen = false;
 let pendingHelpTarget = null;
 let suppressPageAnimation = false;
 let shouldAnimatePage = true;
-const atmosphereLayouts = new Map();
 
 function wait(milliseconds) {
   return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
@@ -72,6 +71,15 @@ const Router = {
     return window.location.hash.replace('#/', '') || 'home';
   },
 
+  commitRoute(route) {
+    settingsOpen = false;
+    helpOpen = false;
+    shouldAnimatePage = true;
+    window.history.pushState(null, '', `#/${route}`);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    this.render();
+  },
+
   async go(route) {
     const routeName = route.split('/')[0];
     if (!routes[routeName]) return;
@@ -83,7 +91,7 @@ const Router = {
       const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const compactScreen = window.matchMedia('(max-width: 619px)').matches;
       if (reduceMotion) {
-        window.location.hash = `#/${route}`;
+        this.commitRoute(route);
         transitioning = false;
         return;
       }
@@ -91,26 +99,30 @@ const Router = {
       if (compactScreen) {
         const overlay = createPageTransition();
         overlay.classList.add('is-mobile');
+        document.documentElement.classList.add('is-page-transitioning');
         requestAnimationFrame(() => overlay.classList.add('is-covering'));
-        await wait(280);
-        window.location.hash = `#/${route}`;
+        await wait(460);
+        this.commitRoute(route);
         await new Promise((resolve) => requestAnimationFrame(resolve));
         overlay.classList.add('is-revealing');
-        await wait(280);
+        await wait(460);
         overlay.remove();
+        document.documentElement.classList.remove('is-page-transitioning');
         transitioning = false;
         return;
       }
 
       const overlay = createPageTransition();
+      document.documentElement.classList.add('is-page-transitioning');
       requestAnimationFrame(() => overlay.classList.add('is-covering'));
-      await wait(650);
-      window.location.hash = `#/${route}`;
+      await wait(460);
+      this.commitRoute(route);
       await new Promise((resolve) => requestAnimationFrame(resolve));
-      await wait(120);
+      await wait(20);
       overlay.classList.add('is-revealing');
-      await wait(650);
+      await wait(460);
       overlay.remove();
+      document.documentElement.classList.remove('is-page-transitioning');
       transitioning = false;
     }
   },
@@ -172,29 +184,23 @@ const Router = {
       const plates = [...atmosphere.querySelectorAll('.cosmic-plate')];
       const labels = [...atmosphere.querySelectorAll('.coordinate-label')];
       const anchorFor = (index, count) => anchors[Math.round(index * Math.max(0, anchors.length - 1) / Math.max(1, count - 1))];
-      const savedAtmosphereLayout = atmosphereLayouts.get(route);
-      const plateTops = [];
       plates.forEach((plate, index) => {
         const anchor = anchorFor(index, plates.length);
         if (!anchor) return;
-        const top = savedAtmosphereLayout?.plates?.[index] ?? anchor.offsetTop + (index ? 110 : 42);
-        plateTops.push(top);
+        const top = anchor.offsetTop + (index ? 110 : 42);
         plate.style.top = `${top}px`;
         main.append(plate);
       });
       const labelsPerAnchor = new Map();
-      const labelTops = [];
       labels.forEach((label, index) => {
         const anchor = anchorFor(index, labels.length);
         if (!anchor) return;
         const anchorCount = labelsPerAnchor.get(anchor) || 0;
         labelsPerAnchor.set(anchor, anchorCount + 1);
-        const top = savedAtmosphereLayout?.labels?.[index] ?? anchor.offsetTop + 24 + anchorCount * 24;
-        labelTops.push(top);
+        const top = anchor.offsetTop + 24 + anchorCount * 24;
         label.style.top = `${top}px`;
         main.append(label);
       });
-      if (!savedAtmosphereLayout) atmosphereLayouts.set(route, { plates: plateTops, labels: labelTops });
       atmosphere.remove();
     }
 
