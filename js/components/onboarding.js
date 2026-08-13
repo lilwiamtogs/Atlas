@@ -23,7 +23,7 @@ export function showInstallGate(canPrompt = false) {
     window.setTimeout(() => {
       existingGate.remove();
       showInstallGate(canPrompt);
-    }, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 230);
+    }, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 280);
     return existingGate;
   }
   // A fresh prompt means the browser no longer considers Atlas installed.
@@ -62,6 +62,7 @@ const tutorialSteps = [
   { eyebrow: 'Step 2 · Verify', title: 'Check every class before saving.', body: 'Atlas presents detected classes for review. Correct any OCR mistakes, then add your course, year level, and semester.' },
   { eyebrow: 'Step 3 · Plan', title: 'Build out each class.', body: 'Use Week to add assignments and notes. Expand a class card for details, or open its class page to edit it and manage files.' },
   { eyebrow: 'Step 4 · Stay ready', title: 'Use the helpers you want.', body: 'Tests live on Now. Reminders, appearance, and optional schedule autosave live in Settings. The ? button can guide you back to any feature.' },
+  { eyebrow: 'Step 5 · Your account', title: 'Keep Atlas with you.', body: 'Create an optional account to sync your planner between devices. Google is quickest, and Atlas still works normally if you skip this.' },
 ];
 
 export function showFirstOpenTutorial({ force = false } = {}) {
@@ -98,17 +99,28 @@ export function showFirstOpenTutorial({ force = false } = {}) {
         <p>${step.body}</p>
         <div class="tutorial-actions">
           ${index ? '<button class="secondary-action" id="tutorial-back" type="button">Back</button>' : '<span></span>'}
-          <button class="primary-action" id="tutorial-next" type="button">${index === tutorialSteps.length - 1 ? 'Try schedule import' : 'Next'}</button>
+          ${index === tutorialSteps.length - 1
+            ? '<div class="tutorial-choice-actions"><button class="secondary-action" id="tutorial-skip-account" type="button">Not now</button><button class="primary-action" id="tutorial-create-account" type="button">Create account</button></div>'
+            : '<button class="primary-action" id="tutorial-next" type="button">Next</button>'}
         </div>
       </section>`;
     transitioning = false;
     screen.querySelector('#tutorial-back')?.addEventListener('click', () => { index -= 1; render(-1); });
     screen.querySelector('#tutorial-next')?.addEventListener('click', async () => {
-      if (index < tutorialSteps.length - 1) { index += 1; await render(1); return; }
+      index += 1;
+      await render(1);
+    });
+    const finishTutorial = (openAccount) => {
       localStorage.setItem(TUTORIAL_KEY, 'true');
       screen.classList.add('is-leaving');
-      window.setTimeout(() => { screen.remove(); window.location.hash = '#/import'; }, 320);
-    });
+      window.setTimeout(() => {
+        screen.remove();
+        if (openAccount) document.querySelector('[data-open-profile]')?.click();
+        else window.location.hash = '#/import';
+      }, 320);
+    };
+    screen.querySelector('#tutorial-create-account')?.addEventListener('click', () => finishTutorial(true));
+    screen.querySelector('#tutorial-skip-account')?.addEventListener('click', () => finishTutorial(false));
   };
 
   render();

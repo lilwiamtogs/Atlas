@@ -2,13 +2,11 @@
 
 Atlas is a local-first, mobile-first student planner built with plain HTML, CSS, and vanilla JavaScript ES modules.
 
-Version 0.4 begins Atlas cloud support. Supabase authentication is optional and lives alongside the existing offline storage architecture. A signed-in user can start a manual, revision-checked cloud backup; local planner data remains authoritative and is never replaced by this backup step. Automatic conflict-safe syncing will be enabled incrementally after backups are verified.
+Version 0.4 adds optional Supabase authentication and conflict-safe cloud syncing alongside Atlas's offline-first local storage. Signed-in devices check the cloud whenever Atlas opens, refreshes, reconnects, or returns to the foreground, and local planner changes are uploaded automatically after a short debounce.
 
-Phase 3 groundwork stores the common cloud snapshot behind each successful backup and introduces deterministic three-way merging. Atlas can distinguish local-only changes, remote-only changes, compatible additions or deletions, and true same-record conflicts. Applying downloaded or merged data remains disabled until conflict review and PDF restoration are implemented.
+Atlas stores a common snapshot behind every successful sync and uses deterministic three-way merging to distinguish local-only changes, remote-only changes, compatible edits, and true same-record conflicts. Fresh devices can safely adopt an existing cloud copy; unfamiliar or conflicting copies still require review instead of being silently overwritten.
 
-Cloud inspection now validates remote revisions, classifies local and remote changes without writing either copy, and verifies private PDF downloads by path and SHA-256 hash before they can be restored. Local application remains disabled until the review and recovery workflow is complete.
-
-Manual two-way sync now includes conflict review, private PDF restoration, a local recovery snapshot, atomic planner-data application, and a final revision check before the resolved document is written back to Supabase.
+Cloud sync includes private PDF restoration with path and SHA-256 validation, a local recovery snapshot, atomic planner-data application, and a final remote revision check before resolved data is written. Manual Sync now remains available as an explicit status check and recovery control.
 
 Version 0.3.6 refines mobile motion without sacrificing the corrected responsive layout. Class cards now use a FLIP transition so surrounding sections move smoothly without animated-height reflow or scroll-anchor bounce. Mobile page navigation restores Atlas's three-strip wipe as a short, fixed-viewport, transform-only animation with reduced-motion support.
 

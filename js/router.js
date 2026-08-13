@@ -1,13 +1,13 @@
 import Home from './views/home.js?v=47';
 import Schedule from './views/schedule.js?v=68';
-import ImportSchedule from './views/importSchedule.js?v=65';
-import ClassDetail from './views/classDetail.js?v=48';
+import ImportSchedule from './views/importSchedule.js?v=66';
+import ClassDetail from './views/classDetail.js?v=49';
 import Navbar from './components/navbar.js?v=3';
 import DeveloperTools from './components/developerTools.js';
 import ThemeToggle from './components/themeToggle.js';
 import InstallButton from './components/installButton.js';
 import SettingsPanel from './components/settingsPanel.js?v=6';
-import ProfilePanel from './components/profilePanel.js?v=5';
+import ProfilePanel from './components/profilePanel.js?v=6';
 import Store from './store.js';
 import { requestNotificationAccess, saveNotificationSettings } from './services/notifications.js';
 import { disableAutoSave, enableAutoSave } from './services/autosave.js';
@@ -16,8 +16,8 @@ import enhanceSelects from './components/selectEnhancer.js?v=43';
 import enhanceDatePickers from './components/datePicker.js';
 import Atmosphere from './components/atmosphere.js?v=4';
 import HelpPanel, { helpTopics } from './components/helpPanel.js?v=4';
-import { showFirstOpenTutorial } from './components/onboarding.js?v=35';
-import { closeOverlay } from './utils/animations.js?v=2';
+import { showFirstOpenTutorial } from './components/onboarding.js?v=37';
+import { closeOverlay } from './utils/animations.js?v=3';
 
 const routes = { home: Home, schedule: Schedule, import: ImportSchedule, class: ClassDetail };
 let transitioning = false;
@@ -67,6 +67,12 @@ function createPageTransition() {
 
 const Router = {
   init() {
+    window.addEventListener('atlas:sync-review', () => {
+      suppressPageAnimation = true;
+      settingsOpen = false;
+      profileOpen = true;
+      this.render();
+    });
     document.addEventListener('keydown', (event) => {
       if (event.key !== 'Escape') return;
       const closeButton = document.querySelector('#cancel-sync-review, #close-profile, #close-settings, #close-help, #close-image-source-picker, #cancel-note-delete, #cancel-schedule-replacement');
@@ -450,7 +456,7 @@ const Router = {
     document.getElementById('sync-atlas-now')?.addEventListener('click', async () => {
       suppressPageAnimation = true;
       try {
-        const { checkSyncNow } = await import('./sync/sync.js');
+        const { checkSyncNow } = await import('./sync/sync.js?v=2');
         await checkSyncNow();
         this.render();
       } catch (error) {
@@ -459,7 +465,7 @@ const Router = {
     });
     const cancelSyncReview = async () => {
       await closeOverlay(document.getElementById('sync-review-screen'));
-      const { cancelSyncReview } = await import('./sync/sync.js');
+      const { cancelSyncReview } = await import('./sync/sync.js?v=2');
       cancelSyncReview();
       this.render();
     };
@@ -467,7 +473,7 @@ const Router = {
     document.querySelector('[data-cancel-sync-review]')?.addEventListener('click', cancelSyncReview);
     document.getElementById('confirm-safe-sync')?.addEventListener('click', async () => {
       try {
-        const { confirmSyncReview } = await import('./sync/sync.js');
+        const { confirmSyncReview } = await import('./sync/sync.js?v=2');
         await confirmSyncReview();
         await closeOverlay(document.getElementById('sync-review-screen'));
         this.render();
@@ -480,7 +486,7 @@ const Router = {
       const choices = {};
       new FormData(event.currentTarget).forEach((value, key) => { choices[key.replace('conflict-', '')] = value; });
       try {
-        const { confirmSyncReview } = await import('./sync/sync.js');
+        const { confirmSyncReview } = await import('./sync/sync.js?v=2');
         await confirmSyncReview(choices);
         await closeOverlay(document.getElementById('sync-review-screen'));
         this.render();

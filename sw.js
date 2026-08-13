@@ -1,4 +1,4 @@
-const CACHE_NAME = 'atlas-shell-v138';
+const CACHE_NAME = 'atlas-shell-v141';
 const APP_SHELL = [
   './',
   './index.html',
@@ -6,15 +6,15 @@ const APP_SHELL = [
   './css/variables.css?v=2',
   './css/global.css?v=3',
   './css/layout.css?v=43',
-  './css/components.css?v=125',
+  './css/components.css?v=127',
   './data/defaultSchedule.json',
   './assets/icons/atlas-192.png',
   './assets/icons/atlas-512.png',
   './assets/icons/atlas-brand.png',
   './assets/icons/atlas-maskable.png',
-  './js/app.js?v=114',
-  './js/atlas.js?v=113',
-  './js/router.js?v=110',
+  './js/app.js?v=117',
+  './js/atlas.js?v=116',
+  './js/router.js?v=113',
   './js/store.js',
   './js/cloud/config.js',
   './js/cloud/client.js',
@@ -25,17 +25,17 @@ const APP_SHELL = [
   './js/sync/merge.js',
   './js/sync/remote.js',
   './js/sync/snapshot.js',
-  './js/sync/sync.js',
+  './js/sync/sync.js?v=2',
   './js/sync/backup.js',
   './js/components/classItem.js?v=2',
   './js/components/atmosphere.js?v=4',
   './js/components/developerTools.js',
   './js/components/installButton.js',
   './js/components/navbar.js?v=3',
-  './js/components/onboarding.js?v=35',
+  './js/components/onboarding.js?v=37',
   './js/components/helpPanel.js?v=4',
   './js/components/settingsPanel.js?v=6',
-  './js/components/profilePanel.js?v=5',
+  './js/components/profilePanel.js?v=6',
   './js/components/selectEnhancer.js?v=43',
   './js/components/pathSection.js',
   './js/components/taskList.js?v=3',
@@ -54,12 +54,12 @@ const APP_SHELL = [
   './js/services/scheduleParser.js?v=46',
   './js/services/tasks.js',
   './js/utils/html.js',
-  './js/utils/animations.js?v=2',
+  './js/utils/animations.js?v=3',
   './js/utils/time.js',
   './js/views/home.js?v=47',
-  './js/views/importSchedule.js?v=65',
+  './js/views/importSchedule.js?v=66',
   './js/views/schedule.js?v=68',
-  './js/views/classDetail.js?v=48'
+  './js/views/classDetail.js?v=49'
 ];
 
 self.addEventListener('install', (event) => {

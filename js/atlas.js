@@ -1,4 +1,4 @@
-import Router from './router.js?v=110';
+import Router from './router.js?v=113';
 import Store from './store.js';
 import { loadSchedule, scheduleSource } from './services/schedule.js';
 import { hideWelcomeScreen, showWelcomeScreen } from './components/welcomeScreen.js?v=47';
@@ -14,16 +14,13 @@ export default {
     const compactScreen = window.matchMedia('(max-width: 619px), (pointer: coarse)').matches;
     const minimumWelcomeTime = new Promise((resolve) => window.setTimeout(resolve, compactScreen ? 2400 : installed ? 2700 : 2500));
     Router.init();
-    import('./cloud/auth.js?v=2')
-      .then(({ initializeAuth }) => initializeAuth(Store))
-      .catch((error) => {
-        console.error('Atlas account setup failed.', error);
-        Store.set({
-          account: { status: navigator.onLine ? 'error' : 'offline', user: null, message: '', error: 'Cloud sign-in is temporarily unavailable.' },
-          syncStatus: { state: navigator.onLine ? 'error' : 'offline', lastSyncedAt: '', error: error.message },
-        });
+    const authReady = initializeAuth(Store).catch((error) => {
+      console.error('Atlas account setup failed.', error);
+      Store.set({
+        account: { status: navigator.onLine ? 'error' : 'offline', user: null, message: '', error: 'Cloud sign-in is temporarily unavailable.' },
+        syncStatus: { state: navigator.onLine ? 'error' : 'offline', lastSyncedAt: '', error: error.message },
       });
-    initializeAuth(Store).catch((error) => console.error('Atlas account setup failed.', error));
+    });
 
     try {
       const result = await loadSchedule();
@@ -35,6 +32,11 @@ export default {
         scheduleSource: scheduleSource,
       });
     }
+
+    await authReady;
+    import('./sync/sync.js?v=2')
+      .then(({ startAutomaticSync }) => startAutomaticSync())
+      .catch((error) => console.error('Atlas automatic sync setup failed.', error));
 
     await minimumWelcomeTime;
     await hideWelcomeScreen(welcomeScreen);

@@ -103,8 +103,9 @@ export async function transitionClassDisclosure(card, opening) {
   delete card.dataset.animating;
 }
 
-export async function closeOverlay(element, duration = 300) {
+export async function closeOverlay(element, duration = 260) {
   if (!element) return;
+  if (duration === 260 && element.matches('.install-gate, .tutorial-screen')) duration = 280;
   if (element.classList.contains('is-closing')) return;
   // Commit the fully-open frame before swapping to the exit animation. Without
   // this read, a fast click can let the browser coalesce both visual states.
@@ -118,6 +119,8 @@ export async function closeOverlay(element, duration = 300) {
   }
 
   const panel = element.firstElementChild;
+  const compactScreen = window.matchMedia('(max-width: 619px)').matches;
+  const bottomSheet = compactScreen && element.matches('.settings-screen, .profile-screen, .help-screen');
   const overlayAnimation = element.animate(
     [
       { opacity: 1 },
@@ -126,10 +129,15 @@ export async function closeOverlay(element, duration = 300) {
     { duration, easing: 'ease-in', fill: 'forwards' },
   );
   const panelAnimation = panel?.animate(
-    [
-      { transform: 'translateY(0) scale(1)', opacity: 1 },
-      { transform: 'translateY(18px) scale(0.975)', opacity: 0 },
-    ],
+    bottomSheet
+      ? [
+        { transform: 'translateY(0) scale(1)', opacity: 1 },
+        { transform: 'translateY(28px) scale(0.985)', opacity: 0 },
+      ]
+      : [
+        { transform: 'scale(1)', opacity: 1 },
+        { transform: 'scale(0.96)', opacity: 0 },
+      ],
     { duration, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' },
   );
 

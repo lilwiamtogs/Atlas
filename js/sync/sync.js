@@ -7,6 +7,10 @@ import { hydrateCloudSnapshot, readCloudDocument } from './remote.js';
 import { createCloudSnapshot, DOCUMENT_SCHEMA_VERSION } from './snapshot.js';
 
 let pendingReview = null;
+let autoSyncStarted = false;
+let autoSyncTimer = 0;
+let autoSyncRunning = false;
+let autoSyncQueued = false;
 
 function setStatus(state, values = {}) {
   Store.set({ syncStatus: { state, lastSyncedAt: Store.get().syncStatus?.lastSyncedAt || '', error: '', ...values } });
@@ -102,6 +106,111 @@ async function applyAndWrite(result, cloudSnapshot) {
     rollBackLastSync();
     throw error;
   }
+}
+
+function snapshotIsEmpty(snapshot) {
+  return !(snapshot.schedule?.classes?.length
+    || snapshot.tasks?.length
+    || snapshot.notes?.length
+    || snapshot.exams?.length
+    || snapshot.archives?.length);
+}
+
+function localCopyIsFresh(snapshot) {
+  const hasPersonalData = snapshot.tasks?.length
+    || snapshot.notes?.length
+    || snapshot.exams?.length
+    || snapshot.archives?.length;
+  return !hasPersonalData && !localStorage.getItem('atlas.schedule');
+}
+
+async function applyRemoteOnly(result) {
+  const client = await getSupabaseClient();
+  const localSnapshot = await hydrateCloudSnapshot(result.remote.payload, client, result.metadata.userId);
+  applyLocalSnapshot(localSnapshot);
+  const now = new Date().toISOString();
+  saveSyncMetadata({
+    ...result.metadata,
+    revision: result.remote.revision,
+    lastSyncedAt: now,
+    baseSnapshot: result.remote.payload,
+  });
+  setStatus('synced', { lastSyncedAt: now });
+}
+
+async function runAutomaticSync() {
+  if (autoSyncRunning) {
+    autoSyncQueued = true;
+    return;
+  }
+  if (!navigator.onLine || Store.get().account?.status !== 'signed-in' || pendingReview) return;
+  autoSyncRunning = true;
+  setStatus('checking');
+  try {
+    const inspectedData = ['schedule', 'tasks', 'notes', 'exams', 'archives']
+      .map((key) => Store.get()[key]);
+    const result = await inspectCloudSync();
+    const changedDuringCheck = ['schedule', 'tasks', 'notes', 'exams', 'archives']
+      .some((key, index) => Store.get()[key] !== inspectedData[index]);
+    if (changedDuringCheck) {
+      autoSyncQueued = true;
+      return;
+    }
+    if (result.state === 'current') {
+      const now = new Date().toISOString();
+      saveSyncMetadata({ ...result.metadata, revision: result.remote?.revision || 0, lastSyncedAt: now, baseSnapshot: result.local });
+      setStatus('synced', { lastSyncedAt: now });
+    } else if (result.state === 'local-only') {
+      setStatus('syncing');
+      await writeResolved(result, result.local);
+    } else if (result.state === 'remote-only'
+      || (result.state === 'missing-base' && (snapshotIsEmpty(result.local) || localCopyIsFresh(result.local)))) {
+      setStatus('syncing');
+      await applyRemoteOnly(result);
+    } else if (result.state === 'mergeable') {
+      setStatus('syncing');
+      await applyAndWrite(result, result.merged);
+    } else {
+      pendingReview = result;
+      setStatus('review');
+      window.dispatchEvent(new CustomEvent('atlas:sync-review'));
+    }
+  } catch (error) {
+    setStatus(navigator.onLine ? 'error' : 'offline', { error: error.message });
+    console.error('Atlas automatic sync failed.', error);
+  } finally {
+    autoSyncRunning = false;
+    if (autoSyncQueued) {
+      autoSyncQueued = false;
+      queueAutomaticSync(250);
+    }
+  }
+}
+
+export function queueAutomaticSync(delay = 900) {
+  window.clearTimeout(autoSyncTimer);
+  autoSyncTimer = window.setTimeout(runAutomaticSync, delay);
+}
+
+export function startAutomaticSync() {
+  if (autoSyncStarted) return;
+  autoSyncStarted = true;
+  const syncKeys = ['schedule', 'tasks', 'notes', 'exams', 'archives'];
+  let previousData = Object.fromEntries(syncKeys.map((key) => [key, Store.get()[key]]));
+  let previousUserId = Store.get().account?.user?.id || '';
+  Store.subscribe((state) => {
+    const dataChanged = syncKeys.some((key) => state[key] !== previousData[key]);
+    const userId = state.account?.user?.id || '';
+    const signedInNow = state.account?.status === 'signed-in' && userId && userId !== previousUserId;
+    previousData = Object.fromEntries(syncKeys.map((key) => [key, state[key]]));
+    previousUserId = userId;
+    if (dataChanged || signedInNow) queueAutomaticSync();
+  });
+  window.addEventListener('online', () => queueAutomaticSync(250));
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') queueAutomaticSync(250);
+  });
+  queueAutomaticSync(100);
 }
 
 export function getPendingSyncReview() {

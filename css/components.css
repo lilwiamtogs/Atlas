@@ -1627,7 +1627,7 @@
   outline: 0;
   background: rgba(8, 13, 10, 0.72);
   backdrop-filter: blur(10px);
-  animation: confirm-screen-in 170ms ease both;
+  animation: confirm-screen-in 260ms ease both;
 }
 
 .note-upload-card {
@@ -1637,15 +1637,15 @@
   border-radius: 30px;
   background: var(--surface);
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
-  animation: settings-dialog-in 230ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: settings-dialog-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .note-upload-screen.is-closing {
-  animation: note-upload-screen-out 210ms ease both;
+  animation: note-upload-screen-out 260ms ease both;
 }
 
 .note-upload-screen.is-closing .note-upload-card {
-  animation: settings-dialog-out 200ms ease both;
+  animation: settings-dialog-out 260ms ease both;
 }
 
 .note-upload-heading {
@@ -1695,7 +1695,7 @@
   place-items: center;
   background: rgba(8, 13, 10, 0.72);
   backdrop-filter: blur(10px);
-  animation: confirm-screen-in 160ms ease both;
+  animation: confirm-screen-in 260ms ease both;
 }
 
 .confirm-card {
@@ -1705,6 +1705,7 @@
   border-radius: 30px;
   background: var(--surface);
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.25);
+  animation: settings-dialog-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .confirm-card h2 {
@@ -1761,12 +1762,12 @@
 .confirm-screen.is-closing,
 .image-source-screen.is-closing {
   pointer-events: none;
-  animation: settings-screen-out 230ms ease both;
+  animation: settings-screen-out 260ms ease both;
 }
 
 .confirm-screen.is-closing .confirm-card,
 .image-source-screen.is-closing .image-source-card {
-  animation: settings-dialog-out 230ms ease both;
+  animation: settings-dialog-out 260ms ease both;
 }
 
 .class-add-task-form {
@@ -2116,8 +2117,8 @@
   scrollbar-width: none;
 }
 
-.help-screen.is-visible { animation: confirm-screen-in 180ms ease both; }
-.help-screen.is-visible .help-panel { animation: settings-panel-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.help-screen.is-visible { animation: confirm-screen-in 260ms ease both; }
+.help-screen.is-visible .help-panel { animation: settings-panel-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 .help-panel::-webkit-scrollbar { display: none; }
 
@@ -2253,7 +2254,7 @@
 }
 
 .settings-screen.is-visible,
-.profile-screen.is-visible { animation: confirm-screen-in 200ms ease both; }
+.profile-screen.is-visible { animation: confirm-screen-in 260ms ease both; }
 .settings-screen.is-visible .settings-panel,
 .profile-screen.is-visible .profile-panel { animation: settings-panel-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 
@@ -2332,8 +2333,9 @@
   backdrop-filter: blur(10px);
 }
 
-.sync-review-screen.is-closing { pointer-events: none; animation: settings-screen-out 230ms ease both; }
-.sync-review-screen.is-closing .sync-review-card { animation: settings-dialog-out 230ms ease both; }
+.sync-review-screen { animation: confirm-screen-in 260ms ease both; }
+.sync-review-screen.is-closing { pointer-events: none; animation: settings-screen-out 260ms ease both; }
+.sync-review-screen.is-closing .sync-review-card { animation: settings-dialog-out 260ms ease both; }
 
 .sync-review-card {
   width: min(620px, 100%);
@@ -2344,6 +2346,7 @@
   border-radius: 30px;
   background: var(--surface);
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+  animation: settings-dialog-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .sync-review-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
@@ -2601,7 +2604,7 @@
   border-radius: 30px;
   background: var(--surface);
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.2);
-  animation: tutorial-card-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: tutorial-card-in 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
   overflow: auto;
 }
 
@@ -2682,8 +2685,8 @@
   opacity: 0;
 }
 
-.install-gate.is-closing { pointer-events: none; animation: settings-screen-out 230ms ease both; }
-.install-gate.is-closing .install-gate-card { animation: tutorial-card-out 230ms ease both; }
+.install-gate.is-closing { pointer-events: none; animation: settings-screen-out 280ms ease both; }
+.install-gate.is-closing .install-gate-card { animation: tutorial-card-out 280ms ease both; }
 
 .tutorial-screen.is-leaving .tutorial-card {
   animation: tutorial-card-out 280ms ease both;
@@ -2708,7 +2711,7 @@
 
 .tutorial-progress {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 6px;
   margin-bottom: 30px;
 }
@@ -2737,6 +2740,13 @@
   margin-top: 0;
 }
 
+.tutorial-choice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 @keyframes tutorial-card-in {
   from { transform: scale(0.97); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
@@ -2744,20 +2754,20 @@
 
 .settings-screen.is-visible.is-closing {
   pointer-events: none;
-  animation: settings-screen-out 280ms ease both;
+  animation: settings-screen-out 260ms ease both;
 }
 
 .settings-screen.is-visible.is-closing .settings-panel {
-  animation: settings-panel-out 280ms cubic-bezier(0.4, 0, 1, 1) both;
+  animation: settings-panel-out 260ms cubic-bezier(0.4, 0, 1, 1) both;
 }
 
 .profile-screen.is-visible.is-closing {
   pointer-events: none;
-  animation: settings-screen-out 280ms ease both;
+  animation: settings-screen-out 260ms ease both;
 }
 
 .profile-screen.is-visible.is-closing .profile-panel {
-  animation: settings-panel-out 280ms cubic-bezier(0.4, 0, 1, 1) both;
+  animation: settings-panel-out 260ms cubic-bezier(0.4, 0, 1, 1) both;
 }
 
 .help-screen.is-visible.is-closing {
@@ -3205,7 +3215,7 @@ html.is-page-transitioning body {
   place-items: center;
   background: rgba(8, 13, 10, 0.68);
   backdrop-filter: blur(10px);
-  animation: confirm-screen-in 160ms ease both;
+  animation: confirm-screen-in 260ms ease both;
 }
 
 .image-source-card {
@@ -3215,7 +3225,7 @@ html.is-page-transitioning body {
   border-radius: 30px;
   background: var(--surface);
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.25);
-  animation: settings-dialog-in 210ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: settings-dialog-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .image-source-card h2 {
