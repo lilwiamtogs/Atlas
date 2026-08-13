@@ -2,7 +2,7 @@ import { escapeHtml } from '../utils/html.js';
 import { DAY_NAMES, formatTime } from '../utils/time.js';
 
 export default function ClassItem(item, options = {}) {
-  const { current = false, showDay = false, open = false, card = false, taskContent = '', navigate = false, fullPage = false } = options;
+  const { current = false, finished = false, showDay = false, open = false, card = false, taskContent = '', navigate = false, fullPage = false } = options;
   const instructor = item.instructor
     ? `<p class="class-detail"><span>Instructor</span>${escapeHtml(item.instructor)}</p>`
     : '';
@@ -17,15 +17,16 @@ export default function ClassItem(item, options = {}) {
 
   if (navigate) {
     return `
-      <article class="class-item class-card class-card-preview ${current ? 'is-current' : ''}">
+      <article class="class-item class-card class-card-preview ${current ? 'is-current' : ''} ${finished ? 'is-finished' : ''}">
         <button class="class-card-summary" type="button" data-open-class="${escapeHtml(item.id)}" aria-label="Open ${escapeHtml(item.code)} details">
           ${summaryContent}
         </button>
+        ${taskContent}
       </article>`;
   }
 
   return `
-    <details class="class-item ${card ? 'class-card' : ''} ${current ? 'is-current' : ''} ${open ? 'is-expanded' : ''}" data-class-id="${escapeHtml(item.id)}" ${open ? 'open' : ''}>
+    <details class="class-item ${card ? 'class-card' : ''} ${current ? 'is-current' : ''} ${finished ? 'is-finished' : ''} ${open ? 'is-expanded' : ''}" data-class-id="${escapeHtml(item.id)}" ${open ? 'open' : ''}>
       <summary>${summaryContent}</summary>
       <div class="class-details-reveal">
         <div class="class-details">

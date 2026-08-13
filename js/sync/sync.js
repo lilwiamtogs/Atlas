@@ -11,6 +11,11 @@ let autoSyncStarted = false;
 let autoSyncTimer = 0;
 let autoSyncRunning = false;
 let autoSyncQueued = false;
+const REVIEW_SNOOZE_KEY = 'atlas.syncReviewSnoozedUntil';
+
+function reviewSnoozed() {
+  return Date.now() < Number(sessionStorage.getItem(REVIEW_SNOOZE_KEY) || 0);
+}
 
 function setStatus(state, values = {}) {
   Store.set({ syncStatus: { state, lastSyncedAt: Store.get().syncStatus?.lastSyncedAt || '', error: '', ...values } });
@@ -38,6 +43,9 @@ function changeList(base, next) {
     after.forEach((item, id) => changes.push({ type: before.has(id) ? (JSON.stringify(before.get(id)) === JSON.stringify(item) ? '' : 'update') : 'add', label, item: item.title || item.name || item.code || id }));
     before.forEach((item, id) => { if (!after.has(id)) changes.push({ type: 'delete', label, item: item.title || item.name || item.code || id }); });
   });
+  if (JSON.stringify(base.personalization || {}) !== JSON.stringify(next.personalization || {})) {
+    changes.push({ type: 'update', label: 'personalization', item: next.personalization?.themeName || 'Atlas theme' });
+  }
   return changes.filter((change) => change.type);
 }
 
@@ -55,6 +63,10 @@ function chooseConflict(snapshot, conflict, choice) {
   const selected = choice === 'remote' ? conflict.remote : conflict.local;
   if (conflict.path === '$') return selected;
   const parts = conflict.path.split('.');
+  if (['personalization', 'notificationSettings', 'autoSaveSettings'].includes(parts[0])) {
+    snapshot[parts[0]] = selected;
+    return snapshot;
+  }
   if (parts[0] === 'schedule' && parts[1] !== 'classes') {
     snapshot.schedule[parts[1]] = selected;
     return snapshot;
@@ -143,14 +155,14 @@ async function runAutomaticSync() {
     autoSyncQueued = true;
     return;
   }
-  if (!navigator.onLine || Store.get().account?.status !== 'signed-in' || pendingReview) return;
+  if (!navigator.onLine || Store.get().account?.status !== 'signed-in' || pendingReview || reviewSnoozed()) return;
   autoSyncRunning = true;
   setStatus('checking');
   try {
-    const inspectedData = ['schedule', 'tasks', 'notes', 'exams', 'archives']
+    const inspectedData = ['schedule', 'tasks', 'notes', 'exams', 'archives', 'personalization', 'notificationSettings', 'autoSaveSettings']
       .map((key) => Store.get()[key]);
     const result = await inspectCloudSync();
-    const changedDuringCheck = ['schedule', 'tasks', 'notes', 'exams', 'archives']
+    const changedDuringCheck = ['schedule', 'tasks', 'notes', 'exams', 'archives', 'personalization', 'notificationSettings', 'autoSaveSettings']
       .some((key, index) => Store.get()[key] !== inspectedData[index]);
     if (changedDuringCheck) {
       autoSyncQueued = true;
@@ -172,8 +184,8 @@ async function runAutomaticSync() {
       await applyAndWrite(result, result.merged);
     } else {
       pendingReview = result;
-      setStatus('review');
       window.dispatchEvent(new CustomEvent('atlas:sync-review'));
+      setStatus('review');
     }
   } catch (error) {
     setStatus(navigator.onLine ? 'error' : 'offline', { error: error.message });
@@ -195,16 +207,17 @@ export function queueAutomaticSync(delay = 900) {
 export function startAutomaticSync() {
   if (autoSyncStarted) return;
   autoSyncStarted = true;
-  const syncKeys = ['schedule', 'tasks', 'notes', 'exams', 'archives'];
+  const syncKeys = ['schedule', 'tasks', 'notes', 'exams', 'archives', 'personalization', 'notificationSettings', 'autoSaveSettings'];
   let previousData = Object.fromEntries(syncKeys.map((key) => [key, Store.get()[key]]));
   let previousUserId = Store.get().account?.user?.id || '';
   Store.subscribe((state) => {
-    const dataChanged = syncKeys.some((key) => state[key] !== previousData[key]);
+    const changedKeys = syncKeys.filter((key) => state[key] !== previousData[key]);
+    const dataChanged = changedKeys.length > 0;
     const userId = state.account?.user?.id || '';
     const signedInNow = state.account?.status === 'signed-in' && userId && userId !== previousUserId;
     previousData = Object.fromEntries(syncKeys.map((key) => [key, state[key]]));
     previousUserId = userId;
-    if (dataChanged || signedInNow) queueAutomaticSync();
+    if (dataChanged || signedInNow) queueAutomaticSync(dataChanged ? 100 : 250);
   });
   window.addEventListener('online', () => queueAutomaticSync(250));
   document.addEventListener('visibilitychange', () => {
@@ -219,10 +232,12 @@ export function getPendingSyncReview() {
 
 export function cancelSyncReview() {
   pendingReview = null;
+  sessionStorage.setItem(REVIEW_SNOOZE_KEY, String(Date.now() + 5 * 60 * 1000));
   setStatus('ready');
 }
 
 export async function checkSyncNow() {
+  sessionStorage.removeItem(REVIEW_SNOOZE_KEY);
   setStatus('checking');
   try {
     const result = await inspectCloudSync();

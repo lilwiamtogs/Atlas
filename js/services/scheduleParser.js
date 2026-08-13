@@ -165,7 +165,7 @@ function parseRegistrarTableRow(line, matches) {
   const [startMatch, endMatch] = matches;
   if (line.slice(0, startMatch.index).trim()) return null;
   const afterTime = line.slice(endMatch.index + endMatch[0].length)
-    .replace(/^\s*[-â€“â€”|:]\s*/, '')
+    .replace(/^\s*[-–—|:]\s*/, '')
     .trim();
   const dayMatch = afterTime.match(/^(MWF|TTH|MW|MF|WF|TR|TH|M|T|W|R|F|S)\b/i);
   if (!dayMatch) return null;
@@ -199,7 +199,7 @@ function parseCourseListRow(line, matches) {
   let title = codeMatch[2].trim();
   if (/^(?:[A-Z]{2,}\d+\s+)?\d+(?:\.\d+)?$/i.test(title)) title = '';
   title = title.replace(/^\d+(?:\.\d+)?\s+/, '').trim() || code;
-  const afterTime = line.slice(matches[1].index + matches[1][0].length).replace(/^\s*[-â€“â€”|:]\s*/, '').trim();
+  const afterTime = line.slice(matches[1].index + matches[1][0].length).replace(/^\s*[-–—|:]\s*/, '').trim();
   const room = cleanRoom(afterTime.match(/^[A-Z0-9-]+/i)?.[0] || '');
   return { code, title, days, room, classKey: code };
 }

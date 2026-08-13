@@ -11,9 +11,33 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Atlas</title>
     <script>
-      if (localStorage.getItem('atlas.theme') === 'light') {
-        document.documentElement.dataset.theme = 'light';
-      }
+      try {
+        const savedPersonalization = JSON.parse(localStorage.getItem('atlas.personalization') || '{}');
+        const activeId = savedPersonalization.activeThemeId || `atlas-${localStorage.getItem('atlas.theme') === 'light' ? 'light' : 'dark'}`;
+        const selectedTheme = (savedPersonalization.savedThemes || []).find((theme) => theme.id === activeId);
+        const mode = selectedTheme?.mode === 'light' || activeId === 'atlas-light' ? 'light' : 'dark';
+        const colors = selectedTheme?.colors || {};
+        document.documentElement.dataset.theme = mode;
+        if (/^#[0-9a-f]{6}$/i.test(colors.accent || '')) document.documentElement.style.setProperty('--primary', colors.accent);
+        if (/^#[0-9a-f]{6}$/i.test(colors.highlight || '')) {
+          document.documentElement.style.setProperty('--primary-light', colors.highlight);
+          document.documentElement.style.setProperty('--display-text', colors.highlight);
+        }
+        if (/^#[0-9a-f]{6}$/i.test(colors.background || '')) {
+          document.documentElement.style.setProperty('--bg', colors.background);
+          document.documentElement.style.setProperty('--surface', `color-mix(in srgb, ${colors.background} 92%, ${colors.highlight || '#a9c8b3'})`);
+        }
+        const transition1 = colors.transition1 || colors.accent;
+        const transition2 = colors.transition2 || colors.highlight;
+        const transition3 = colors.transition3 || colors.transition;
+        if (/^#[0-9a-f]{6}$/i.test(transition1 || '')) document.documentElement.style.setProperty('--transition-primary', transition1);
+        if (/^#[0-9a-f]{6}$/i.test(transition2 || '')) document.documentElement.style.setProperty('--transition-secondary', transition2);
+        if (/^#[0-9a-f]{6}$/i.test(transition3 || '')) {
+          document.documentElement.style.setProperty('--atmosphere-line', transition3);
+          document.documentElement.style.setProperty('--transition-tertiary', transition3);
+        }
+        document.documentElement.dataset.focusMode = String(Boolean(savedPersonalization.focusMode));
+      } catch { /* Atlas will restore safe defaults after startup. */ }
     </script>
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="assets/icons/atlas-192.png" type="image/png">
@@ -24,11 +48,11 @@
     <link rel="stylesheet" href="css/variables.css?v=2">
     <link rel="stylesheet" href="css/global.css?v=3">
     <link rel="stylesheet" href="css/layout.css?v=43">
-    <link rel="stylesheet" href="css/components.css?v=127">
+    <link rel="stylesheet" href="css/components.css?v=150">
   </head>
   <body>
     <noscript>Atlas needs JavaScript enabled to read your schedule.</noscript>
     <div id="app"></div>
-    <script type="module" src="js/app.js?v=117"></script>
+    <script type="module" src="js/app.js?v=154"></script>
   </body>
 </html>

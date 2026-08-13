@@ -50,10 +50,15 @@ export default function enhanceDatePickers(root = document) {
   let activeInput = null;
   let activeTrigger = null;
   let viewDate = new Date();
+  let closeTimer = 0;
 
   const close = () => {
+    window.clearTimeout(closeTimer);
     screen.classList.remove('is-visible');
-    window.setTimeout(() => { screen.hidden = true; }, 180);
+    closeTimer = window.setTimeout(() => {
+      screen.hidden = true;
+      closeTimer = 0;
+    }, 180);
     activeTrigger?.focus();
   };
 
@@ -73,6 +78,8 @@ export default function enhanceDatePickers(root = document) {
   };
 
   const open = (input, trigger) => {
+    window.clearTimeout(closeTimer);
+    closeTimer = 0;
     activeInput = input;
     activeTrigger = trigger;
     const selected = parseDate(input.value);

@@ -5,8 +5,10 @@ import { loadExams } from './services/exams.js';
 import { loadNotificationSettings } from './services/notifications.js';
 import { loadAutoSaveSettings } from './services/autosave.js';
 import { loadSyncMetadata } from './sync/metadata.js';
+import { applyPersonalization, loadPersonalization } from './services/personalization.js';
 
 const syncMetadata = loadSyncMetadata();
+const personalization = applyPersonalization(loadPersonalization());
 
 const state = {
   schedule: { semester: '', classes: [] },
@@ -22,6 +24,7 @@ const state = {
   scheduleError: '',
   currentView: 'home',
   theme: localStorage.getItem('atlas.theme') === 'light' ? 'light' : 'dark',
+  personalization,
   timeOverride: localStorage.getItem('atlas.timeOverride') || '',
 };
 

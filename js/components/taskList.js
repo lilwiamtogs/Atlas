@@ -33,6 +33,9 @@ function editTask(task, showDueDate) {
       <label>Task
         <input name="title" value="${escapeHtml(task.title)}" required>
       </label>
+      <label>Description
+        <textarea name="description" maxlength="500" placeholder="What needs to be done?">${escapeHtml(task.description || '')}</textarea>
+      </label>
       ${showDueDate ? `<label>Due date
         <input name="dueDate" type="date" value="${escapeHtml(task.dueDate)}" required>
       </label>` : ''}
@@ -60,6 +63,7 @@ function taskRow(task, now, editingTaskId, showDueDate) {
       </button>
       <div class="task-copy">
         <strong>${escapeHtml(task.title)}</strong>
+        ${task.description ? `<small class="task-description">${escapeHtml(task.description)}</small>` : ''}
         <span>${timing}</span>
       </div>
       <div class="task-actions">

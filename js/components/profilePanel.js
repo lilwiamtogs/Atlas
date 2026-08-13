@@ -1,7 +1,13 @@
 import { escapeHtml } from '../utils/html.js';
-import { getPendingSyncReview } from '../sync/sync.js?v=2';
+import { getPendingSyncReview } from '../sync/sync.js?v=5';
+import { BUILT_IN_THEMES } from '../services/personalization.js';
 
 const syncLabels = { ready: 'Ready to sync', checking: 'Checking', review: 'Review needed', syncing: 'Syncing', synced: 'Synced', offline: 'Offline', error: 'Sync error', disabled: 'Cloud sync off' };
+const palette = ['#7a9e87', '#a9c8b3', '#587662', '#7997b5', '#a89ac3', '#be8f7a', '#c1a45f', '#6d948f', '#b97878', '#8b9b6c'];
+
+function colorControl(name, label, description, value) {
+  return `<div class="profile-color-control" data-color-control><input name="${name}" type="text" value="${escapeHtml(value)}" pattern="#[0-9a-fA-F]{6}" hidden><button class="profile-color-trigger" data-color-trigger type="button" style="--color-preview:${escapeHtml(value)}"><span></span><strong>${label}</strong><small>${description}</small></button><div class="atlas-color-panel" hidden><div class="atlas-color-palette">${palette.map((color) => `<button type="button" data-color-value="${color}" style="--color-preview:${color}" aria-label="Use ${color}"></button>`).join('')}</div><label>Hex color<input data-color-hex value="${escapeHtml(value)}" maxlength="7" spellcheck="false"></label><button class="atlas-color-done" type="button">Done</button></div></div>`;
+}
 
 function compactValue(value) {
   if (value === undefined) return 'Deleted';
@@ -10,7 +16,7 @@ function compactValue(value) {
   return value.title || value.name || value.code || JSON.stringify(value).slice(0, 90);
 }
 
-function syncReviewPanel() {
+export function SyncReviewPanel() {
   const review = getPendingSyncReview();
   if (!review) return '';
   return `<div class="sync-review-screen" id="sync-review-screen" role="dialog" aria-modal="true" aria-labelledby="sync-review-title"><section class="sync-review-card">
@@ -27,13 +33,17 @@ export default function ProfilePanel(state) {
   const syncState = state.syncStatus?.state || 'disabled';
   const syncLabel = syncLabels[syncState] || 'Cloud sync off';
   const lastSynced = state.syncStatus?.lastSyncedAt ? new Date(state.syncStatus.lastSyncedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '';
+  const personalization = state.personalization || {};
+  const colors = personalization.draftColors || {};
+  const themeChoices = [...BUILT_IN_THEMES, ...(personalization.savedThemes || [])];
   return `<div class="profile-screen" id="profile-screen"><section class="profile-panel" role="dialog" aria-modal="true" aria-labelledby="profile-title">
     <header class="settings-header"><div><p class="eyebrow">Atlas cloud</p><h2 id="profile-title">Profile</h2></div><button class="settings-close" id="close-profile" type="button" aria-label="Close profile">×</button></header>
     <div class="settings-section settings-account"><div class="account-settings-heading"><div><strong>${signedIn ? escapeHtml(account.user.email || 'Atlas account') : 'Sign up or log in'}</strong><span>${signedIn ? 'You are logged in. Atlas can safely sync this device with your cloud copy.' : 'Enter your email. Atlas will create an account or log you in with a secure email link.'}</span></div><span class="sync-status is-${escapeHtml(syncState)}"><span aria-hidden="true"></span>${escapeHtml(syncLabel)}</span></div>
     ${signedIn ? `<div class="account-actions"><button class="primary-action account-action" id="sync-atlas-now" type="button" ${['checking', 'syncing'].includes(syncState) ? 'disabled' : ''}>${syncState === 'checking' ? 'Checking…' : syncState === 'syncing' ? 'Syncing…' : 'Sync now'}</button><button class="secondary-action account-action" id="sign-out-atlas" type="button">Sign out</button></div>` : `<div class="account-login-options"><button class="google-sign-in" id="google-sign-in" type="button" ${account.status === 'loading' || account.status === 'offline' ? 'disabled' : ''}><span aria-hidden="true">G</span>Continue with Google</button><button class="account-email-toggle" id="show-email-sign-in" type="button">Use email instead</button><div class="account-email-option" id="account-email-option" hidden><div class="account-login-divider"><span>email sign in</span></div><form class="account-sign-in-form" id="atlas-sign-in-form"><label for="atlas-account-email">Email magic link</label><div><input id="atlas-account-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required ${account.status === 'loading' ? 'disabled' : ''}><button class="primary-action" type="submit" ${account.status === 'loading' || account.status === 'offline' ? 'disabled' : ''}>${account.status === 'loading' ? 'Connecting…' : 'Continue with email'}</button></div></form></div></div>`}
     ${signedIn ? `<form class="profile-name-form" id="profile-name-form"><label for="profile-display-name">Display name</label><div><input id="profile-display-name" name="displayName" maxlength="40" value="${escapeHtml(account.user.user_metadata?.display_name || account.user.user_metadata?.full_name || account.user.user_metadata?.name || '')}" placeholder="What should Atlas call you?"><button class="secondary-action" type="submit">Save name</button></div></form>` : ''}
+    ${signedIn ? `<form class="profile-theme-form" id="profile-theme-form"><div class="profile-theme-heading"><div><strong>Your colors</strong><span>Six colors make one independent Atlas theme. Custom themes use their own background instead of light/dark mode.</span></div><button class="secondary-action" type="submit">Save theme</button></div><div class="saved-theme-list" aria-label="Saved themes">${themeChoices.map((theme) => `<button class="saved-theme-choice ${personalization.activeThemeId === theme.id ? 'is-active' : ''}" data-saved-theme="${escapeHtml(theme.id)}" type="button"><span class="saved-theme-swatch" style="--saved-accent:${escapeHtml(theme.colors?.accent || (theme.mode === 'light' ? '#789982' : '#7a9e87'))};--saved-highlight:${escapeHtml(theme.colors?.highlight || (theme.mode === 'light' ? '#587662' : '#a9c8b3'))}"></span><strong>${escapeHtml(theme.name || 'Untitled theme')}</strong></button>`).join('')}</div><label class="profile-theme-name">Theme name <input name="themeName" maxlength="32" value="" placeholder="Optional"></label><div class="profile-color-grid">${colorControl('accent', 'Accent', 'Buttons and markers', colors.accent || '#7a9e87')}${colorControl('highlight', 'Highlight', 'Titles and active states', colors.highlight || '#a9c8b3')}${colorControl('background', 'Background', 'Your theme canvas', colors.background || '#0f1512')}${colorControl('transition1', 'Transition 1', 'Leading block', colors.transition1 || '#7a9e87')}${colorControl('transition2', 'Transition 2', 'Middle block', colors.transition2 || '#a9c8b3')}${colorControl('transition3', 'Transition 3', 'Trailing block', colors.transition3 || '#587662')}</div></form>` : ''}
     ${account.status === 'offline' ? '<p class="account-message">Atlas is offline. Your local planner still works normally.</p>' : ''}${account.message ? `<p class="account-message" role="status">${escapeHtml(account.message)}</p>` : ''}${account.error ? `<p class="account-message is-error" role="alert">${escapeHtml(account.error)}</p>` : ''}${state.syncStatus?.error ? `<p class="account-message is-error" role="alert">${escapeHtml(state.syncStatus.error)}</p>` : ''}
     ${signedIn ? `<p class="account-message account-sync-summary"><strong>${escapeHtml(syncLabel)}</strong><span>${lastSynced ? `Last synced ${escapeHtml(lastSynced)}` : 'This account has not synced on this device yet.'}</span></p>` : ''}<p class="account-local-note">Signing in never removes or replaces data saved on this device.</p></div>
     <div class="settings-section profile-preferences"><div class="settings-section-copy"><strong>App settings</strong><span>Schedule import, help, reminders, appearance, and installation.</span></div><button class="secondary-action" id="profile-open-settings" type="button">Open settings</button></div>
-  </section>${syncReviewPanel()}</div>`;
+  </section></div>`;
 }

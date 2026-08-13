@@ -56,6 +56,9 @@ export function mergeCloudSnapshots(base, local, remote) {
       notes: mergeCollection(base.notes, local.notes, remote.notes, 'notes', conflicts),
       exams: mergeCollection(base.exams, local.exams, remote.exams, 'exams', conflicts),
       archives: mergeCollection(base.archives, local.archives, remote.archives, 'archives', conflicts),
+      personalization: mergeValue(base.personalization, local.personalization, remote.personalization, 'personalization', conflicts),
+      notificationSettings: mergeValue(base.notificationSettings, local.notificationSettings, remote.notificationSettings, 'notificationSettings', conflicts),
+      autoSaveSettings: mergeValue(base.autoSaveSettings, local.autoSaveSettings, remote.autoSaveSettings, 'autoSaveSettings', conflicts),
     },
     conflicts,
   };

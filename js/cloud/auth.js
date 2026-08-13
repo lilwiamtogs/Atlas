@@ -3,6 +3,7 @@ import { loadSyncMetadata } from '../sync/metadata.js';
 
 let initialized = false;
 let store;
+let authSubscription;
 
 function accountPatch(status, values = {}) {
   const currentSync = store?.get().syncStatus || { state: 'disabled', lastSyncedAt: '', error: '' };
@@ -80,7 +81,10 @@ async function initializeSession() {
     const { data, error } = await client.auth.getSession();
     if (error) throw error;
     applySession(data.session);
-    client.auth.onAuthStateChange((_event, session) => applySession(session));
+    if (!authSubscription) {
+      const listener = client.auth.onAuthStateChange((_event, session) => applySession(session));
+      authSubscription = listener.data.subscription;
+    }
   } catch (error) {
     store.set(accountPatch(navigator.onLine ? 'error' : 'offline', { error: error.message }));
   }

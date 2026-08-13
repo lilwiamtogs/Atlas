@@ -20,7 +20,7 @@ import { saveTasks } from '../services/tasks.js';
 import { saveNotes } from '../services/notes.js?v=37';
 import { saveExams } from '../services/exams.js';
 import { disableAutoSave, withAutoSave } from '../services/autosave.js';
-import { closeOverlay } from '../utils/animations.js?v=3';
+import { closeOverlay } from '../utils/animations.js?v=4';
 
 let selectedFile = null;
 let previewUrl = '';

@@ -1,4 +1,4 @@
-import Router from './router.js?v=113';
+import Router from './router.js?v=149';
 import Store from './store.js';
 import { loadSchedule, scheduleSource } from './services/schedule.js';
 import { hideWelcomeScreen, showWelcomeScreen } from './components/welcomeScreen.js?v=47';
@@ -34,12 +34,13 @@ export default {
     }
 
     await authReady;
-    import('./sync/sync.js?v=2')
+    import('./sync/sync.js?v=5')
       .then(({ startAutomaticSync }) => startAutomaticSync())
       .catch((error) => console.error('Atlas automatic sync setup failed.', error));
 
     await minimumWelcomeTime;
     await hideWelcomeScreen(welcomeScreen);
+    Router.animateAtmosphere();
     checkReminders(Store.get(), new Date()).catch((error) => console.error('Atlas reminder check failed.', error));
     renderedMinute = new Date().getMinutes();
 
@@ -48,7 +49,6 @@ export default {
       const minute = new Date().getMinutes();
       if (!Store.get().timeOverride && renderedMinute !== minute) {
         renderedMinute = minute;
-        Router.render();
         checkReminders(Store.get(), new Date()).catch((error) => console.error('Atlas reminder check failed.', error));
       }
     }, 1000);

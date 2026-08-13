@@ -1,5 +1,6 @@
 import { escapeHtml } from '../utils/html.js';
 import { hasCompleteScheduleData } from '../services/autosave.js';
+import { activeTheme } from '../services/personalization.js';
 
 export default function SettingsPanel(state, message = '') {
   const supported = typeof Notification !== 'undefined' && 'serviceWorker' in navigator;
@@ -10,6 +11,8 @@ export default function SettingsPanel(state, message = '') {
   const installed = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
   const canInstall = document.documentElement.classList.contains('can-install-atlas');
   const appleDevice = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const personalization = state.personalization || {};
+  const selectedTheme = activeTheme(personalization);
   const featureRequestLink = `mailto:williamtogonon@gmail.com?subject=${encodeURIComponent('Atlas feature request')}&body=${encodeURIComponent(`Hi William,
 
 Feature name:
@@ -32,15 +35,24 @@ Anything else:
           <button class="settings-close" id="close-settings" type="button" aria-label="Close settings">×</button>
         </header>
 
-        <div class="settings-section settings-appearance">
+        <div class="settings-section settings-focus-mode">
           <div class="settings-section-copy">
-            <strong>Appearance</strong>
-            <span>Use Atlas in light or dark mode.</span>
+            <strong>Focus mode</strong>
+            <span>Quiet the background and keep Now centered on what needs attention.</span>
           </div>
-          <button class="settings-theme-toggle" id="settings-theme-toggle" type="button" aria-label="Switch to ${state.theme === 'dark' ? 'light' : 'dark'} mode">
-            <span>${state.theme === 'dark' ? 'Dark' : 'Light'}</span>
-            <span class="theme-toggle-track"><span class="theme-toggle-thumb"></span></span>
-          </button>
+          <div class="settings-pill" role="group" aria-label="Focus mode"><button class="${personalization.focusMode ? '' : 'is-active'}" data-focus-mode="false" type="button">Off</button><button class="${personalization.focusMode ? 'is-active' : ''}" data-focus-mode="true" type="button">On</button></div>
+        </div>
+
+        <div class="settings-section settings-opening-page">
+          <div class="settings-section-copy">
+            <strong>Opening page</strong><span>Choose what Atlas shows when opened without a direct link.</span>
+          </div>
+          <div class="settings-pill" role="group" aria-label="Opening page"><button class="${personalization.openingPage === 'schedule' ? '' : 'is-active'}" data-opening-page="home" type="button">Now</button><button class="${personalization.openingPage === 'schedule' ? 'is-active' : ''}" data-opening-page="schedule" type="button">Week</button></div>
+        </div>
+
+        <div class="settings-section settings-appearance">
+          <div class="settings-section-copy"><strong>Theme · ${escapeHtml(selectedTheme.name || 'Untitled theme')}</strong><span>Return to an Atlas theme anytime without deleting your saved themes.</span></div>
+          <div class="settings-pill settings-theme-pill" role="group" aria-label="Atlas themes"><button class="${personalization.activeThemeId === 'atlas-light' ? 'is-active' : ''}" data-theme-preset="atlas-light" type="button">Light</button><button class="${personalization.activeThemeId === 'atlas-dark' ? 'is-active' : ''}" data-theme-preset="atlas-dark" type="button">Dark</button></div>
         </div>
 
         <div class="settings-section settings-notifications">
@@ -61,7 +73,7 @@ Anything else:
           ${message ? `<p class="settings-message" role="status">${escapeHtml(message)}</p>` : ''}
         </div>
 
-        <div class="settings-section settings-autosave">
+        ${state.account?.status === 'signed-in' ? '' : `<div class="settings-section settings-autosave">
           <div class="notification-settings-heading">
             <div>
               <strong>${autoSaveEnabled ? 'Autosave enabled' : 'Schedule autosave'}</strong>
@@ -69,7 +81,7 @@ Anything else:
             </div>
             <button class="${autoSaveEnabled ? 'secondary-action' : 'primary-action'}" id="${autoSaveEnabled ? 'disable-autosave' : 'enable-autosave'}" type="button" ${canAutoSave || autoSaveEnabled ? '' : 'disabled'}>${autoSaveEnabled ? 'Turn off' : 'Enable'}</button>
           </div>
-        </div>
+        </div>`}
 
         <div class="settings-section settings-schedule-tools">
           <div class="settings-section-copy">

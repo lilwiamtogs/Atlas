@@ -83,6 +83,10 @@ export default function Atmosphere(route) {
   const atmosphereRoute = route === 'class' ? 'schedule' : route;
   const routeOffset = { home: 0, schedule: 1, import: 2 }[atmosphereRoute] || 0;
   const plates = baseDesigns[(atmosphereSeed + routeOffset) % baseDesigns.length]();
+  if (atmosphereRoute === 'schedule') {
+    const additional = baseDesigns[(atmosphereSeed + routeOffset + 2) % baseDesigns.length]();
+    plates.push(additional[0], additional[2]);
+  }
   const coordinates = atmosphereRoute === 'home'
     ? ['ORBITAL PLATE 01 / ARC 214&deg;', '14.5995&deg; N / 120.9842&deg; E', 'FIELD AP-26 / PASS 07', 'AZ 042.6&deg; / EL +18.2', 'NODE 05 / REV 03', '120&deg;59&prime;03&Prime; E']
     : atmosphereRoute === 'import'

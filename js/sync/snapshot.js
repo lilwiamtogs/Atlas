@@ -58,6 +58,9 @@ async function buildCloudSnapshot(state, userId, client, upload) {
     notes: await cloudNotes(state.notes || [], userId, client, uploadedPaths, upload),
     exams: clone(state.exams || []),
     archives,
+    personalization: clone(state.personalization || {}),
+    notificationSettings: clone(state.notificationSettings || {}),
+    autoSaveSettings: clone(state.autoSaveSettings || {}),
   };
 }
 

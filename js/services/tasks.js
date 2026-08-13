@@ -9,6 +9,7 @@ function normalizeTask(task) {
     id: String(task.id),
     classId: String(task.classId),
     title: String(task.title).trim(),
+    description: String(task.description || '').trim().slice(0, 500),
     dueDate: task.dueDate,
     dueTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(task.dueTime || '') ? task.dueTime : '',
     completed: Boolean(task.completed),
@@ -40,11 +41,12 @@ export function saveTasks(tasks) {
   return normalized;
 }
 
-export function createTask({ classId, title, dueDate, dueTime }) {
+export function createTask({ classId, title, description, dueDate, dueTime }) {
   return normalizeTask({
     id: globalThis.crypto?.randomUUID?.() || `task-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     classId,
     title,
+    description,
     dueDate,
     dueTime,
     completed: false,

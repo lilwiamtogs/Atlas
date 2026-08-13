@@ -4,7 +4,7 @@ import { createTask, daysUntil, saveTasks, sortTasks, urgencyFor } from '../serv
 import { createNote, readNoteFile, saveNotes } from '../services/notes.js?v=37';
 import { escapeHtml } from '../utils/html.js';
 import { DAY_NAMES, formatTime } from '../utils/time.js';
-import { closeOverlay, transitionStrikeRemoval, transitionTaskRow } from '../utils/animations.js?v=3';
+import { closeOverlay, transitionAddConfirmation, transitionStrikeRemoval, transitionTaskRow } from '../utils/animations.js?v=9';
 import { createExam, saveExams } from '../services/exams.js';
 import { saveImportedSchedule } from '../services/schedule.js';
 import { withAutoSave } from '../services/autosave.js';
@@ -29,6 +29,9 @@ function assignmentRow(task, now) {
         <form class="class-task-edit-form" data-class-task-edit-form="${escapeHtml(task.id)}">
           <label>Task
             <input name="title" value="${escapeHtml(task.title)}" required>
+          </label>
+          <label>Description
+            <textarea name="description" maxlength="500" placeholder="What needs to be done?">${escapeHtml(task.description || '')}</textarea>
           </label>
           <label>Due date
             <input name="dueDate" type="date" value="${escapeHtml(task.dueDate)}" required>
@@ -64,6 +67,7 @@ function assignmentRow(task, now) {
       </button>
       <span class="detail-assignment-copy">
         <strong>${escapeHtml(task.title)}</strong>
+        ${task.description ? `<small class="task-description">${escapeHtml(task.description)}</small>` : ''}
         <span>${timing}</span>
       </span>
       <button class="detail-assignment-edit" type="button" data-edit-class-task="${escapeHtml(task.id)}">Edit</button>
@@ -83,13 +87,16 @@ function addTaskForm() {
       <label class="task-form-field">Task
         <input name="title" placeholder="e.g. Read chapter 4" required>
       </label>
+      <label class="task-form-field task-description-field">Short description
+        <textarea name="description" maxlength="500" placeholder="What needs to be done?"></textarea>
+      </label>
       <label class="task-form-field">Due date
         <input name="dueDate" type="date" min="${today}" value="${today}" required>
       </label>
       <label class="task-form-field">Due time
         <input name="dueTime" type="time" value="23:59" required>
       </label>
-      <button class="primary-action" type="submit">Add task</button>
+      <div class="class-add-task-actions"><button class="primary-action" type="submit">Add task</button></div>
     </form>`;
 }
 
@@ -118,6 +125,10 @@ function noteSection(notes) {
         </button>
       </article>`).join('')}
     </div>`;
+}
+
+function masterDirectory(tasks, notes) {
+  return `<section class="class-master-directory"><div><p class="eyebrow">Directory</p><h2>Find tasks & notes</h2><p>Search this class by task title, note name, filename, or text.</p></div><label class="master-search-control"><span aria-hidden="true">⌕</span><input id="class-master-search" type="search" placeholder="Type a keyword" autocomplete="off"></label><p class="master-search-status" id="class-master-status" aria-live="polite">${tasks.length} task${tasks.length === 1 ? '' : 's'} · ${notes.length} note${notes.length === 1 ? '' : 's'}</p><div class="master-search-results" id="class-master-results"></div></section>`;
 }
 
 function noteReader(item, note) {
@@ -341,6 +352,7 @@ export default {
         <p class="eyebrow">Class details</p>
       </header>
       ${classProfile(item, state.schedule)}
+      ${masterDirectory(tasks, notes)}
       ${overdue.length ? PathSection('Needs attention', assignmentSection(overdue, now, ''), { active: true }) : ''}
       ${PathSection('Upcoming assignments', `${assignmentSection(upcoming, now, 'No upcoming assignments.')}${addTaskForm()}`)}
       ${PathSection('Class notes', `${noteSection(notes)}${addNoteForm()}`)}
@@ -353,6 +365,44 @@ export default {
     document.getElementById('class-back')?.addEventListener('click', () => router.go('schedule'));
     document.getElementById('note-back')?.addEventListener('click', () => router.go(`class/${encodeURIComponent(context.classId)}`));
     const openNote = context.noteId ? state.notes.find((note) => note.id === context.noteId) : null;
+    const masterInput = document.getElementById('class-master-search');
+    if (masterInput) {
+      const classTasks = sortTasks(state.tasks.filter((task) => task.classId === context.classId));
+      const classNotes = (state.notes || []).filter((note) => note.classId === context.classId);
+      const results = document.getElementById('class-master-results');
+      const status = document.getElementById('class-master-status');
+      const renderMatches = () => {
+        const query = masterInput.value.trim().toLocaleLowerCase();
+        results.replaceChildren();
+        if (!query) {
+          status.textContent = `${classTasks.length} task${classTasks.length === 1 ? '' : 's'} · ${classNotes.length} note${classNotes.length === 1 ? '' : 's'}`;
+          return;
+        }
+        const taskMatches = classTasks.filter((task) => `${task.title} ${task.description || ''}`.toLocaleLowerCase().includes(query));
+        const noteMatches = classNotes.filter((note) => `${note.name} ${note.fileName || ''} ${note.mimeType === 'text/plain' ? note.content || '' : ''}`.toLocaleLowerCase().includes(query));
+        status.textContent = `${taskMatches.length + noteMatches.length} result${taskMatches.length + noteMatches.length === 1 ? '' : 's'} found`;
+        [...taskMatches.map((task) => ({ type: 'Task', title: task.title, meta: `${task.completed ? 'Completed' : 'Due'} · ${task.dueDate}`, id: task.id })), ...noteMatches.map((note) => ({ type: 'Note', title: note.name, meta: note.fileName || (note.mimeType === 'application/pdf' ? 'PDF note' : 'Text note'), id: note.id }))].forEach((match) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.dataset.masterType = match.type.toLowerCase();
+          button.dataset.masterId = match.id;
+          button.innerHTML = `<span>${escapeHtml(match.type)}</span><strong>${escapeHtml(match.title)}</strong><small>${escapeHtml(match.meta)}</small><i aria-hidden="true">→</i>`;
+          results.append(button);
+        });
+        if (!results.children.length) results.innerHTML = '<p class="empty-state">No matching tasks or notes.</p>';
+      };
+      masterInput.addEventListener('input', renderMatches);
+      results.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-master-type]');
+        if (!button) return;
+        if (button.dataset.masterType === 'note') router.go(`class/${encodeURIComponent(context.classId)}/note/${encodeURIComponent(button.dataset.masterId)}`);
+        else {
+          const row = [...document.querySelectorAll('[data-class-toggle-task]')].find((control) => control.dataset.classToggleTask === button.dataset.masterId)?.closest('.detail-assignment');
+          row?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          row?.animate([{ backgroundColor: 'transparent' }, { backgroundColor: 'color-mix(in srgb, var(--primary-light) 18%, transparent)' }, { backgroundColor: 'transparent' }], { duration: 900 });
+        }
+      });
+    }
     const noteSearchForm = document.getElementById('note-search-form');
     if (openNote && noteSearchForm) {
       const input = document.getElementById('note-search-input');
@@ -485,21 +535,24 @@ export default {
       Store.set({ tasks: saveTasks(state.tasks.map((task) => task.id === id ? {
         ...task,
         title: data.get('title'),
+        description: data.get('description'),
         dueDate: data.get('dueDate'),
         dueTime: data.get('dueTime'),
       } : task)) });
     });
 
-    document.getElementById('class-add-task-form')?.addEventListener('submit', (event) => {
+    document.getElementById('class-add-task-form')?.addEventListener('submit', async (event) => {
       event.preventDefault();
       const data = new FormData(event.currentTarget);
       const task = createTask({
         classId: context.classId,
         title: data.get('title'),
+        description: data.get('description'),
         dueDate: data.get('dueDate'),
         dueTime: data.get('dueTime'),
       });
       const tasks = saveTasks([...state.tasks, task]);
+      await transitionAddConfirmation(event.currentTarget);
       Store.set(withAutoSave(state, { tasks }));
     });
 
@@ -517,7 +570,8 @@ export default {
     });
 
     document.querySelectorAll('[data-delete-exam]').forEach((button) => {
-      button.addEventListener('click', () => {
+      button.addEventListener('click', async () => {
+        await transitionStrikeRemoval(button.closest('.exam-row'));
         Store.set({ exams: saveExams((state.exams || []).filter((exam) => exam.id !== button.dataset.deleteExam)) });
       });
     });
@@ -586,6 +640,7 @@ export default {
         });
         noteMessage = '';
         const notes = saveNotes([...state.notes, note]);
+        await transitionAddConfirmation(event.currentTarget);
         Store.set(withAutoSave(state, { notes }));
       } catch (error) {
         noteMessage = error.name === 'QuotaExceededError'

@@ -1,12 +1,12 @@
 import PathSection from '../components/pathSection.js';
-import ClassItem from '../components/classItem.js?v=2';
+import ClassItem from '../components/classItem.js?v=3';
 import TaskList from '../components/taskList.js?v=3';
 import Store from '../store.js';
-import { createTask, saveTasks, sortTasks } from '../services/tasks.js';
+import { createTask, daysUntil, saveTasks, sortTasks } from '../services/tasks.js';
 import { createNote, readNoteFile, saveNotes } from '../services/notes.js?v=37';
 import { escapeHtml } from '../utils/html.js';
-import { DAY_NAMES, getClassState } from '../utils/time.js';
-import { transitionClassDisclosure, transitionTaskRow } from '../utils/animations.js';
+import { DAY_NAMES, getClassState, minutesFromTime } from '../utils/time.js';
+import { transitionAddConfirmation, transitionClassDisclosure, transitionStrikeRemoval, transitionTaskRow } from '../utils/animations.js?v=9';
 import { withAutoSave } from '../services/autosave.js';
 
 let noteMessage = '';
@@ -66,6 +66,7 @@ async function transitionTargetField(form, type) {
   const incoming = type === 'class' ? classField : personalField;
   const stage = form.querySelector('.target-field-stage');
   const dueField = form.querySelector('[data-due-date-field]');
+  const dueTimeField = form.querySelector('[data-due-time-field]');
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const direction = type === 'personal' ? 1 : -1;
 
@@ -73,47 +74,60 @@ async function transitionTargetField(form, type) {
     outgoing.hidden = true;
     incoming.hidden = false;
     dueField?.toggleAttribute('hidden', type === 'personal');
+    dueTimeField?.toggleAttribute('hidden', type === 'personal');
     return;
   }
 
-  const startHeight = stage.getBoundingClientRect().height;
+  const startHeight = form.getBoundingClientRect().height;
+  const submitButton = form.querySelector('.add-task-button');
+  const submitStartTop = submitButton?.getBoundingClientRect().top || 0;
   incoming.hidden = false;
-  if (dueField && type === 'class') dueField.hidden = false;
-  if (dueField && type === 'personal') dueField.hidden = true;
-  const endHeight = incoming.getBoundingClientRect().height;
-  incoming.style.position = 'absolute';
-  incoming.style.inset = '0';
-  incoming.style.opacity = '0';
-  stage.style.height = `${startHeight}px`;
-  stage.style.overflow = 'visible';
-
-  const heightAnimation = stage.animate(
-    [{ height: `${startHeight}px` }, { height: `${endHeight}px` }],
-    { duration: 260, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' },
-  );
-  await Promise.all([
-    heightAnimation.finished,
-    outgoing.animate([
-      { opacity: 1, transform: 'translateX(0) scale(1)' },
-      { opacity: 0, transform: `translateX(${-18 * direction}px) scale(0.985)` },
-    ], { duration: 150, easing: 'ease-in', fill: 'forwards' }).finished,
-    incoming.animate([
-      { opacity: 0, transform: `translateX(${18 * direction}px) scale(0.985)` },
-      { opacity: 1, transform: 'translateX(0) scale(1)' },
-    ], { duration: 230, delay: 55, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' }).finished,
-  ]);
-
-  outgoing.hidden = true;
+  const auxiliaryFields = [dueField, dueTimeField].filter(Boolean);
+  const auxiliaryWasHidden = auxiliaryFields.map((field) => field.hidden);
   if (dueField) dueField.hidden = type === 'personal';
-  outgoing.getAnimations().forEach((animation) => animation.cancel());
-  incoming.getAnimations().forEach((animation) => animation.cancel());
-  incoming.style.removeProperty('position');
-  incoming.style.removeProperty('inset');
-  incoming.style.removeProperty('opacity');
-  stage.style.height = `${endHeight}px`;
+  if (dueTimeField) dueTimeField.hidden = type === 'personal';
+  outgoing.hidden = true;
+  const endHeight = form.getBoundingClientRect().height;
+  const submitEndTop = submitButton?.getBoundingClientRect().top || submitStartTop;
+  outgoing.hidden = false;
+  auxiliaryFields.forEach((field, index) => { field.hidden = auxiliaryWasHidden[index]; });
+  if (type === 'class') auxiliaryFields.forEach((field) => { field.hidden = false; });
+  form.style.height = `${startHeight}px`;
+  form.style.overflow = 'clip';
+  const heightAnimation = form.animate(
+    [{ height: `${startHeight}px` }, { height: `${endHeight}px` }],
+    { duration: 230, easing: 'cubic-bezier(.22,1,.36,1)', fill: 'both' },
+  );
+  const enterAnimation = incoming.animate([
+    { opacity: 0, transform: `translateX(${10 * direction}px)` },
+    { opacity: 1, transform: 'translateX(0)' },
+  ], { duration: 190, easing: 'cubic-bezier(.22,1,.36,1)', fill: 'both' });
+  const exitAnimation = outgoing.animate([
+    { opacity: 1, transform: 'translateX(0)' },
+    { opacity: 0, transform: `translateX(${-10 * direction}px)` },
+  ], { duration: 140, easing: 'ease-out', fill: 'both' });
+  const auxiliaryAnimations = auxiliaryFields.map((field) => field.animate(
+    type === 'personal'
+      ? [{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: 'translateY(-8px)' }]
+      : [{ opacity: 0, transform: 'translateY(-8px)' }, { opacity: 1, transform: 'translateY(0)' }],
+    { duration: 190, easing: 'cubic-bezier(.22,1,.36,1)', fill: 'both' },
+  ));
+  const submitAnimation = submitButton?.animate([
+    { transform: 'translateY(0)' },
+    { transform: `translateY(${submitEndTop - submitStartTop}px)` },
+  ], { duration: 230, easing: 'cubic-bezier(.22,1,.36,1)', fill: 'both' });
+  await Promise.allSettled([heightAnimation.finished, enterAnimation.finished, exitAnimation.finished, submitAnimation?.finished, ...auxiliaryAnimations.map((animation) => animation.finished)].filter(Boolean));
+  outgoing.hidden = true;
+  auxiliaryFields.forEach((field) => { field.hidden = type === 'personal'; });
+  form.style.height = `${endHeight}px`;
   heightAnimation.cancel();
-  stage.style.removeProperty('height');
-  stage.style.removeProperty('overflow');
+  enterAnimation.cancel();
+  exitAnimation.cancel();
+  submitAnimation?.cancel();
+  auxiliaryAnimations.forEach((animation) => animation.cancel());
+  form.getBoundingClientRect();
+  form.style.removeProperty('height');
+  form.style.removeProperty('overflow');
 }
 
 function selectedTarget(data) {
@@ -135,11 +149,14 @@ function addTaskPanel(classes) {
       <label class="task-form-field">Task
         <input name="title" placeholder="e.g. Read chapter 4" required>
       </label>
+      <label class="task-form-field task-description-field">Short description
+        <textarea name="description" maxlength="500" placeholder="What needs to be done?"></textarea>
+      </label>
       ${targetFields(classes, { includeWeek: true })}
       <label class="task-form-field" data-due-date-field ${personalOnly ? 'hidden' : ''}>Due date
         <input name="dueDate" type="date" min="${today}" value="${today}" ${personalOnly ? '' : 'required'}>
       </label>
-      <label class="task-form-field">Due time
+      <label class="task-form-field" data-due-time-field ${personalOnly ? 'hidden' : ''}>Due time
         <input name="dueTime" type="time" value="23:59" required>
       </label>
       <button class="primary-action add-task-button" type="submit">Add task</button>
@@ -205,9 +222,15 @@ function bindCardAnimation(card, cards) {
   });
 }
 
+function mobileTaskPreview(tasks, now) {
+  if (!tasks.length) return '';
+  return `<div class="mobile-card-tasks"><span>Due soon</span>${tasks.slice(0, 3).map((task) => `<p><strong>${escapeHtml(task.title)}</strong><small>${daysUntil(task.dueDate, now) < 0 ? 'Overdue' : daysUntil(task.dueDate, now) === 0 ? 'Today' : `${daysUntil(task.dueDate, now)}d`}</small></p>`).join('')}${tasks.length > 3 ? `<small>+${tasks.length - 3} more</small>` : ''}</div>`;
+}
+
 export default {
   render(state, now) {
     const { classes } = state.schedule;
+    const compactCards = window.matchMedia('(max-width: 619px), (pointer: coarse)').matches;
     const { current } = getClassState(classes, now);
     const days = DAY_NAMES.map((name, day) => ({
       name,
@@ -219,9 +242,16 @@ export default {
           entry.day === now.getDay() ? `${entry.name} · Today` : entry.name,
           `<div class="weekly-card-grid">${entry.classes.map((item) => {
             const tasks = sortTasks(state.tasks.filter((task) => task.classId === item.id && !task.completed));
+            const urgentTasks = tasks.filter((task) => daysUntil(task.dueDate, now) <= 14);
             const editingThisClass = tasks.some((task) => task.id === editingTaskId);
-            return ClassItem(item, {
+            return ClassItem(item, compactCards ? {
               current: item.id === current?.id,
+              finished: entry.day === now.getDay() && minutesFromTime(item.end) <= now.getHours() * 60 + now.getMinutes(),
+              navigate: true,
+              taskContent: mobileTaskPreview(urgentTasks, now),
+            } : {
+              current: item.id === current?.id,
+              finished: entry.day === now.getDay() && minutesFromTime(item.end) <= now.getHours() * 60 + now.getMinutes(),
               card: true,
               open: openClassIds.has(item.id) || editingThisClass,
               taskContent: TaskList(tasks, now, editingTaskId),
@@ -287,16 +317,18 @@ export default {
       button.addEventListener('click', () => router.go(`class/${encodeURIComponent(button.dataset.openClass)}`));
     });
 
-    document.getElementById('add-task-form')?.addEventListener('submit', (event) => {
+    document.getElementById('add-task-form')?.addEventListener('submit', async (event) => {
       event.preventDefault();
       const data = new FormData(event.currentTarget);
       const task = createTask({
         title: data.get('title'),
+        description: data.get('description'),
         classId: selectedTarget(data),
         dueDate: selectedTaskDate(data),
         dueTime: data.get('dueTime'),
       });
       const tasks = saveTasks([...state.tasks, task]);
+      await transitionAddConfirmation(event.currentTarget);
       Store.set(withAutoSave(state, { tasks }));
     });
 
@@ -312,9 +344,10 @@ export default {
     });
 
     document.querySelectorAll('[data-delete-task]').forEach((button) => {
-      button.addEventListener('click', () => {
+      button.addEventListener('click', async () => {
+        await transitionStrikeRemoval(button.closest('.task-row'));
         if (editingTaskId === button.dataset.deleteTask) editingTaskId = '';
-        Store.set({ tasks: saveTasks(state.tasks.filter((task) => task.id !== button.dataset.deleteTask)) });
+        Store.set(withAutoSave(state, { tasks: saveTasks(state.tasks.filter((task) => task.id !== button.dataset.deleteTask)) }));
       });
     });
 
@@ -338,6 +371,7 @@ export default {
       Store.set({ tasks: saveTasks(state.tasks.map((task) => task.id === id ? {
         ...task,
         title: data.get('title'),
+        description: data.get('description'),
         dueDate: data.get('dueDate') || state.tasks.find((task) => task.id === id)?.dueDate,
         dueTime: data.get('dueTime'),
       } : task)) });
@@ -369,6 +403,7 @@ export default {
         });
         noteMessage = 'Note attached. Open the class page to read it.';
         const notes = saveNotes([...state.notes, note]);
+        await transitionAddConfirmation(event.currentTarget);
         Store.set(withAutoSave(state, { notes }));
       } catch (error) {
         noteMessage = error.name === 'QuotaExceededError'

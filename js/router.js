@@ -1,23 +1,25 @@
-import Home from './views/home.js?v=47';
-import Schedule from './views/schedule.js?v=68';
-import ImportSchedule from './views/importSchedule.js?v=66';
-import ClassDetail from './views/classDetail.js?v=49';
+import Home from './views/home.js?v=61';
+import Schedule from './views/schedule.js?v=78';
+import ImportSchedule from './views/importSchedule.js?v=67';
+import ClassDetail from './views/classDetail.js?v=56';
 import Navbar from './components/navbar.js?v=3';
 import DeveloperTools from './components/developerTools.js';
-import ThemeToggle from './components/themeToggle.js';
+import ThemeToggle from './components/themeToggle.js?v=2';
 import InstallButton from './components/installButton.js';
-import SettingsPanel from './components/settingsPanel.js?v=6';
-import ProfilePanel from './components/profilePanel.js?v=6';
+import SettingsPanel from './components/settingsPanel.js?v=10';
+import ProfilePanel, { SyncReviewPanel } from './components/profilePanel.js?v=10';
 import Store from './store.js';
 import { requestNotificationAccess, saveNotificationSettings } from './services/notifications.js';
 import { disableAutoSave, enableAutoSave } from './services/autosave.js';
-import { formatClock, getNow } from './utils/time.js';
+import { formatClock, getNow, minutesFromTime } from './utils/time.js';
 import enhanceSelects from './components/selectEnhancer.js?v=43';
-import enhanceDatePickers from './components/datePicker.js';
-import Atmosphere from './components/atmosphere.js?v=4';
+import enhanceDatePickers from './components/datePicker.js?v=3';
+import enhanceTimePickers from './components/timePicker.js?v=2';
+import Atmosphere from './components/atmosphere.js?v=5';
 import HelpPanel, { helpTopics } from './components/helpPanel.js?v=4';
 import { showFirstOpenTutorial } from './components/onboarding.js?v=37';
-import { closeOverlay } from './utils/animations.js?v=3';
+import { closeOverlay, openOverlay } from './utils/animations.js?v=9';
+import { applyPersonalization, savePersonalization } from './services/personalization.js?v=2';
 
 const routes = { home: Home, schedule: Schedule, import: ImportSchedule, class: ClassDetail };
 let transitioning = false;
@@ -28,6 +30,66 @@ let helpOpen = false;
 let pendingHelpTarget = null;
 let suppressPageAnimation = false;
 let shouldAnimatePage = true;
+let suppressNextStoreRender = false;
+let previousStoreSnapshot = { ...Store.get() };
+let syncReviewOpen = false;
+const atmosphereLayouts = new Map();
+
+function hasOpenTransientUI() {
+  return Boolean(document.querySelector([
+    '#home-task-confirm',
+    '.atlas-time-panel:not([hidden])',
+    '.atlas-color-panel:not([hidden])',
+    '[data-atlas-calendar]:not([hidden])',
+    '[data-atlas-select].is-open',
+    '.image-source-screen',
+    '.note-upload-screen',
+  ].join(',')));
+}
+
+function layoutKey(element, index) {
+  const label = element.querySelector(':scope > .eyebrow')?.textContent?.trim();
+  return `${element.matches('.path-section') ? 'section' : element.className}:${label || index}`;
+}
+
+function captureLayout(main) {
+  if (!main) return null;
+  const elements = [...main.querySelectorAll(':scope > .path-section:not(.hero-path-section), :scope > .class-profile-card, :scope > .class-master-directory')];
+  return {
+    scrollY: window.scrollY,
+    positions: new Map(elements.map((element, index) => [layoutKey(element, index), element.getBoundingClientRect()])),
+  };
+}
+
+function animateLayoutChange(main, previous) {
+  if (!main || !previous || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const elements = [...main.querySelectorAll(':scope > .path-section:not(.hero-path-section), :scope > .class-profile-card, :scope > .class-master-directory')];
+  elements.forEach((element, index) => {
+    const before = previous.positions.get(layoutKey(element, index));
+    if (!before) return;
+    const after = element.getBoundingClientRect();
+    const deltaY = before.top - after.top;
+    if (Math.abs(deltaY) < 1 || Math.abs(deltaY) > window.innerHeight * 1.5) return;
+    element.animate(
+      [{ transform: `translateY(${deltaY}px)` }, { transform: 'translateY(0)' }],
+      { duration: 280, easing: 'cubic-bezier(.22,1,.36,1)' },
+    );
+  });
+}
+
+function drawAtmosphere() {
+  const plates = [...document.querySelectorAll('#main-content .cosmic-plate:not(.is-drawing)')];
+  plates.forEach((plate, index) => {
+    plate.style.setProperty('--atmosphere-delay', `${index * 110}ms`);
+  });
+  // Commit the hidden SVGs before switching their CSS state. Two frames are
+  // intentional: the first inserts/layouts them, the second begins the fade.
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    plates.forEach((plate) => {
+      if (plate.isConnected) plate.classList.add('is-drawing');
+    });
+  }));
+}
 
 function accountStatusControl(state) {
   const account = state.account || {};
@@ -66,11 +128,22 @@ function createPageTransition() {
 }
 
 const Router = {
+  animateAtmosphere() {
+    const plates = [...document.querySelectorAll('#main-content .cosmic-plate')];
+    plates.forEach((plate) => {
+      plate.classList.remove('is-drawing', 'is-settled');
+      plate.style.removeProperty('--atmosphere-delay');
+    });
+    drawAtmosphere();
+  },
+
   init() {
     window.addEventListener('atlas:sync-review', () => {
       suppressPageAnimation = true;
-      settingsOpen = false;
-      profileOpen = true;
+      syncReviewOpen = true;
+      // Never replace an editor or picker while the user is in the middle of it.
+      // The queued review will appear on the next intentional render instead.
+      if (hasOpenTransientUI()) return;
       this.render();
     });
     document.addEventListener('keydown', (event) => {
@@ -101,7 +174,17 @@ const Router = {
       installGate?.remove();
       window.setTimeout(() => showFirstOpenTutorial({ force: true }), 0);
     }, true);
-    Store.subscribe(() => this.render());
+    Store.subscribe((state) => {
+      const changedKeys = Object.keys(state).filter((key) => state[key] !== previousStoreSnapshot[key]);
+      previousStoreSnapshot = { ...state };
+      if (suppressNextStoreRender) {
+        suppressNextStoreRender = false;
+        return;
+      }
+      const backgroundAccountUpdate = changedKeys.length && changedKeys.every((key) => key === 'syncStatus' || key === 'account');
+      if (backgroundAccountUpdate && (settingsOpen || profileOpen || helpOpen || hasOpenTransientUI())) return;
+      this.render();
+    });
     this.render();
   },
 
@@ -112,7 +195,7 @@ const Router = {
   },
 
   getRoutePath() {
-    return window.location.hash.replace('#/', '') || 'home';
+    return window.location.hash.replace('#/', '') || Store.get().personalization?.openingPage || 'home';
   },
 
   commitRoute(route) {
@@ -154,6 +237,7 @@ const Router = {
         overlay.remove();
         document.documentElement.classList.remove('is-page-transitioning');
         transitioning = false;
+        drawAtmosphere();
         return;
       }
 
@@ -169,14 +253,22 @@ const Router = {
       overlay.remove();
       document.documentElement.classList.remove('is-page-transitioning');
       transitioning = false;
+      drawAtmosphere();
     }
   },
 
   render() {
     const app = document.getElementById('app');
+    const previousRoute = app.querySelector('#main-content')?.className.match(/route-([^\s]+)/)?.[1];
+    const previousLayout = previousRoute === this.getRoute() && !shouldAnimatePage
+      ? captureLayout(app.querySelector('#main-content'))
+      : null;
+    const previouslyOpenOverlays = new Set([...app.querySelectorAll('#settings-screen, #profile-screen, #help-screen, #sync-review-screen')].map((item) => item.id));
     const route = this.getRoute();
+    const animateAtmosphere = shouldAnimatePage;
     const routePath = this.getRoutePath();
     const state = Store.get();
+    applyPersonalization(state.personalization);
     const now = getNow(state.timeOverride);
     const routeParts = routePath.split('/');
     const context = route === 'class'
@@ -185,30 +277,28 @@ const Router = {
           noteId: routeParts[2] === 'note' ? decodeURIComponent(routeParts[3] || '') : '',
         }
       : {};
-    const lightweightMobile = window.matchMedia('(max-width: 619px), (pointer: coarse)').matches;
     const atmosphereMarkup = Atmosphere(route);
-
-    document.documentElement.dataset.theme = state.theme;
 
     Store.get().currentView = route;
     app.innerHTML = `
-      <main id="main-content" class="app-main route-${route} ${shouldAnimatePage && !suppressPageAnimation ? 'page-enter-active' : ''}">${atmosphereMarkup}${routes[route].render(state, now, context)}</main>
+      <main id="main-content" class="app-main route-${route} ${shouldAnimatePage && !suppressPageAnimation && !transitioning ? 'page-enter-active' : ''}">${atmosphereMarkup}${routes[route].render(state, now, context)}</main>
       <div class="app-controls">
         ${InstallButton()}
-        ${ThemeToggle(state.theme)}
+        ${ThemeToggle(state.personalization)}
         <button class="desktop-settings-button" data-open-settings type="button" aria-label="Open settings">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"></path></svg>
         </button>
       </div>
       <div class="nav-dock">
+        ${mobileProfileControl(state)}
         ${Navbar(route === 'class' ? 'schedule' : route)}
         <button class="global-help-button" data-open-help type="button" aria-label="Open Atlas help">?</button>
-        ${mobileProfileControl(state)}
       </div>
       ${DeveloperTools.render(state, now, route)}
       ${settingsOpen ? SettingsPanel(state, settingsMessage) : ''}
       ${profileOpen ? ProfilePanel(state) : ''}
-      ${helpOpen ? HelpPanel() : ''}`;
+      ${helpOpen ? HelpPanel() : ''}
+      ${syncReviewOpen ? SyncReviewPanel() : ''}`;
 
     app.querySelectorAll('#main-content > .confirm-screen, #main-content > .image-source-screen, #main-content > .note-upload-screen').forEach((overlay) => {
       app.append(overlay);
@@ -216,13 +306,13 @@ const Router = {
 
     enhanceSelects(app);
     enhanceDatePickers(app);
+    enhanceTimePickers(app);
 
-    const openingOverlay = app.querySelector('#settings-screen, #profile-screen, #help-screen');
-    if (openingOverlay) {
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        if (openingOverlay.isConnected) openingOverlay.classList.add('is-visible');
-      }));
-    }
+    app.querySelectorAll('#settings-screen, #profile-screen, #help-screen, #sync-review-screen, .confirm-screen, .image-source-screen, .note-upload-screen')
+      .forEach((overlay) => {
+        if (previouslyOpenOverlays.has(overlay.id)) overlay.classList.add('is-visible');
+        else openOverlay(overlay);
+      });
 
     const atmosphere = app.querySelector('.atlas-atmosphere');
     if (atmosphere) {
@@ -231,10 +321,11 @@ const Router = {
       const plates = [...atmosphere.querySelectorAll('.cosmic-plate')];
       const labels = [...atmosphere.querySelectorAll('.coordinate-label')];
       const anchorFor = (index, count) => anchors[Math.round(index * Math.max(0, anchors.length - 1) / Math.max(1, count - 1))];
+      const savedLayout = atmosphereLayouts.get(route);
       plates.forEach((plate, index) => {
         const anchor = anchorFor(index, plates.length);
         if (!anchor) return;
-        const top = anchor.offsetTop + (index ? 110 : 42);
+        const top = savedLayout?.plates?.[index] ?? (anchor.offsetTop + (index ? 110 : 42));
         plate.style.top = `${top}px`;
         main.append(plate);
       });
@@ -244,40 +335,32 @@ const Router = {
         if (!anchor) return;
         const anchorCount = labelsPerAnchor.get(anchor) || 0;
         labelsPerAnchor.set(anchor, anchorCount + 1);
-        const top = anchor.offsetTop + 24 + anchorCount * 24;
+        const top = savedLayout?.labels?.[index] ?? (anchor.offsetTop + 24 + anchorCount * 24);
         label.style.top = `${top}px`;
         main.append(label);
+      });
+      if (!savedLayout) atmosphereLayouts.set(route, {
+        plates: plates.map((plate) => Number.parseFloat(plate.style.top)),
+        labels: labels.map((label) => Number.parseFloat(label.style.top)),
       });
       atmosphere.remove();
     }
 
     const atmospherePlates = [...app.querySelectorAll('.cosmic-plate')];
-    if (lightweightMobile) {
-      atmospherePlates.forEach((plate) => plate.classList.add('is-drawing'));
-    } else if ('IntersectionObserver' in window) {
-      let remainingAtmospherePlates = atmospherePlates.length;
-      const atmosphereObserver = new IntersectionObserver((entries, observer) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          entry.target.classList.add('is-drawing');
-          observer.unobserve(entry.target);
-          remainingAtmospherePlates -= 1;
-          if (remainingAtmospherePlates === 0) observer.disconnect();
-        });
-      }, { rootMargin: '12% 0px', threshold: 0.03 });
-      atmospherePlates.forEach((plate) => atmosphereObserver.observe(plate));
-    } else {
-      atmospherePlates.forEach((plate) => plate.classList.add('is-drawing'));
+    if (!animateAtmosphere) {
+      atmospherePlates.forEach((plate) => plate.classList.add('is-drawing', 'is-settled'));
+    } else if (!transitioning && !document.documentElement.classList.contains('atlas-welcoming')) {
+      // Commit the hidden start frame, then draw immediately. Visibility
+      // observers caused first entrances to wait until unrelated layout work.
+      drawAtmosphere();
     }
 
     app.querySelectorAll('[data-route]').forEach((button) => {
       button.addEventListener('click', () => this.go(button.dataset.route));
     });
 
-    document.getElementById('theme-toggle')?.addEventListener('click', () => {
-      const theme = state.theme === 'dark' ? 'light' : 'dark';
-      localStorage.setItem('atlas.theme', theme);
-      Store.set({ theme });
+    app.querySelector('[data-theme-switch]')?.addEventListener('click', (event) => {
+      Store.set({ personalization: savePersonalization({ ...state.personalization, activeThemeId: event.currentTarget.dataset.themeSwitch }) });
     });
 
     app.querySelectorAll('[data-open-settings]').forEach((button) => button.addEventListener('click', () => {
@@ -344,12 +427,18 @@ const Router = {
       if (event.target.id !== 'settings-screen') return;
       closeSettings();
     });
-    document.getElementById('settings-theme-toggle')?.addEventListener('click', () => {
+    app.querySelectorAll('[data-theme-preset]').forEach((button) => button.addEventListener('click', () => {
       suppressPageAnimation = true;
-      const theme = state.theme === 'dark' ? 'light' : 'dark';
-      localStorage.setItem('atlas.theme', theme);
-      Store.set({ theme });
-    });
+      suppressNextStoreRender = true;
+      app.querySelectorAll('[data-theme-preset]').forEach((item) => item.classList.toggle('is-active', item === button));
+      Store.set({ personalization: savePersonalization({ ...state.personalization, activeThemeId: button.dataset.themePreset }) });
+    }));
+    app.querySelectorAll('.settings-pill').forEach((pill) => pill.addEventListener('click', (event) => {
+      if (event.target.closest('button')) return;
+      const rect = pill.getBoundingClientRect();
+      const buttons = pill.querySelectorAll('button');
+      buttons[event.clientX < rect.left + rect.width / 2 ? 0 : 1]?.click();
+    }));
     document.getElementById('enable-notifications')?.addEventListener('click', async () => {
       try {
         suppressPageAnimation = true;
@@ -383,6 +472,7 @@ const Router = {
       const screen = document.getElementById('profile-screen');
       profileOpen = false;
       if (!screen) return;
+      applyPersonalization(Store.get().personalization);
       await closeOverlay(screen);
       screen.remove();
     };
@@ -453,10 +543,65 @@ const Router = {
         Store.set({ account: { ...Store.get().account, error: error.message, message: '' } });
       }
     });
+    const previewProfileColors = (form) => {
+      const preview = { id: 'preview', name: '', mode: 'custom', colors: Object.fromEntries(['accent', 'highlight', 'background', 'transition1', 'transition2', 'transition3'].map((name) => [name, form.elements[name].value])) };
+      applyPersonalization({ ...state.personalization, activeThemeId: 'preview', savedThemes: [...(state.personalization.savedThemes || []), preview] });
+    };
+    app.querySelectorAll('[data-color-trigger]').forEach((button) => button.addEventListener('click', () => {
+      const panel = button.closest('[data-color-control]').querySelector('.atlas-color-panel');
+      app.querySelectorAll('.atlas-color-panel:not([hidden])').forEach((other) => { if (other !== panel) other.hidden = true; });
+      panel.hidden = !panel.hidden;
+    }));
+    app.querySelectorAll('[data-color-value]').forEach((button) => button.addEventListener('click', () => {
+      const control = button.closest('[data-color-control]');
+      const input = control.querySelector('input[name]');
+      input.value = button.dataset.colorValue;
+      control.querySelector('[data-color-hex]').value = input.value;
+      control.querySelector('[data-color-trigger]').style.setProperty('--color-preview', input.value);
+      previewProfileColors(input.form);
+    }));
+    app.querySelectorAll('[data-color-hex]').forEach((input) => input.addEventListener('input', () => {
+      if (!/^#[0-9a-f]{6}$/i.test(input.value)) return;
+      const control = input.closest('[data-color-control]');
+      const valueInput = control.querySelector('input[name]');
+      valueInput.value = input.value.toLowerCase();
+      control.querySelector('[data-color-trigger]').style.setProperty('--color-preview', valueInput.value);
+      previewProfileColors(valueInput.form);
+    }));
+    app.querySelectorAll('.atlas-color-done').forEach((button) => button.addEventListener('click', () => { button.closest('.atlas-color-panel').hidden = true; }));
+    document.getElementById('profile-theme-form')?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const data = new FormData(event.currentTarget);
+      const savedTheme = { id: `custom-${Date.now()}`, name: String(data.get('themeName') || '').trim(), mode: 'custom', colors: Object.fromEntries(['accent', 'highlight', 'background', 'transition1', 'transition2', 'transition3'].map((name) => [name, data.get(name)])) };
+      Store.set({ personalization: savePersonalization({
+        ...state.personalization,
+        activeThemeId: savedTheme.id,
+        savedThemes: [...(state.personalization.savedThemes || []), savedTheme],
+        draftColors: savedTheme.colors,
+      }) });
+    });
+    app.querySelectorAll('[data-saved-theme]').forEach((button) => button.addEventListener('click', () => {
+      suppressNextStoreRender = true;
+      app.querySelectorAll('[data-saved-theme]').forEach((item) => item.classList.toggle('is-active', item === button));
+      Store.set({ personalization: savePersonalization({ ...state.personalization, activeThemeId: button.dataset.savedTheme }) });
+    }));
+    app.querySelectorAll('[data-focus-mode]').forEach((button) => button.addEventListener('click', () => {
+      suppressPageAnimation = true;
+      suppressNextStoreRender = true;
+      app.querySelectorAll('[data-focus-mode]').forEach((item) => item.classList.toggle('is-active', item === button));
+      Store.set({ personalization: savePersonalization({ ...state.personalization, focusMode: button.dataset.focusMode === 'true' }) });
+    }));
+    app.querySelectorAll('[data-opening-page]').forEach((button) => button.addEventListener('click', () => {
+      suppressPageAnimation = true;
+      suppressNextStoreRender = true;
+      const openingPage = button.dataset.openingPage === 'schedule' ? 'schedule' : 'home';
+      app.querySelectorAll('[data-opening-page]').forEach((item) => item.classList.toggle('is-active', item === button));
+      Store.set({ personalization: savePersonalization({ ...state.personalization, openingPage }) });
+    }));
     document.getElementById('sync-atlas-now')?.addEventListener('click', async () => {
       suppressPageAnimation = true;
       try {
-        const { checkSyncNow } = await import('./sync/sync.js?v=2');
+        const { checkSyncNow } = await import('./sync/sync.js?v=5');
         await checkSyncNow();
         this.render();
       } catch (error) {
@@ -465,17 +610,19 @@ const Router = {
     });
     const cancelSyncReview = async () => {
       await closeOverlay(document.getElementById('sync-review-screen'));
-      const { cancelSyncReview } = await import('./sync/sync.js?v=2');
+      const { cancelSyncReview } = await import('./sync/sync.js?v=5');
       cancelSyncReview();
+      syncReviewOpen = false;
       this.render();
     };
     document.getElementById('cancel-sync-review')?.addEventListener('click', cancelSyncReview);
     document.querySelector('[data-cancel-sync-review]')?.addEventListener('click', cancelSyncReview);
     document.getElementById('confirm-safe-sync')?.addEventListener('click', async () => {
       try {
-        const { confirmSyncReview } = await import('./sync/sync.js?v=2');
-        await confirmSyncReview();
+        const { confirmSyncReview } = await import('./sync/sync.js?v=5');
         await closeOverlay(document.getElementById('sync-review-screen'));
+        syncReviewOpen = false;
+        await confirmSyncReview();
         this.render();
       } catch (error) {
         console.error('Atlas sync failed.', error);
@@ -486,9 +633,10 @@ const Router = {
       const choices = {};
       new FormData(event.currentTarget).forEach((value, key) => { choices[key.replace('conflict-', '')] = value; });
       try {
-        const { confirmSyncReview } = await import('./sync/sync.js?v=2');
-        await confirmSyncReview(choices);
+        const { confirmSyncReview } = await import('./sync/sync.js?v=5');
         await closeOverlay(document.getElementById('sync-review-screen'));
+        syncReviewOpen = false;
+        await confirmSyncReview(choices);
         this.render();
       } catch (error) {
         console.error('Atlas conflict resolution failed.', error);
@@ -496,6 +644,7 @@ const Router = {
     });
 
     routes[route].bind?.(this, state, now, context);
+    animateLayoutChange(app.querySelector('#main-content'), previousLayout);
     DeveloperTools.bind(this);
     if (pendingHelpTarget) {
       const targetSelector = pendingHelpTarget;
@@ -516,6 +665,13 @@ const Router = {
   updateClock() {
     const clock = document.getElementById('live-clock');
     if (clock) clock.textContent = formatClock(getNow(Store.get().timeOverride));
+    document.querySelectorAll('[data-countdown-start]').forEach((element) => {
+      const now = getNow(Store.get().timeOverride);
+      const seconds = Math.max(0, minutesFromTime(element.dataset.countdownStart) * 60 - (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()));
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      element.textContent = `${hours ? `${hours}h ` : ''}${String(minutes).padStart(hours ? 2 : 1, '0')}m ${String(seconds % 60).padStart(2, '0')}s`;
+    });
   },
 };
 
