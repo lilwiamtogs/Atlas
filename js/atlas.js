@@ -1,7 +1,7 @@
-import Router from './router.js?v=96';
+import Router from './router.js?v=107';
 import Store from './store.js';
 import { loadSchedule, scheduleSource } from './services/schedule.js';
-import { hideWelcomeScreen, showWelcomeScreen } from './components/welcomeScreen.js?v=45';
+import { hideWelcomeScreen, showWelcomeScreen } from './components/welcomeScreen.js?v=47';
 import { checkReminders } from './services/notifications.js';
 import { initializeAuth } from './cloud/auth.js';
 

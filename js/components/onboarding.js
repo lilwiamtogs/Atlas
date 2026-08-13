@@ -17,7 +17,15 @@ export function markInstallKnown() {
 
 export function showInstallGate(canPrompt = false) {
   if (!isMobileWeb()) return null;
-  document.getElementById('mobile-install-gate')?.remove();
+  const existingGate = document.getElementById('mobile-install-gate');
+  if (existingGate) {
+    existingGate.classList.add('is-closing');
+    window.setTimeout(() => {
+      existingGate.remove();
+      showInstallGate(canPrompt);
+    }, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 230);
+    return existingGate;
+  }
   // A fresh prompt means the browser no longer considers Atlas installed.
   // This recovers when the PWA was removed without clearing website storage.
   if (canPrompt) localStorage.removeItem(INSTALL_KEY);
@@ -64,9 +72,22 @@ export function showFirstOpenTutorial({ force = false } = {}) {
   const screen = document.createElement('div');
   screen.className = 'tutorial-screen';
   screen.id = 'atlas-tutorial';
+  let transitioning = false;
 
-  const render = () => {
+  const render = async (direction = 0) => {
+    if (transitioning) return;
+    transitioning = true;
+    const previous = screen.querySelector('.tutorial-card');
+    if (previous && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      try {
+        await previous.animate([
+          { opacity: 1, transform: 'translateX(0) scale(1)' },
+          { opacity: 0, transform: `translateX(${direction < 0 ? '18px' : '-18px'}) scale(0.985)` },
+        ], { duration: 160, easing: 'ease-in', fill: 'forwards' }).finished;
+      } catch { /* A closing tutorial can cancel step motion. */ }
+    }
     const step = tutorialSteps[index];
+    screen.dataset.direction = direction < 0 ? 'back' : 'forward';
     screen.innerHTML = `
       <section class="tutorial-card" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
         <div class="tutorial-progress" aria-label="Tutorial step ${index + 1} of ${tutorialSteps.length}">
@@ -80,12 +101,13 @@ export function showFirstOpenTutorial({ force = false } = {}) {
           <button class="primary-action" id="tutorial-next" type="button">${index === tutorialSteps.length - 1 ? 'Try schedule import' : 'Next'}</button>
         </div>
       </section>`;
-    screen.querySelector('#tutorial-back')?.addEventListener('click', () => { index -= 1; render(); });
-    screen.querySelector('#tutorial-next')?.addEventListener('click', () => {
-      if (index < tutorialSteps.length - 1) { index += 1; render(); return; }
+    transitioning = false;
+    screen.querySelector('#tutorial-back')?.addEventListener('click', () => { index -= 1; render(-1); });
+    screen.querySelector('#tutorial-next')?.addEventListener('click', async () => {
+      if (index < tutorialSteps.length - 1) { index += 1; await render(1); return; }
       localStorage.setItem(TUTORIAL_KEY, 'true');
       screen.classList.add('is-leaving');
-      window.setTimeout(() => { screen.remove(); window.location.hash = '#/import'; }, 220);
+      window.setTimeout(() => { screen.remove(); window.location.hash = '#/import'; }, 320);
     });
   };
 

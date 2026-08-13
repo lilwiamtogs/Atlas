@@ -6,6 +6,10 @@ Version 0.4 begins Atlas cloud support. Supabase authentication is optional and 
 
 Phase 3 groundwork stores the common cloud snapshot behind each successful backup and introduces deterministic three-way merging. Atlas can distinguish local-only changes, remote-only changes, compatible additions or deletions, and true same-record conflicts. Applying downloaded or merged data remains disabled until conflict review and PDF restoration are implemented.
 
+Cloud inspection now validates remote revisions, classifies local and remote changes without writing either copy, and verifies private PDF downloads by path and SHA-256 hash before they can be restored. Local application remains disabled until the review and recovery workflow is complete.
+
+Manual two-way sync now includes conflict review, private PDF restoration, a local recovery snapshot, atomic planner-data application, and a final revision check before the resolved document is written back to Supabase.
+
 Version 0.3.6 refines mobile motion without sacrificing the corrected responsive layout. Class cards now use a FLIP transition so surrounding sections move smoothly without animated-height reflow or scroll-anchor bounce. Mobile page navigation restores Atlas's three-strip wipe as a short, fixed-viewport, transform-only animation with reduced-motion support.
 
 ## Import a schedule image

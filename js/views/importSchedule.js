@@ -20,6 +20,7 @@ import { saveTasks } from '../services/tasks.js';
 import { saveNotes } from '../services/notes.js?v=37';
 import { saveExams } from '../services/exams.js';
 import { disableAutoSave, withAutoSave } from '../services/autosave.js';
+import { closeOverlay } from '../utils/animations.js?v=2';
 
 let selectedFile = null;
 let previewUrl = '';
@@ -302,21 +303,24 @@ export default {
     };
     document.getElementById('open-image-source-picker')?.addEventListener('click', openImageSourcePicker);
     document.getElementById('change-schedule-image')?.addEventListener('click', openImageSourcePicker);
-    document.getElementById('close-image-source-picker')?.addEventListener('click', () => {
+    const closeImageSourcePicker = async () => {
+      await closeOverlay(document.getElementById('image-source-screen'));
       imageSourcePickerOpen = false;
       router.render();
-    });
-    document.getElementById('image-source-screen')?.addEventListener('click', (event) => {
+    };
+    document.getElementById('close-image-source-picker')?.addEventListener('click', closeImageSourcePicker);
+    document.getElementById('image-source-screen')?.addEventListener('click', async (event) => {
       if (event.target.id !== 'image-source-screen') return;
-      imageSourcePickerOpen = false;
-      router.render();
+      await closeImageSourcePicker();
     });
-    document.getElementById('cancel-schedule-replacement')?.addEventListener('click', () => {
+    document.getElementById('cancel-schedule-replacement')?.addEventListener('click', async () => {
+      await closeOverlay(document.querySelector('.confirm-screen'));
       pendingScheduleReplacement = null;
       router.render();
     });
-    document.getElementById('confirm-schedule-replacement')?.addEventListener('click', () => {
+    document.getElementById('confirm-schedule-replacement')?.addEventListener('click', async () => {
       const action = pendingScheduleReplacement;
+      await closeOverlay(document.querySelector('.confirm-screen'));
       pendingScheduleReplacement = null;
       action?.();
     });

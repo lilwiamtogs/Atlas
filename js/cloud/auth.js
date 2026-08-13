@@ -25,11 +25,29 @@ function accountPatch(status, values = {}) {
 
 function applySession(session) {
   const user = session?.user || null;
+  if (user) {
+    localStorage.setItem('atlas.profileSignedIn', 'true');
+    const name = String(user.user_metadata?.display_name || '').trim().toLocaleLowerCase();
+    if (name) localStorage.setItem('atlas.profileName', name);
+  } else {
+    localStorage.removeItem('atlas.profileSignedIn');
+  }
   const metadata = loadSyncMetadata();
   if (user && metadata.userId && metadata.userId !== user.id) {
     store.set({ syncStatus: { state: 'ready', lastSyncedAt: '', error: '' } });
   }
   store.set(accountPatch(user ? 'signed-in' : 'signed-out', { user }));
+}
+
+export async function updateDisplayName(displayName) {
+  const name = String(displayName || '').trim().toLocaleLowerCase().slice(0, 40);
+  if (!name) throw new Error('Enter a name first.');
+  const client = await getSupabaseClient();
+  const { data, error } = await client.auth.updateUser({ data: { display_name: name } });
+  if (error) throw error;
+  localStorage.setItem('atlas.profileName', name);
+  applySession({ user: data.user });
+  return name;
 }
 
 export async function initializeAuth(Store) {

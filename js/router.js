@@ -1,12 +1,13 @@
 import Home from './views/home.js?v=47';
-import Schedule from './views/schedule.js?v=67';
-import ImportSchedule from './views/importSchedule.js?v=63';
-import ClassDetail from './views/classDetail.js?v=46';
-import Navbar from './components/navbar.js';
+import Schedule from './views/schedule.js?v=68';
+import ImportSchedule from './views/importSchedule.js?v=65';
+import ClassDetail from './views/classDetail.js?v=48';
+import Navbar from './components/navbar.js?v=2';
 import DeveloperTools from './components/developerTools.js';
 import ThemeToggle from './components/themeToggle.js';
 import InstallButton from './components/installButton.js';
-import SettingsPanel from './components/settingsPanel.js';
+import SettingsPanel from './components/settingsPanel.js?v=6';
+import ProfilePanel from './components/profilePanel.js?v=3';
 import Store from './store.js';
 import { requestNotificationAccess, saveNotificationSettings } from './services/notifications.js';
 import { disableAutoSave, enableAutoSave } from './services/autosave.js';
@@ -15,16 +16,41 @@ import enhanceSelects from './components/selectEnhancer.js?v=43';
 import enhanceDatePickers from './components/datePicker.js';
 import Atmosphere from './components/atmosphere.js?v=4';
 import HelpPanel, { helpTopics } from './components/helpPanel.js?v=4';
-import { showFirstOpenTutorial } from './components/onboarding.js?v=33';
+import { showFirstOpenTutorial } from './components/onboarding.js?v=35';
+import { closeOverlay } from './utils/animations.js?v=2';
 
 const routes = { home: Home, schedule: Schedule, import: ImportSchedule, class: ClassDetail };
 let transitioning = false;
 let settingsOpen = false;
+let profileOpen = false;
 let settingsMessage = '';
 let helpOpen = false;
 let pendingHelpTarget = null;
 let suppressPageAnimation = false;
 let shouldAnimatePage = true;
+
+function accountStatusControl(state) {
+  const account = state.account || {};
+  const signedIn = account.status === 'signed-in' && account.user;
+  const syncState = state.syncStatus?.state || 'disabled';
+  const labels = { ready: 'Ready to sync', checking: 'Checking', review: 'Review needed', syncing: 'Syncing', synced: 'Synced', offline: 'Offline', error: 'Sync error', disabled: 'Not synced' };
+  const lastSync = state.syncStatus?.lastSyncedAt
+    ? new Date(state.syncStatus.lastSyncedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
+    : 'Never synced';
+  return `<button class="account-status-control is-${syncState}" data-open-profile type="button" aria-label="${signedIn ? `${labels[syncState] || 'Account'}. Last sync: ${lastSync}` : 'Sign up or log in'}">
+    <span class="account-status-dot" aria-hidden="true"></span><span><strong>${signedIn ? 'Signed in' : 'Sign up / log in'}</strong><small>${signedIn ? `${labels[syncState] || 'Cloud sync'} · ${lastSync}` : 'Cloud sync'}</small></span>
+  </button>`;
+}
+
+function mobileProfileControl(state) {
+  const account = state.account || {};
+  const signedIn = account.status === 'signed-in' && account.user;
+  const syncState = state.syncStatus?.state || 'disabled';
+  return `<button class="mobile-profile-button is-${syncState}" data-open-profile type="button" aria-label="${signedIn ? 'Open profile and cloud sync' : 'Sign up or log in'}">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.25"></circle><path d="M5.5 19c.7-3.3 3.1-5.2 6.5-5.2s5.8 1.9 6.5 5.2"></path></svg>
+    <span class="mobile-profile-status" aria-hidden="true"></span>
+  </button>`;
+}
 
 function wait(milliseconds) {
   return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
@@ -41,20 +67,32 @@ function createPageTransition() {
 
 const Router = {
   init() {
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      const closeButton = document.querySelector('#cancel-sync-review, #close-profile, #close-settings, #close-help, #close-image-source-picker, #cancel-note-delete, #cancel-schedule-replacement');
+      if (closeButton) {
+        event.preventDefault();
+        closeButton.click();
+      }
+    });
     window.addEventListener('hashchange', () => {
       settingsOpen = false;
+      profileOpen = false;
       helpOpen = false;
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       shouldAnimatePage = true;
       this.render();
     });
-    document.getElementById('app')?.addEventListener('click', (event) => {
+    document.getElementById('app')?.addEventListener('click', async (event) => {
       if (!event.target.closest('#replay-tutorial')) return;
       event.preventDefault();
       event.stopPropagation();
       helpOpen = false;
-      document.getElementById('help-screen')?.remove();
-      document.getElementById('mobile-install-gate')?.remove();
+      const helpScreen = document.getElementById('help-screen');
+      const installGate = document.getElementById('mobile-install-gate');
+      await Promise.all([closeOverlay(helpScreen), closeOverlay(installGate)]);
+      helpScreen?.remove();
+      installGate?.remove();
       window.setTimeout(() => showFirstOpenTutorial({ force: true }), 0);
     }, true);
     Store.subscribe(() => this.render());
@@ -73,6 +111,7 @@ const Router = {
 
   commitRoute(route) {
     settingsOpen = false;
+    profileOpen = false;
     helpOpen = false;
     shouldAnimatePage = true;
     window.history.pushState(null, '', `#/${route}`);
@@ -156,11 +195,12 @@ const Router = {
         </button>
       </div>
       <div class="nav-dock">
-        ${Navbar(route === 'class' ? 'schedule' : route)}
+        ${Navbar(route === 'class' ? 'schedule' : route, profileOpen)}
         <button class="global-help-button" data-open-help type="button" aria-label="Open Atlas help">?</button>
       </div>
       ${DeveloperTools.render(state, now, route)}
       ${settingsOpen ? SettingsPanel(state, settingsMessage) : ''}
+      ${profileOpen ? ProfilePanel(state) : ''}
       ${helpOpen ? HelpPanel() : ''}`;
 
     app.querySelectorAll('#main-content > .confirm-screen, #main-content > .image-source-screen, #main-content > .note-upload-screen').forEach((overlay) => {
@@ -170,7 +210,7 @@ const Router = {
     enhanceSelects(app);
     enhanceDatePickers(app);
 
-    const openingOverlay = app.querySelector('#settings-screen, #help-screen');
+    const openingOverlay = app.querySelector('#settings-screen, #profile-screen, #help-screen');
     if (openingOverlay) {
       requestAnimationFrame(() => requestAnimationFrame(() => {
         if (openingOverlay.isConnected) openingOverlay.classList.add('is-visible');
@@ -235,8 +275,15 @@ const Router = {
 
     app.querySelectorAll('[data-open-settings]').forEach((button) => button.addEventListener('click', () => {
       suppressPageAnimation = true;
+      profileOpen = false;
       settingsOpen = true;
       settingsMessage = '';
+      this.render();
+    }));
+    app.querySelectorAll('[data-open-profile]').forEach((button) => button.addEventListener('click', () => {
+      suppressPageAnimation = true;
+      settingsOpen = false;
+      profileOpen = true;
       this.render();
     }));
     app.querySelector('[data-open-help]')?.addEventListener('click', () => {
@@ -244,16 +291,12 @@ const Router = {
       helpOpen = true;
       this.render();
     });
-    const closeHelp = () => {
+    const closeHelp = async () => {
       helpOpen = false;
       const screen = document.getElementById('help-screen');
       if (!screen) return;
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        screen.remove();
-        return;
-      }
-      screen.classList.add('is-closing');
-      window.setTimeout(() => screen.remove(), 190);
+      await closeOverlay(screen);
+      screen.remove();
     };
     document.getElementById('close-help')?.addEventListener('click', closeHelp);
     document.getElementById('help-screen')?.addEventListener('click', (event) => {
@@ -271,10 +314,10 @@ const Router = {
         summary.setAttribute('aria-expanded', 'true');
       }
     }));
-    app.querySelectorAll('[data-help-action]').forEach((button) => button.addEventListener('click', () => {
+    app.querySelectorAll('[data-help-action]').forEach((button) => button.addEventListener('click', async () => {
       const topic = helpTopics[Number(button.dataset.helpAction)];
       pendingHelpTarget = topic.target;
-      closeHelp();
+      await closeHelp();
       if (topic.settings) {
         settingsOpen = true;
         this.render();
@@ -282,16 +325,12 @@ const Router = {
         this.go(topic.route);
       }
     }));
-    const closeSettings = () => {
+    const closeSettings = async () => {
       const screen = document.getElementById('settings-screen');
       settingsOpen = false;
       if (!screen) return;
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        screen.remove();
-        return;
-      }
-      screen.classList.add('is-closing');
-      window.setTimeout(() => screen.remove(), 190);
+      await closeOverlay(screen);
+      screen.remove();
     };
     document.getElementById('close-settings')?.addEventListener('click', closeSettings);
     document.getElementById('settings-screen')?.addEventListener('click', (event) => {
@@ -333,6 +372,34 @@ const Router = {
       suppressPageAnimation = true;
       Store.set({ autoSaveSettings: disableAutoSave(state) });
     });
+    const closeProfile = async () => {
+      const screen = document.getElementById('profile-screen');
+      profileOpen = false;
+      if (!screen) return;
+      await closeOverlay(screen);
+      screen.remove();
+    };
+    document.getElementById('close-profile')?.addEventListener('click', closeProfile);
+    document.getElementById('profile-screen')?.addEventListener('click', (event) => {
+      if (event.target.id === 'profile-screen') closeProfile();
+    });
+    document.getElementById('profile-open-settings')?.addEventListener('click', async () => {
+      await closeProfile();
+      suppressPageAnimation = true;
+      settingsOpen = true;
+      settingsMessage = '';
+      this.render();
+    });
+    document.getElementById('settings-open-import')?.addEventListener('click', async () => {
+      await closeSettings();
+      this.go('import');
+    });
+    document.getElementById('settings-open-help')?.addEventListener('click', async () => {
+      await closeSettings();
+      suppressPageAnimation = true;
+      helpOpen = true;
+      this.render();
+    });
     document.getElementById('atlas-sign-in-form')?.addEventListener('submit', async (event) => {
       event.preventDefault();
       suppressPageAnimation = true;
@@ -353,13 +420,56 @@ const Router = {
         Store.set({ account: { ...Store.get().account, error: error.message, message: '' } });
       }
     });
-    document.getElementById('backup-atlas-now')?.addEventListener('click', async () => {
+    document.getElementById('profile-name-form')?.addEventListener('submit', async (event) => {
+      event.preventDefault();
       suppressPageAnimation = true;
       try {
-        const { backUpNow } = await import('./sync/backup.js');
-        await backUpNow();
+        const data = new FormData(event.currentTarget);
+        const { updateDisplayName } = await import('./cloud/auth.js');
+        await updateDisplayName(data.get('displayName'));
       } catch (error) {
-        console.error('Atlas backup failed.', error);
+        Store.set({ account: { ...Store.get().account, error: error.message, message: '' } });
+      }
+    });
+    document.getElementById('sync-atlas-now')?.addEventListener('click', async () => {
+      suppressPageAnimation = true;
+      try {
+        const { checkSyncNow } = await import('./sync/sync.js');
+        await checkSyncNow();
+        this.render();
+      } catch (error) {
+        console.error('Atlas sync check failed.', error);
+      }
+    });
+    const cancelSyncReview = async () => {
+      await closeOverlay(document.getElementById('sync-review-screen'));
+      const { cancelSyncReview } = await import('./sync/sync.js');
+      cancelSyncReview();
+      this.render();
+    };
+    document.getElementById('cancel-sync-review')?.addEventListener('click', cancelSyncReview);
+    document.querySelector('[data-cancel-sync-review]')?.addEventListener('click', cancelSyncReview);
+    document.getElementById('confirm-safe-sync')?.addEventListener('click', async () => {
+      try {
+        const { confirmSyncReview } = await import('./sync/sync.js');
+        await confirmSyncReview();
+        await closeOverlay(document.getElementById('sync-review-screen'));
+        this.render();
+      } catch (error) {
+        console.error('Atlas sync failed.', error);
+      }
+    });
+    document.getElementById('sync-review-form')?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const choices = {};
+      new FormData(event.currentTarget).forEach((value, key) => { choices[key.replace('conflict-', '')] = value; });
+      try {
+        const { confirmSyncReview } = await import('./sync/sync.js');
+        await confirmSyncReview(choices);
+        await closeOverlay(document.getElementById('sync-review-screen'));
+        this.render();
+      } catch (error) {
+        console.error('Atlas conflict resolution failed.', error);
       }
     });
 

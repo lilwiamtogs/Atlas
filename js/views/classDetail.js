@@ -4,7 +4,7 @@ import { createTask, daysUntil, saveTasks, sortTasks, urgencyFor } from '../serv
 import { createNote, readNoteFile, saveNotes } from '../services/notes.js?v=37';
 import { escapeHtml } from '../utils/html.js';
 import { DAY_NAMES, formatTime } from '../utils/time.js';
-import { transitionStrikeRemoval, transitionTaskRow } from '../utils/animations.js';
+import { closeOverlay, transitionStrikeRemoval, transitionTaskRow } from '../utils/animations.js?v=2';
 import { createExam, saveExams } from '../services/exams.js';
 import { saveImportedSchedule } from '../services/schedule.js';
 import { withAutoSave } from '../services/autosave.js';
@@ -529,13 +529,15 @@ export default {
       });
     });
 
-    document.getElementById('cancel-note-delete')?.addEventListener('click', () => {
+    document.getElementById('cancel-note-delete')?.addEventListener('click', async () => {
+      await closeOverlay(document.querySelector('.confirm-screen'));
       pendingDeleteNoteId = '';
       router.render();
     });
 
     document.getElementById('confirm-note-delete')?.addEventListener('click', async () => {
       const noteId = pendingDeleteNoteId;
+      await closeOverlay(document.querySelector('.confirm-screen'));
       document.querySelector('.confirm-screen')?.remove();
       const noteElement = document.querySelector(`[data-note-card="${CSS.escape(noteId)}"], [data-note-reader="${CSS.escape(noteId)}"]`);
       await transitionStrikeRemoval(noteElement);

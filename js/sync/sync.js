@@ -1,0 +1,158 @@
+import Store from '../store.js';
+import { getSupabaseClient } from '../cloud/client.js';
+import { applyLocalSnapshot, rollBackLastSync } from './apply.js';
+import { inspectCloudSync } from './inspect.js';
+import { saveSyncMetadata } from './metadata.js';
+import { hydrateCloudSnapshot, readCloudDocument } from './remote.js';
+import { createCloudSnapshot, DOCUMENT_SCHEMA_VERSION } from './snapshot.js';
+
+let pendingReview = null;
+
+function setStatus(state, values = {}) {
+  Store.set({ syncStatus: { state, lastSyncedAt: Store.get().syncStatus?.lastSyncedAt || '', error: '', ...values } });
+}
+
+function summaryFor(result) {
+  const labels = {
+    current: 'This device and the cloud already match.',
+    'local-only': 'This device has changes ready for the cloud.',
+    'remote-only': 'The cloud has changes ready for this device.',
+    mergeable: 'Changes from both copies can be combined safely.',
+    conflicted: 'Some items were changed differently and need your decision.',
+    'missing-base': 'Atlas cannot prove how these two unfamiliar copies should be combined.',
+  };
+  return labels[result.state] || 'Atlas finished checking both copies.';
+}
+
+function changeList(base, next) {
+  if (!base) return [{ type: 'replace', label: 'Complete Atlas copy' }];
+  const changes = [];
+  const collections = [['classes', base.schedule?.classes, next.schedule?.classes], ['tasks', base.tasks, next.tasks], ['notes', base.notes, next.notes], ['exams', base.exams, next.exams], ['archives', base.archives, next.archives]];
+  collections.forEach(([label, beforeItems = [], afterItems = []]) => {
+    const before = new Map(beforeItems.map((item) => [String(item.id), item]));
+    const after = new Map(afterItems.map((item) => [String(item.id), item]));
+    after.forEach((item, id) => changes.push({ type: before.has(id) ? (JSON.stringify(before.get(id)) === JSON.stringify(item) ? '' : 'update') : 'add', label, item: item.title || item.name || item.code || id }));
+    before.forEach((item, id) => { if (!after.has(id)) changes.push({ type: 'delete', label, item: item.title || item.name || item.code || id }); });
+  });
+  return changes.filter((change) => change.type);
+}
+
+function reviewFrom(result) {
+  return {
+    state: result.state,
+    message: summaryFor(result),
+    conflicts: result.conflicts.map((conflict, index) => ({ ...conflict, id: String(index) })),
+    remoteUpdatedAt: result.remote?.updatedAt || '',
+    changes: changeList(result.metadata.baseSnapshot, result.merged || result.local),
+  };
+}
+
+function chooseConflict(snapshot, conflict, choice) {
+  const selected = choice === 'remote' ? conflict.remote : conflict.local;
+  if (conflict.path === '$') return selected;
+  const parts = conflict.path.split('.');
+  if (parts[0] === 'schedule' && parts[1] !== 'classes') {
+    snapshot.schedule[parts[1]] = selected;
+    return snapshot;
+  }
+  const collection = parts[0] === 'schedule' ? snapshot.schedule.classes : snapshot[parts[0]];
+  const id = parts[0] === 'schedule' ? parts[2] : parts[1];
+  const index = collection.findIndex((item) => String(item.id) === id);
+  if (selected === undefined) {
+    if (index >= 0) collection.splice(index, 1);
+  } else if (index >= 0) collection[index] = selected;
+  else collection.push(selected);
+  return snapshot;
+}
+
+async function writeResolved(result, cloudSnapshot) {
+  const client = await getSupabaseClient();
+  const latest = await readCloudDocument(client, result.metadata.userId);
+  if ((latest?.revision || 0) !== (result.remote?.revision || 0)) {
+    throw new Error('The cloud changed while you were reviewing. Atlas left both copies unchanged; check again.');
+  }
+  const payload = await createCloudSnapshot(Store.get(), result.metadata.userId, client);
+  const now = new Date().toISOString();
+  const revision = (latest?.revision || 0) + 1;
+  let response;
+  if (latest) {
+    response = await client.from('atlas_documents').update({
+      schema_version: DOCUMENT_SCHEMA_VERSION, revision, payload, updated_at: now, updated_by: result.metadata.deviceId,
+    }).eq('user_id', result.metadata.userId).eq('revision', latest.revision).select('revision').maybeSingle();
+    if (!response.error && !response.data) throw new Error('The cloud changed before Atlas finished saving.');
+  } else {
+    response = await client.from('atlas_documents').insert({
+      user_id: result.metadata.userId, schema_version: DOCUMENT_SCHEMA_VERSION, revision, payload, updated_at: now, updated_by: result.metadata.deviceId,
+    });
+  }
+  if (response.error) throw response.error;
+  saveSyncMetadata({ ...result.metadata, revision, lastSyncedAt: now, baseSnapshot: payload });
+  setStatus('synced', { lastSyncedAt: now });
+}
+
+async function applyAndWrite(result, cloudSnapshot) {
+  const client = await getSupabaseClient();
+  // Upload any new local PDFs before hydrating a merge that references them.
+  await createCloudSnapshot(Store.get(), result.metadata.userId, client);
+  const localSnapshot = await hydrateCloudSnapshot(cloudSnapshot, client, result.metadata.userId);
+  applyLocalSnapshot(localSnapshot);
+  try {
+    await writeResolved(result, cloudSnapshot);
+  } catch (error) {
+    rollBackLastSync();
+    throw error;
+  }
+}
+
+export function getPendingSyncReview() {
+  return pendingReview ? reviewFrom(pendingReview) : null;
+}
+
+export function cancelSyncReview() {
+  pendingReview = null;
+  setStatus('ready');
+}
+
+export async function checkSyncNow() {
+  setStatus('checking');
+  try {
+    const result = await inspectCloudSync();
+    if (result.state === 'current') {
+      const now = new Date().toISOString();
+      saveSyncMetadata({ ...result.metadata, revision: result.remote?.revision || 0, lastSyncedAt: now, baseSnapshot: result.local });
+      setStatus('synced', { lastSyncedAt: now });
+      return { immediate: true, state: 'current' };
+    }
+    pendingReview = result;
+    setStatus('review');
+    return { immediate: false, state: result.state };
+  } catch (error) {
+    setStatus(navigator.onLine ? 'error' : 'offline', { error: error.message });
+    throw error;
+  }
+}
+
+export async function confirmSyncReview(choices = {}) {
+  if (!pendingReview) throw new Error('Check cloud sync again before continuing.');
+  const result = pendingReview;
+  setStatus('syncing');
+  try {
+    let resolved = structuredClone(result.merged || result.local);
+    if (result.state === 'missing-base') {
+      const choice = choices['0'];
+      if (!choice) throw new Error('Choose which complete copy to keep.');
+      resolved = structuredClone(choice === 'remote' ? result.remote.payload : result.local);
+    } else {
+      result.conflicts.forEach((conflict, index) => {
+        const choice = choices[String(index)];
+        if (!choice) throw new Error('Choose a version for every conflict.');
+        resolved = chooseConflict(resolved, conflict, choice);
+      });
+    }
+    await applyAndWrite(result, resolved);
+    pendingReview = null;
+  } catch (error) {
+    setStatus(navigator.onLine ? 'error' : 'offline', { error: error.message });
+    throw error;
+  }
+}

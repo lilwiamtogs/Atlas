@@ -1,5 +1,5 @@
-import Atlas from './atlas.js?v=98';
-import { isMobileWeb, markInstallKnown, showFirstOpenTutorial, showInstallGate } from './components/onboarding.js?v=33';
+import Atlas from './atlas.js?v=110';
+import { isMobileWeb, markInstallKnown, showFirstOpenTutorial, showInstallGate } from './components/onboarding.js?v=35';
 
 let installPrompt = null;
 

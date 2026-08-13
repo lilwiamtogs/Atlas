@@ -4,14 +4,14 @@ function canonicalize(value) {
   return Object.fromEntries(Object.keys(value).sort().map((key) => [key, canonicalize(value[key])]));
 }
 
-function equal(left, right) {
+export function snapshotsEqual(left, right) {
   return JSON.stringify(canonicalize(left)) === JSON.stringify(canonicalize(right));
 }
 
 function mergeValue(base, local, remote, path, conflicts) {
-  if (equal(local, remote)) return local;
-  if (equal(local, base)) return remote;
-  if (equal(remote, base)) return local;
+  if (snapshotsEqual(local, remote)) return local;
+  if (snapshotsEqual(local, base)) return remote;
+  if (snapshotsEqual(remote, base)) return local;
   conflicts.push({ path, base, local, remote });
   return local;
 }

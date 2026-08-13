@@ -79,6 +79,7 @@ async function transitionTargetField(form, type) {
   const startHeight = stage.getBoundingClientRect().height;
   incoming.hidden = false;
   if (dueField && type === 'class') dueField.hidden = false;
+  if (dueField && type === 'personal') dueField.hidden = true;
   const endHeight = incoming.getBoundingClientRect().height;
   incoming.style.position = 'absolute';
   incoming.style.inset = '0';
@@ -90,15 +91,8 @@ async function transitionTargetField(form, type) {
     [{ height: `${startHeight}px` }, { height: `${endHeight}px` }],
     { duration: 260, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' },
   );
-  const dueAnimation = dueField?.animate(
-    type === 'personal'
-      ? [{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: 'translateY(-6px)' }]
-      : [{ opacity: 0, transform: 'translateY(-6px)' }, { opacity: 1, transform: 'translateY(0)' }],
-    { duration: 180, delay: type === 'class' ? 70 : 0, easing: 'ease', fill: 'both' },
-  );
   await Promise.all([
     heightAnimation.finished,
-    dueAnimation?.finished || Promise.resolve(),
     outgoing.animate([
       { opacity: 1, transform: 'translateX(0) scale(1)' },
       { opacity: 0, transform: `translateX(${-18 * direction}px) scale(0.985)` },
@@ -118,7 +112,6 @@ async function transitionTargetField(form, type) {
   incoming.style.removeProperty('opacity');
   stage.style.height = `${endHeight}px`;
   heightAnimation.cancel();
-  dueAnimation?.cancel();
   stage.style.removeProperty('height');
   stage.style.removeProperty('overflow');
 }

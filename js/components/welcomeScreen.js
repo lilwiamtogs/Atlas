@@ -14,7 +14,11 @@ const greetings = [
 export function showWelcomeScreen({ fromSplash = false } = {}) {
   document.documentElement.classList.add('atlas-welcoming');
   const screen = document.createElement('div');
-  const greeting = greetings[Math.floor(Math.random() * greetings.length)];
+  const name = localStorage.getItem('atlas.profileSignedIn') === 'true' ? String(localStorage.getItem('atlas.profileName') || '').trim() : '';
+  const namedGreetings = name ? [`welcome back, ${name}`, `hey ${name} :)`, `good to see u, ${name}`, `${name}, ready?`] : [];
+  const useName = namedGreetings.length && Math.random() < 0.48;
+  const greetingPool = useName ? namedGreetings : greetings;
+  const greeting = greetingPool[Math.floor(Math.random() * greetingPool.length)];
 
   screen.className = `welcome-screen${fromSplash ? ' is-from-native-splash' : ''}`;
   screen.setAttribute('aria-label', greeting);
@@ -23,8 +27,9 @@ export function showWelcomeScreen({ fromSplash = false } = {}) {
       <img src="assets/icons/atlas-maskable.png" alt="">
     </div>
     <div class="welcome-mark">
-      <p>${greeting}</p>
+      <p></p>
     </div>`;
+  screen.querySelector('.welcome-mark p').textContent = greeting;
   document.body.append(screen);
 
   return screen;

@@ -102,3 +102,39 @@ export async function transitionClassDisclosure(card, opening) {
   contentAnimation.cancel();
   delete card.dataset.animating;
 }
+
+export async function closeOverlay(element, duration = 300) {
+  if (!element) return;
+  if (element.classList.contains('is-closing')) return;
+  // Commit the fully-open frame before swapping to the exit animation. Without
+  // this read, a fast click can let the browser coalesce both visual states.
+  element.getBoundingClientRect();
+  element.classList.add('is-closing');
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  if (typeof element.animate !== 'function') {
+    await wait(duration);
+    return;
+  }
+
+  const panel = element.firstElementChild;
+  const overlayAnimation = element.animate(
+    [
+      { opacity: 1 },
+      { opacity: 0 },
+    ],
+    { duration, easing: 'ease-in', fill: 'forwards' },
+  );
+  const panelAnimation = panel?.animate(
+    [
+      { transform: 'translateY(0) scale(1)', opacity: 1 },
+      { transform: 'translateY(18px) scale(0.975)', opacity: 0 },
+    ],
+    { duration, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' },
+  );
+
+  await Promise.race([
+    Promise.allSettled([overlayAnimation.finished, panelAnimation?.finished].filter(Boolean)),
+    wait(duration + 120),
+  ]);
+}

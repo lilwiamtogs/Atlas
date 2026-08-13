@@ -1758,6 +1758,17 @@
   transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
 }
 
+.confirm-screen.is-closing,
+.image-source-screen.is-closing {
+  pointer-events: none;
+  animation: settings-screen-out 230ms ease both;
+}
+
+.confirm-screen.is-closing .confirm-card,
+.image-source-screen.is-closing .image-source-card {
+  animation: settings-dialog-out 230ms ease both;
+}
+
 .class-add-task-form {
   margin-top: 18px;
 }
@@ -1863,8 +1874,8 @@
   bottom: max(14px, env(safe-area-inset-bottom));
   left: 50%;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) 52px;
-  width: min(390px, calc(100vw - 28px));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: min(330px, calc(100vw - 28px));
   height: 58px;
   padding: 0;
   transform: translateX(-50%);
@@ -1940,15 +1951,16 @@
 
 .desktop-settings-button {
   display: grid;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   place-items: center;
   border: 1px solid var(--line);
-  border-radius: 15px;
+  border-radius: 999px;
   background: var(--nav-bg);
   color: var(--text-muted);
   backdrop-filter: blur(16px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.1);
 }
 
 .nav-dock {
@@ -1965,6 +1977,47 @@
   max-width: 392px;
   margin-inline: auto;
 }
+
+.account-status-control {
+  position: fixed;
+  z-index: 12;
+  top: max(16px, env(safe-area-inset-top));
+  right: 68px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  max-width: min(245px, calc(100vw - 90px));
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--nav-bg);
+  color: var(--text-muted);
+  text-align: left;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.1);
+  transition: color 180ms ease, border-color 180ms ease, background-color 180ms ease, transform 180ms var(--motion);
+}
+
+.account-status-control:hover,
+.desktop-settings-button:hover {
+  border-color: var(--primary);
+  background: var(--surface-2);
+  color: var(--primary-light);
+  transform: translateY(-1px);
+}
+
+.account-status-control > span:last-child { display: grid; min-width: 0; gap: 2px; }
+.account-status-control strong { overflow: hidden; color: var(--text); font-size: 0.57rem; text-overflow: ellipsis; white-space: nowrap; }
+.account-status-control small { overflow: hidden; color: var(--text-muted); font-size: 0.48rem; text-overflow: ellipsis; white-space: nowrap; }
+.account-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); }
+.account-status-control.is-ready .account-status-dot,
+.account-status-control.is-synced .account-status-dot { background: var(--success); }
+.account-status-control.is-checking .account-status-dot,
+.account-status-control.is-syncing .account-status-dot { background: var(--warning); }
+.account-status-control.is-review .account-status-dot,
+.account-status-control.is-error .account-status-dot { background: var(--danger); }
 
 .nav-dock .bottom-nav {
   position: static;
@@ -1989,6 +2042,48 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
   backdrop-filter: blur(16px);
 }
+
+.mobile-profile-button {
+  position: relative;
+  display: none;
+  flex: 0 0 52px;
+  width: 52px;
+  height: 58px;
+  padding: 0;
+  place-items: center;
+  border: 1.5px solid var(--line);
+  border-radius: 30px;
+  background: var(--nav-bg);
+  color: var(--primary-light);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(16px);
+}
+
+.mobile-profile-button svg {
+  width: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.45;
+  stroke-linecap: round;
+}
+
+.mobile-profile-status {
+  position: absolute;
+  top: 12px;
+  right: 11px;
+  width: 6px;
+  height: 6px;
+  border: 1px solid var(--nav-bg);
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.mobile-profile-button.is-ready .mobile-profile-status,
+.mobile-profile-button.is-synced .mobile-profile-status { background: var(--success); }
+.mobile-profile-button.is-checking .mobile-profile-status,
+.mobile-profile-button.is-syncing .mobile-profile-status { background: var(--warning); }
+.mobile-profile-button.is-review .mobile-profile-status,
+.mobile-profile-button.is-error .mobile-profile-status { background: var(--danger); }
 
 .help-screen {
   position: fixed;
@@ -2128,7 +2223,8 @@
   50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--primary-light) 38%, transparent), 0 14px 34px rgba(0, 0, 0, 0.16); }
 }
 
-.settings-screen {
+.settings-screen,
+.profile-screen {
   position: fixed;
   z-index: 80;
   inset: 0;
@@ -2139,7 +2235,8 @@
   opacity: 0;
 }
 
-.settings-panel {
+.settings-panel,
+.profile-panel {
   width: 100%;
   max-height: min(84vh, 720px);
   padding: 24px 20px max(28px, env(safe-area-inset-bottom));
@@ -2155,10 +2252,13 @@
   scrollbar-width: none;
 }
 
-.settings-screen.is-visible { animation: confirm-screen-in 180ms ease both; }
-.settings-screen.is-visible .settings-panel { animation: settings-panel-in 240ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.settings-screen.is-visible,
+.profile-screen.is-visible { animation: confirm-screen-in 200ms ease both; }
+.settings-screen.is-visible .settings-panel,
+.profile-screen.is-visible .profile-panel { animation: settings-panel-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-.settings-panel::-webkit-scrollbar {
+.settings-panel::-webkit-scrollbar,
+.profile-panel::-webkit-scrollbar {
   display: none;
 }
 
@@ -2220,6 +2320,47 @@
   display: grid;
   gap: 12px;
 }
+
+.sync-review-screen {
+  position: fixed;
+  z-index: 120;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(8, 13, 10, 0.72);
+  backdrop-filter: blur(10px);
+}
+
+.sync-review-screen.is-closing { pointer-events: none; animation: settings-screen-out 230ms ease both; }
+.sync-review-screen.is-closing .sync-review-card { animation: settings-dialog-out 230ms ease both; }
+
+.sync-review-card {
+  width: min(620px, 100%);
+  max-height: min(84vh, 760px);
+  padding: 24px;
+  overflow: auto;
+  border: 1.5px solid var(--primary);
+  border-radius: 30px;
+  background: var(--surface);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+}
+
+.sync-review-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.sync-review-heading h2 { margin: 5px 0 0; font-size: 2rem; }
+.sync-review-message { margin: 18px 0; color: var(--text-muted); font-size: 0.64rem; line-height: 1.65; }
+.sync-change-list { display: grid; gap: 6px; margin: 0 0 18px; }
+.sync-change-list p { display: grid; grid-template-columns: 62px 1fr; gap: 8px; margin: 0; padding: 8px 10px; border-radius: 10px; background: var(--surface-2); font-size: 0.56rem; }
+.sync-change-list strong { color: var(--primary-light); text-transform: uppercase; }
+.sync-change-list span { color: var(--text-muted); overflow-wrap: anywhere; }
+.sync-conflict-list { display: grid; gap: 12px; }
+.sync-conflict { display: grid; gap: 8px; padding: 14px; border: 1px solid var(--line); border-radius: 15px; }
+.sync-conflict legend { padding: 0 6px; color: var(--primary-light); font-size: 0.56rem; }
+.sync-conflict label { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; padding: 10px; border-radius: 12px; background: var(--surface-2); }
+.sync-conflict label span { display: grid; gap: 3px; }
+.sync-conflict label strong { color: var(--text); font-size: 0.63rem; }
+.sync-conflict label small { color: var(--text-muted); font-size: 0.55rem; line-height: 1.45; overflow-wrap: anywhere; }
+.sync-review-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 
 .settings-account {
   display: grid;
@@ -2288,6 +2429,12 @@
   gap: 7px;
 }
 
+.profile-name-form { display: grid; gap: 7px; }
+.profile-name-form label { color: var(--text-muted); font-size: 0.58rem; }
+.profile-name-form > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.profile-name-form input { min-width: 0; padding: 12px 13px; border: 1px solid var(--line); border-radius: 13px; background: var(--bg); color: var(--text); }
+.profile-name-form button { margin: 0; }
+
 .account-sign-in-form > div {
   display: grid;
   gap: 8px;
@@ -2325,6 +2472,15 @@
 .account-message.is-error {
   border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
   color: var(--danger);
+}
+
+.account-sync-summary { display: grid; gap: 3px; }
+.account-sync-summary strong { color: var(--primary-light); font-size: 0.58rem; }
+.account-sync-summary span { color: var(--text-muted); }
+
+@media (max-width: 619px) {
+  .account-status-control { display: none; }
+  .mobile-profile-button { display: grid; }
 }
 
 .account-local-note {
@@ -2467,6 +2623,30 @@
   opacity: 0;
 }
 
+.install-gate.is-closing { pointer-events: none; animation: settings-screen-out 230ms ease both; }
+.install-gate.is-closing .install-gate-card { animation: tutorial-card-out 230ms ease both; }
+
+.tutorial-screen.is-leaving .tutorial-card {
+  animation: tutorial-card-out 280ms ease both;
+}
+
+.tutorial-screen[data-direction='forward'] .tutorial-card { animation-name: tutorial-step-in-forward; }
+.tutorial-screen[data-direction='back'] .tutorial-card { animation-name: tutorial-step-in-back; }
+
+@keyframes tutorial-step-in-forward {
+  from { transform: translateX(18px) scale(0.985); opacity: 0; }
+  to { transform: translateX(0) scale(1); opacity: 1; }
+}
+
+@keyframes tutorial-step-in-back {
+  from { transform: translateX(-18px) scale(0.985); opacity: 0; }
+  to { transform: translateX(0) scale(1); opacity: 1; }
+}
+
+@keyframes tutorial-card-out {
+  to { transform: translateY(12px) scale(0.985); opacity: 0; }
+}
+
 .tutorial-progress {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -2503,22 +2683,31 @@
   to { transform: scale(1); opacity: 1; }
 }
 
-.settings-screen.is-closing {
+.settings-screen.is-visible.is-closing {
   pointer-events: none;
-  animation: settings-screen-out 180ms ease both;
+  animation: settings-screen-out 280ms ease both;
 }
 
-.settings-screen.is-closing .settings-panel {
-  animation: settings-panel-out 180ms ease both;
+.settings-screen.is-visible.is-closing .settings-panel {
+  animation: settings-panel-out 280ms cubic-bezier(0.4, 0, 1, 1) both;
 }
 
-.help-screen.is-closing {
+.profile-screen.is-visible.is-closing {
   pointer-events: none;
-  animation: settings-screen-out 180ms ease both;
+  animation: settings-screen-out 280ms ease both;
 }
 
-.help-screen.is-closing .help-panel {
-  animation: settings-panel-out 180ms ease both;
+.profile-screen.is-visible.is-closing .profile-panel {
+  animation: settings-panel-out 280ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+.help-screen.is-visible.is-closing {
+  pointer-events: none;
+  animation: settings-screen-out 260ms ease both;
+}
+
+.help-screen.is-visible.is-closing .help-panel {
+  animation: settings-panel-out 260ms cubic-bezier(0.4, 0, 1, 1) both;
 }
 
 .settings-theme-toggle {
@@ -2587,14 +2776,17 @@
     box-shadow: 0 24px 70px rgba(0, 0, 0, 0.25);
   }
 
-  .settings-screen {
+  .settings-screen,
+  .profile-screen {
     align-items: center;
     justify-items: center;
     padding: 22px;
   }
 
-  .settings-panel {
+  .settings-panel,
+  .profile-panel {
     width: min(100%, 470px);
+    height: min(84vh, 720px);
     padding: 28px;
     border-bottom: 1px solid var(--line);
     border-radius: 30px;
@@ -2602,15 +2794,18 @@
     transform-origin: center;
   }
 
-  .settings-screen.is-visible .settings-panel { animation-name: settings-dialog-in; }
+  .settings-screen.is-visible .settings-panel,
+  .profile-screen.is-visible .profile-panel { animation-name: settings-dialog-in; }
 
   .settings-appearance {
     display: none;
   }
 
-  .settings-screen.is-closing .settings-panel {
+  .settings-screen.is-visible.is-closing .settings-panel {
     animation-name: settings-dialog-out;
   }
+
+  .profile-screen.is-visible.is-closing .profile-panel { animation-name: settings-dialog-out; }
 }
 
 @keyframes settings-dialog-in {
@@ -4199,6 +4394,7 @@ html.is-page-transitioning body {
 
   .bottom-nav,
   .global-help-button,
+  .mobile-profile-button,
   .theme-toggle,
   .install-app {
     backdrop-filter: none;
@@ -4206,6 +4402,7 @@ html.is-page-transitioning body {
   }
 
   .settings-screen,
+  .profile-screen,
   .help-screen {
     width: 100vw;
     height: 100vh;
@@ -4394,6 +4591,7 @@ html.is-page-transitioning body {
   .tutorial-screen,
   .welcome-screen,
   .settings-screen,
+  .profile-screen,
   .help-screen {
     inset: 0;
     width: auto;
@@ -4410,6 +4608,7 @@ html.is-page-transitioning body {
   }
 
   .settings-panel,
+  .profile-panel,
   .help-panel {
     width: 100%;
     max-width: none;
