@@ -2,7 +2,7 @@ import Home from './views/home.js?v=47';
 import Schedule from './views/schedule.js?v=68';
 import ImportSchedule from './views/importSchedule.js?v=65';
 import ClassDetail from './views/classDetail.js?v=48';
-import Navbar from './components/navbar.js?v=2';
+import Navbar from './components/navbar.js?v=3';
 import DeveloperTools from './components/developerTools.js';
 import ThemeToggle from './components/themeToggle.js';
 import InstallButton from './components/installButton.js';
@@ -195,8 +195,9 @@ const Router = {
         </button>
       </div>
       <div class="nav-dock">
-        ${Navbar(route === 'class' ? 'schedule' : route, profileOpen)}
+        ${Navbar(route === 'class' ? 'schedule' : route)}
         <button class="global-help-button" data-open-help type="button" aria-label="Open Atlas help">?</button>
+        ${mobileProfileControl(state)}
       </div>
       ${DeveloperTools.render(state, now, route)}
       ${settingsOpen ? SettingsPanel(state, settingsMessage) : ''}

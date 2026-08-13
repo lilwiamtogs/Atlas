@@ -1974,7 +1974,7 @@
   justify-content: center;
   gap: 10px;
   width: auto;
-  max-width: 392px;
+  max-width: 454px;
   margin-inline: auto;
 }
 
@@ -2045,7 +2045,7 @@
 
 .mobile-profile-button {
   position: relative;
-  display: none;
+  display: grid;
   flex: 0 0 52px;
   width: 52px;
   height: 58px;
@@ -2480,7 +2480,6 @@
 
 @media (max-width: 619px) {
   .account-status-control { display: none; }
-  .mobile-profile-button { display: grid; }
 }
 
 .account-local-note {
@@ -2792,6 +2791,10 @@
     border-radius: 30px;
     box-shadow: 0 24px 70px rgba(0, 0, 0, 0.25);
     transform-origin: center;
+  }
+
+  .profile-panel {
+    height: auto;
   }
 
   .settings-screen.is-visible .settings-panel,
