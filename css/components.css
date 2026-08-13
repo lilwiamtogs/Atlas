@@ -2429,6 +2429,66 @@
   gap: 7px;
 }
 
+.account-login-options { display: grid; gap: 12px; }
+
+.account-email-option { display: grid; gap: 12px; }
+.account-email-option[hidden] { display: none; }
+
+.account-email-toggle {
+  justify-self: center;
+  padding: 4px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.52rem;
+  letter-spacing: 0.05em;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 4px;
+}
+
+.account-email-toggle:hover { color: var(--primary-light); }
+
+.google-sign-in {
+  display: flex;
+  width: 100%;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+}
+
+.google-sign-in span {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  color: #4285f4;
+  font-family: Arial, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.account-login-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-muted);
+  font-size: 0.5rem;
+  text-transform: uppercase;
+}
+
+.account-login-divider::before,
+.account-login-divider::after { height: 1px; flex: 1; background: var(--line); content: ''; }
+
 .profile-name-form { display: grid; gap: 7px; }
 .profile-name-form label { color: var(--text-muted); font-size: 0.58rem; }
 .profile-name-form > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }

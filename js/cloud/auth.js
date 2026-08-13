@@ -27,7 +27,7 @@ function applySession(session) {
   const user = session?.user || null;
   if (user) {
     localStorage.setItem('atlas.profileSignedIn', 'true');
-    const name = String(user.user_metadata?.display_name || '').trim().toLocaleLowerCase();
+    const name = String(user.user_metadata?.display_name || user.user_metadata?.full_name || user.user_metadata?.name || '').trim().toLocaleLowerCase();
     if (name) localStorage.setItem('atlas.profileName', name);
   } else {
     localStorage.removeItem('atlas.profileSignedIn');
@@ -98,6 +98,17 @@ export async function requestSignIn(email) {
   store.set(accountPatch('signed-out', {
     message: `A sign-in link was sent to ${email}.`,
   }));
+}
+
+export async function requestGoogleSignIn() {
+  if (!navigator.onLine) throw new Error('Connect to the internet before signing in.');
+  const client = await getSupabaseClient();
+  const redirectTo = `${window.location.origin}${window.location.pathname}`;
+  const { error } = await client.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo },
+  });
+  if (error) throw error;
 }
 
 export async function signOut() {

@@ -7,7 +7,7 @@ import DeveloperTools from './components/developerTools.js';
 import ThemeToggle from './components/themeToggle.js';
 import InstallButton from './components/installButton.js';
 import SettingsPanel from './components/settingsPanel.js?v=6';
-import ProfilePanel from './components/profilePanel.js?v=3';
+import ProfilePanel from './components/profilePanel.js?v=5';
 import Store from './store.js';
 import { requestNotificationAccess, saveNotificationSettings } from './services/notifications.js';
 import { disableAutoSave, enableAutoSave } from './services/autosave.js';
@@ -406,16 +406,31 @@ const Router = {
       suppressPageAnimation = true;
       try {
         const data = new FormData(event.currentTarget);
-        const { requestSignIn } = await import('./cloud/auth.js');
+        const { requestSignIn } = await import('./cloud/auth.js?v=2');
         await requestSignIn(String(data.get('email') || '').trim());
       } catch (error) {
         Store.set({ account: { ...Store.get().account, error: error.message, message: '' } });
       }
     });
+    document.getElementById('google-sign-in')?.addEventListener('click', async () => {
+      suppressPageAnimation = true;
+      try {
+        const { requestGoogleSignIn } = await import('./cloud/auth.js?v=2');
+        await requestGoogleSignIn();
+      } catch (error) {
+        Store.set({ account: { ...Store.get().account, error: error.message, message: '' } });
+      }
+    });
+    document.getElementById('show-email-sign-in')?.addEventListener('click', (event) => {
+      event.currentTarget.hidden = true;
+      const emailOption = document.getElementById('account-email-option');
+      emailOption?.removeAttribute('hidden');
+      document.getElementById('atlas-account-email')?.focus();
+    });
     document.getElementById('sign-out-atlas')?.addEventListener('click', async () => {
       suppressPageAnimation = true;
       try {
-        const { signOut } = await import('./cloud/auth.js');
+        const { signOut } = await import('./cloud/auth.js?v=2');
         await signOut();
       } catch (error) {
         Store.set({ account: { ...Store.get().account, error: error.message, message: '' } });
@@ -426,7 +441,7 @@ const Router = {
       suppressPageAnimation = true;
       try {
         const data = new FormData(event.currentTarget);
-        const { updateDisplayName } = await import('./cloud/auth.js');
+        const { updateDisplayName } = await import('./cloud/auth.js?v=2');
         await updateDisplayName(data.get('displayName'));
       } catch (error) {
         Store.set({ account: { ...Store.get().account, error: error.message, message: '' } });
