@@ -31,6 +31,7 @@ let scanStatus = 'Preparing OCR...';
 let message = '';
 let reviewIndex = 0;
 let archiveDirectoryOpen = false;
+let animateArchiveDirectory = false;
 let archiveMessage = '';
 let pendingScheduleReplacement = null;
 let imageSourcePickerOpen = false;
@@ -194,6 +195,8 @@ function reviewPanel() {
 }
 
 function savedSchedulesPanel(state) {
+  const directoryEntranceClass = animateArchiveDirectory ? ' is-entering' : '';
+  animateArchiveDirectory = false;
   const archives = state.archives || [];
   const directory = archives.length
     ? `<div class="schedule-archive-list">${archives.map((entry) => `
@@ -223,7 +226,7 @@ function savedSchedulesPanel(state) {
     ${state.autoSaveSettings?.enabled ? '<p class="archive-message autosave-active-message">Autosave is keeping the current saved semester updated.</p>' : ''}
     ${archiveMessage ? `<p class="archive-message" role="status">${escapeHtml(archiveMessage)}</p>` : ''}
     ${archiveDirectoryOpen ? `
-      <div class="archive-directory-panel">
+      <div class="archive-directory-panel${directoryEntranceClass}">
         ${directory}
         <label class="secondary-action import-json-action" for="schedule-json">Import saved JSON</label>
         <input class="visually-hidden" id="schedule-json" type="file" accept="application/json,.json">
@@ -538,6 +541,7 @@ export default {
     document.getElementById('toggle-archive-directory')?.addEventListener('click', async (event) => {
       if (!archiveDirectoryOpen) {
         archiveDirectoryOpen = true;
+        animateArchiveDirectory = true;
         router.render();
         return;
       }

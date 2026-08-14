@@ -327,7 +327,11 @@ function classProfile(item, schedule) {
 
 export default {
   render(state, now, context = {}) {
-    const item = state.schedule.classes.find((entry) => entry.id === context.classId);
+    let item = state.schedule.classes.find((entry) => entry.id === context.classId);
+    const personalMatch = context.classId?.match(/^personal-day-([1-6])$/);
+    if (!item && personalMatch && context.noteId) {
+      item = { id: context.classId, code: 'Personal', title: `Plans for ${DAY_NAMES[Number(personalMatch[1])]}` };
+    }
     if (!item) {
       return `
         <button class="secondary-action class-back" id="class-back" type="button">← Back to week</button>
@@ -363,7 +367,7 @@ export default {
 
   bind(router, state, now, context = {}) {
     document.getElementById('class-back')?.addEventListener('click', () => router.go('schedule'));
-    document.getElementById('note-back')?.addEventListener('click', () => router.go(`class/${encodeURIComponent(context.classId)}`));
+    document.getElementById('note-back')?.addEventListener('click', () => router.go(context.classId?.startsWith('personal-day-') ? 'schedule' : `class/${encodeURIComponent(context.classId)}`));
     const openNote = context.noteId ? state.notes.find((note) => note.id === context.noteId) : null;
     const masterInput = document.getElementById('class-master-search');
     if (masterInput) {
@@ -597,7 +601,7 @@ export default {
       await transitionStrikeRemoval(noteElement);
       pendingDeleteNoteId = '';
       Store.set({ notes: saveNotes(state.notes.filter((note) => note.id !== noteId)) });
-      if (context.noteId) router.go(`class/${encodeURIComponent(context.classId)}`);
+      if (context.noteId) router.go(context.classId?.startsWith('personal-day-') ? 'schedule' : `class/${encodeURIComponent(context.classId)}`);
     });
 
     document.querySelectorAll('[data-download-note]').forEach((button) => {

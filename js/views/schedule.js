@@ -12,6 +12,46 @@ import { withAutoSave } from '../services/autosave.js';
 let noteMessage = '';
 let editingTaskId = '';
 const openClassIds = new Set();
+let weekContentMode = sessionStorage.getItem('atlas.weekContentMode') === 'personal' ? 'personal' : 'classes';
+let pendingNoteFile = null;
+const FORM_DRAFT_KEY = 'atlas.weekFormDrafts';
+
+function formDrafts() {
+  try { return JSON.parse(sessionStorage.getItem(FORM_DRAFT_KEY) || '{}'); } catch { return {}; }
+}
+
+function restoreFormDraft(form) {
+  const draft = formDrafts()[form.id];
+  if (!draft) return;
+  Object.entries(draft).forEach(([name, value]) => {
+    const field = form.elements[name];
+    if (field && field.type !== 'file') {
+      field.value = value;
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  });
+  const type = draft.targetType || form.elements.targetType?.value;
+  if (type && form.elements.targetType) {
+    form.elements.targetType.value = type;
+    form.querySelector('.target-type-switch').dataset.activeTarget = type;
+    form.querySelectorAll('[data-target-type]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.targetType === type)));
+    form.querySelector('[data-class-target]').hidden = type !== 'class';
+    form.querySelector('[data-personal-target]').hidden = type !== 'personal';
+    form.querySelectorAll('[data-due-date-field], [data-due-time-field]').forEach((field) => { field.hidden = type === 'personal'; });
+  }
+}
+
+function saveFormDraft(form) {
+  const drafts = formDrafts();
+  drafts[form.id] = Object.fromEntries([...new FormData(form)].filter(([, value]) => typeof value === 'string'));
+  sessionStorage.setItem(FORM_DRAFT_KEY, JSON.stringify(drafts));
+}
+
+function clearFormDraft(id) {
+  const drafts = formDrafts();
+  delete drafts[id];
+  sessionStorage.setItem(FORM_DRAFT_KEY, JSON.stringify(drafts));
+}
 
 function dateInputValue(date = new Date()) {
   const offset = date.getTimezoneOffset();
@@ -79,8 +119,6 @@ async function transitionTargetField(form, type) {
   }
 
   const startHeight = form.getBoundingClientRect().height;
-  const submitButton = form.querySelector('.add-task-button');
-  const submitStartTop = submitButton?.getBoundingClientRect().top || 0;
   incoming.hidden = false;
   const auxiliaryFields = [dueField, dueTimeField].filter(Boolean);
   const auxiliaryWasHidden = auxiliaryFields.map((field) => field.hidden);
@@ -88,7 +126,6 @@ async function transitionTargetField(form, type) {
   if (dueTimeField) dueTimeField.hidden = type === 'personal';
   outgoing.hidden = true;
   const endHeight = form.getBoundingClientRect().height;
-  const submitEndTop = submitButton?.getBoundingClientRect().top || submitStartTop;
   outgoing.hidden = false;
   auxiliaryFields.forEach((field, index) => { field.hidden = auxiliaryWasHidden[index]; });
   if (type === 'class') auxiliaryFields.forEach((field) => { field.hidden = false; });
@@ -112,18 +149,13 @@ async function transitionTargetField(form, type) {
       : [{ opacity: 0, transform: 'translateY(-8px)' }, { opacity: 1, transform: 'translateY(0)' }],
     { duration: 190, easing: 'cubic-bezier(.22,1,.36,1)', fill: 'both' },
   ));
-  const submitAnimation = submitButton?.animate([
-    { transform: 'translateY(0)' },
-    { transform: `translateY(${submitEndTop - submitStartTop}px)` },
-  ], { duration: 230, easing: 'cubic-bezier(.22,1,.36,1)', fill: 'both' });
-  await Promise.allSettled([heightAnimation.finished, enterAnimation.finished, exitAnimation.finished, submitAnimation?.finished, ...auxiliaryAnimations.map((animation) => animation.finished)].filter(Boolean));
+  await Promise.allSettled([heightAnimation.finished, enterAnimation.finished, exitAnimation.finished, ...auxiliaryAnimations.map((animation) => animation.finished)].filter(Boolean));
   outgoing.hidden = true;
   auxiliaryFields.forEach((field) => { field.hidden = type === 'personal'; });
   form.style.height = `${endHeight}px`;
   heightAnimation.cancel();
   enterAnimation.cancel();
   exitAnimation.cancel();
-  submitAnimation?.cancel();
   auxiliaryAnimations.forEach((animation) => animation.cancel());
   form.getBoundingClientRect();
   form.style.removeProperty('height');
@@ -189,12 +221,10 @@ function personalDayPlanner(day, tasks, notes, now) {
     <div class="personal-note-list">
       <div class="personal-plans-heading"><span>Notes</span><span>${dayNotes.length}</span></div>
       ${dayNotes.map((note) => `
-        <details class="personal-note ${note.mimeType === 'application/pdf' ? 'is-pdf' : ''}">
-          <summary>${escapeHtml(note.name)}</summary>
-          ${note.mimeType === 'application/pdf'
-            ? `<iframe src="${escapeHtml(note.content)}" title="${escapeHtml(note.name)}"></iframe>`
-            : `<pre>${escapeHtml(note.content)}</pre>`}
-        </details>`).join('')}
+        <article class="personal-note-row">
+          <button class="personal-note-open" data-open-personal-note="${escapeHtml(note.id)}" data-personal-day="${day}" type="button"><span>${note.mimeType === 'application/pdf' ? 'PDF' : 'TXT'}</span><strong>${escapeHtml(note.name)}</strong><i aria-hidden="true">→</i></button>
+          <button class="personal-note-delete" data-delete-personal-note="${escapeHtml(note.id)}" type="button" aria-label="Remove ${escapeHtml(note.name)}">×</button>
+        </article>`).join('')}
     </div>` : '';
   return `
     <article class="personal-planner-card">
@@ -240,7 +270,7 @@ export default {
 
     const content = days.map((entry) => PathSection(
           entry.day === now.getDay() ? `${entry.name} · Today` : entry.name,
-          `<div class="weekly-card-grid">${entry.classes.map((item) => {
+          `<div class="weekly-card-grid"><div class="week-class-group" ${weekContentMode === 'personal' ? 'hidden' : ''}>${entry.classes.map((item) => {
             const tasks = sortTasks(state.tasks.filter((task) => task.classId === item.id && !task.completed));
             const urgentTasks = tasks.filter((task) => daysUntil(task.dueDate, now) <= 14);
             const editingThisClass = tasks.some((task) => task.id === editingTaskId);
@@ -257,7 +287,7 @@ export default {
               taskContent: TaskList(tasks, now, editingTaskId),
               fullPage: true,
             });
-          }).join('')}${personalDayPlanner(entry.day, state.tasks, state.notes || [], now) || (entry.classes.length ? '' : '<p class="empty-day-state">No classes scheduled</p>')}</div>`,
+          }).join('')}${entry.classes.length ? '' : '<p class="empty-day-state">No classes scheduled</p>'}</div><div class="week-personal-group" ${weekContentMode === 'classes' ? 'hidden' : ''}>${personalDayPlanner(entry.day, state.tasks, state.notes || [], now) || '<p class="empty-day-state">No personal plans for this day.</p>'}</div></div>`,
           { active: entry.day === now.getDay(), className: `day-section ${entry.classes.length ? '' : 'is-empty'}` },
         )).join('');
 
@@ -273,6 +303,7 @@ export default {
           <h1>Your week</h1>
         </div>
       </header>
+      <div class="settings-pill week-content-switch" data-week-mode="${weekContentMode}" role="group" aria-label="Week content"><button class="${weekContentMode === 'classes' ? 'is-active' : ''}" data-week-content="classes" type="button">Classes</button><button class="${weekContentMode === 'personal' ? 'is-active' : ''}" data-week-content="personal" type="button">Personal</button></div>
       <div class="week-list">${content}</div>
       <div class="week-tools-grid">
         ${PathSection('Add task', addTaskPanel(classes), { className: 'add-task-section' })}
@@ -284,6 +315,42 @@ export default {
   },
 
   bind(router, state) {
+    ['add-task-form', 'attach-note-form'].forEach((id) => {
+      const form = document.getElementById(id);
+      if (!form) return;
+      restoreFormDraft(form);
+      form.addEventListener('input', () => saveFormDraft(form));
+      form.addEventListener('change', () => saveFormDraft(form));
+    });
+    if (pendingNoteFile && typeof DataTransfer === 'function') {
+      const input = document.getElementById('note-file');
+      const transfer = new DataTransfer();
+      transfer.items.add(pendingNoteFile);
+      input.files = transfer.files;
+      document.getElementById('note-file-name').textContent = pendingNoteFile.name;
+    }
+    document.querySelectorAll('[data-week-content]').forEach((button) => button.addEventListener('click', async () => {
+      const nextMode = button.dataset.weekContent;
+      if (nextMode === weekContentMode || document.querySelector('.week-content-switch')?.dataset.switching === 'true') return;
+      const switcher = document.querySelector('.week-content-switch');
+      const weekList = document.querySelector('.week-list');
+      switcher.dataset.switching = 'true';
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!reduceMotion && typeof weekList.animate === 'function') {
+        await weekList.animate([{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: `translateX(${nextMode === 'personal' ? '-10px' : '10px'})` }], { duration: 120, easing: 'ease-in', fill: 'both' }).finished.catch(() => {});
+      }
+      document.querySelectorAll('.week-class-group').forEach((group) => { group.hidden = nextMode !== 'classes'; });
+      document.querySelectorAll('.week-personal-group').forEach((group) => { group.hidden = nextMode !== 'personal'; });
+      weekContentMode = nextMode;
+      sessionStorage.setItem('atlas.weekContentMode', weekContentMode);
+      switcher.dataset.weekMode = nextMode;
+      switcher.querySelectorAll('button').forEach((option) => option.classList.toggle('is-active', option === button));
+      weekList.getAnimations().forEach((animation) => animation.cancel());
+      if (!reduceMotion && typeof weekList.animate === 'function') {
+        await weekList.animate([{ opacity: 0, transform: `translateX(${nextMode === 'personal' ? '10px' : '-10px'})` }, { opacity: 1, transform: 'translateX(0)' }], { duration: 190, easing: 'cubic-bezier(.22,1,.36,1)' }).finished.catch(() => {});
+      }
+      delete switcher.dataset.switching;
+    }));
     document.querySelectorAll('.target-type-switch button').forEach((button) => {
       button.addEventListener('click', async () => {
         const form = button.closest('form');
@@ -329,6 +396,7 @@ export default {
       });
       const tasks = saveTasks([...state.tasks, task]);
       await transitionAddConfirmation(event.currentTarget);
+      clearFormDraft('add-task-form');
       Store.set(withAutoSave(state, { tasks }));
     });
 
@@ -378,6 +446,7 @@ export default {
     });
 
     document.getElementById('note-file')?.addEventListener('change', (event) => {
+      pendingNoteFile = event.target.files[0] || null;
       const fileName = document.getElementById('note-file-name');
       if (fileName) fileName.textContent = event.target.files[0]?.name || 'Choose a note file';
     });
@@ -404,6 +473,8 @@ export default {
         noteMessage = 'Note attached. Open the class page to read it.';
         const notes = saveNotes([...state.notes, note]);
         await transitionAddConfirmation(event.currentTarget);
+        pendingNoteFile = null;
+        clearFormDraft('attach-note-form');
         Store.set(withAutoSave(state, { notes }));
       } catch (error) {
         noteMessage = error.name === 'QuotaExceededError'
@@ -412,5 +483,13 @@ export default {
         router.render();
       }
     });
+    document.querySelectorAll('[data-open-personal-note]').forEach((button) => button.addEventListener('click', () => {
+      router.go(`class/personal-day-${button.dataset.personalDay}/note/${encodeURIComponent(button.dataset.openPersonalNote)}`);
+    }));
+    document.querySelectorAll('[data-delete-personal-note]').forEach((button) => button.addEventListener('click', async () => {
+      const row = button.closest('.personal-note-row');
+      await transitionStrikeRemoval(row);
+      Store.set(withAutoSave(state, { notes: saveNotes(state.notes.filter((note) => note.id !== button.dataset.deletePersonalNote)) }));
+    }));
   },
 };

@@ -229,11 +229,13 @@ const Router = {
         overlay.classList.add('is-mobile');
         document.documentElement.classList.add('is-page-transitioning');
         requestAnimationFrame(() => overlay.classList.add('is-covering'));
-        await wait(460);
+        // The final mobile panel is delayed, so wait until every panel fully
+        // covers the viewport before replacing the route underneath it.
+        await wait(590);
         this.commitRoute(route);
         await new Promise((resolve) => requestAnimationFrame(resolve));
         overlay.classList.add('is-revealing');
-        await wait(460);
+        await wait(590);
         overlay.remove();
         document.documentElement.classList.remove('is-page-transitioning');
         transitioning = false;
@@ -528,6 +530,7 @@ const Router = {
       try {
         const { signOut } = await import('./cloud/auth.js?v=2');
         await signOut();
+        window.location.reload();
       } catch (error) {
         Store.set({ account: { ...Store.get().account, error: error.message, message: '' } });
       }
@@ -565,6 +568,14 @@ const Router = {
       const control = input.closest('[data-color-control]');
       const valueInput = control.querySelector('input[name]');
       valueInput.value = input.value.toLowerCase();
+      control.querySelector('[data-color-trigger]').style.setProperty('--color-preview', valueInput.value);
+      previewProfileColors(valueInput.form);
+    }));
+    app.querySelectorAll('[data-color-wheel]').forEach((input) => input.addEventListener('input', () => {
+      const control = input.closest('[data-color-control]');
+      const valueInput = control.querySelector('input[name]');
+      valueInput.value = input.value.toLowerCase();
+      control.querySelector('[data-color-hex]').value = valueInput.value;
       control.querySelector('[data-color-trigger]').style.setProperty('--color-preview', valueInput.value);
       previewProfileColors(valueInput.form);
     }));
@@ -628,6 +639,7 @@ const Router = {
         console.error('Atlas sync failed.', error);
       }
     });
+    document.querySelectorAll('#sync-review-form input[value="local"]').forEach((input) => { input.checked = true; });
     document.getElementById('sync-review-form')?.addEventListener('submit', async (event) => {
       event.preventDefault();
       const choices = {};

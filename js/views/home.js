@@ -11,6 +11,7 @@ import enhanceDatePickers from '../components/datePicker.js?v=3';
 import enhanceTimePickers from '../components/timePicker.js?v=2';
 
 let examMessage = '';
+const openTodayClassIds = new Set();
 
 function dateInputValue(date = new Date()) {
   const offset = date.getTimezoneOffset();
@@ -134,7 +135,7 @@ export default {
     const focusLabel = current ? 'Current class' : nextIsToday ? 'Next class' : 'Today';
     const focusContent = current ? focusClass(current, now, focusLabel) : nextIsToday ? waitingClass(next, now) : dayComplete(next);
     const todayList = today.length
-      ? today.map((item) => ClassItem(item, { current: item.id === current?.id, finished: minutesFromTime(item.end) <= now.getHours() * 60 + now.getMinutes() })).join('')
+      ? today.map((item) => ClassItem(item, { current: item.id === current?.id, finished: minutesFromTime(item.end) <= now.getHours() * 60 + now.getMinutes(), open: openTodayClassIds.has(item.id) })).join('')
       : empty(classes.length ? 'No classes scheduled today.' : 'Your schedule is empty. Add classes to data/defaultSchedule.json.');
     const hasUpcomingExams = (state.exams || []).some((exam) => daysUntil(exam.date, now) >= 0);
     const examsSection = PathSection('Tests & exams', `
@@ -244,7 +245,10 @@ export default {
     document.querySelectorAll('.today-section details.class-item').forEach((card) => {
       card.querySelector(':scope > summary')?.addEventListener('click', (event) => {
         event.preventDefault();
-        transitionClassDisclosure(card, !card.open);
+        const opening = !card.open;
+        if (opening) openTodayClassIds.add(card.dataset.classId);
+        else openTodayClassIds.delete(card.dataset.classId);
+        transitionClassDisclosure(card, opening);
       });
     });
     document.getElementById('home-add-exam-form')?.addEventListener('submit', (event) => {

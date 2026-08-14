@@ -1,4 +1,4 @@
-const CACHE_NAME = 'atlas-shell-v179';
+const CACHE_NAME = 'atlas-shell-v181';
 const APP_SHELL = [
   './',
   './index.html',
@@ -96,7 +96,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(
-    fetch(event.request).then((response) => {
+    caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
       if (response.ok) {
         const responseForCache = response.clone();
         caches.open(CACHE_NAME)
@@ -104,7 +104,7 @@ self.addEventListener('fetch', (event) => {
           .catch(() => {});
       }
       return response;
-    }).catch(() => caches.match(event.request))
+    })).catch(() => Response.error())
   );
 });
 

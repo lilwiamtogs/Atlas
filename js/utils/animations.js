@@ -107,18 +107,19 @@ export async function transitionClassDisclosure(card, opening) {
         : [{ opacity: 1, transform: 'translateY(0)', clipPath: 'inset(0)' }, { opacity: 0, transform: 'translateY(-6px)', clipPath: 'inset(0 0 100% 0)' }],
       { duration: opening ? 190 : 150, easing: opening ? 'cubic-bezier(.22,1,.36,1)' : 'ease-in', fill: 'both' },
     );
-    const closeHeight = opening ? null : card.animate(
-      [{ height: `${startHeight}px` }, { height: `${collapsedHeight}px` }],
-      { duration: 170, easing: 'cubic-bezier(.4,0,1,1)', fill: 'both' },
+    const endHeight = opening ? card.scrollHeight : collapsedHeight;
+    card.style.overflow = 'hidden';
+    const heightAnimation = card.animate(
+      [{ height: `${startHeight}px` }, { height: `${endHeight}px` }],
+      { duration: opening ? 220 : 170, easing: opening ? 'cubic-bezier(.22,1,.36,1)' : 'cubic-bezier(.4,0,1,1)', fill: 'both' },
     );
-    if (closeHeight) card.style.overflow = 'hidden';
-    try { await Promise.all([animation.finished, closeHeight?.finished].filter(Boolean)); } catch { /* A rerender can cancel safely. */ }
+    try { await Promise.all([animation.finished, heightAnimation.finished]); } catch { /* A rerender can cancel safely. */ }
     if (!opening) {
       card.open = false;
       card.classList.remove('is-expanded');
     }
     animation.cancel();
-    closeHeight?.cancel();
+    heightAnimation.cancel();
     card.style.removeProperty('overflow');
     delete card.dataset.animating;
     return;
