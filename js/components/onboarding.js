@@ -26,8 +26,6 @@ export function showInstallGate(canPrompt = false) {
     }, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 280);
     return existingGate;
   }
-  // A fresh prompt means the browser no longer considers Atlas installed.
-  // This recovers when the PWA was removed without clearing website storage.
   if (canPrompt) localStorage.removeItem(INSTALL_KEY);
   const installKnown = localStorage.getItem(INSTALL_KEY) === 'true';
   const appleDevice = /iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -57,12 +55,12 @@ export function showInstallGate(canPrompt = false) {
 }
 
 const tutorialSteps = [
-  { eyebrow: 'Welcome', title: 'Atlas keeps your semester in one place.', body: 'Your weekly classes, assignments, notes, and exams stay together and are saved on this device.' },
-  { eyebrow: 'Step 1 · Import', title: 'Start with your schedule.', body: 'Open Import and choose a PNG or JPG screenshot of the full schedule. Atlas can read many college table and timetable layouts.' },
-  { eyebrow: 'Step 2 · Verify', title: 'Check every class before saving.', body: 'Atlas presents detected classes for review. Correct any OCR mistakes, then add your course, year level, and semester.' },
-  { eyebrow: 'Step 3 · Plan', title: 'Build out each class.', body: 'Use Week to add assignments and notes. Expand a class card for details, or open its class page to edit it and manage files.' },
-  { eyebrow: 'Step 4 · Stay ready', title: 'Use the helpers you want.', body: 'Tests live on Now. Reminders, appearance, and optional schedule autosave live in Settings. The ? button can guide you back to any feature.' },
-  { eyebrow: 'Step 5 · Your account', title: 'Keep Atlas with you.', body: 'Create an optional account to sync your planner between devices. Google is quickest, and Atlas still works normally if you skip this.' },
+  { eyebrow: 'Welcome to Atlas', title: 'Your semester, without the clutter.', body: 'Classes, personal plans, tasks, notes, and exams stay together in one calm workspace.', points: [['NOW', 'See what matters today'], ['WEEK', 'Plan classes and personal days'], ['OFFLINE', 'Keep working without a connection']], next: 'Show me around' },
+  { eyebrow: '1 · Find your way', title: 'Three views. One routine.', body: 'Now is your daily dashboard. Week holds the full schedule and planning tools. Import is where schedules and saved semesters live.', points: [['NOW', 'Current class, urgent work, and tests'], ['WEEK', 'Classes, personal plans, tasks, and notes'], ['IMPORT', 'Scan, verify, save, and restore schedules']] },
+  { eyebrow: '2 · Build your week', title: 'Keep school and life separate.', body: 'Switch the Week page between Classes and Personal. Add work to a class, or choose a personal day and week without mixing the two.', points: [['CLASS', 'Assignments tied to a subject'], ['PERSONAL', 'Plans tied to a day'], ['DETAILS', 'Open a class for its complete workspace']] },
+  { eyebrow: '3 · Keep the useful stuff', title: 'Tasks and notes live where you need them.', body: 'Attach TXT or PDF notes, read and search them inside Atlas, set due dates and times, and remove anything you no longer need.', points: [['TASKS', 'Due dates, descriptions, and completion'], ['NOTES', 'Built-in TXT and PDF reader'], ['TESTS', 'Upcoming exams on your Now page']] },
+  { eyebrow: '4 · Yours by default', title: 'Local first. Cloud when you want it.', body: 'Atlas saves your planner on this device and works offline after setup. An account is optional and only adds multi-device sync.', points: [['LOCAL', 'No account required'], ['SYNC', 'Optional conflict-safe cloud backup'], ['STYLE', 'Light, dark, and custom colors']] },
+  { eyebrow: 'You’re ready', title: 'Where would you like to start?', body: 'Import your real schedule now, look around first, or connect an account. You can revisit this tour from Help at any time.', points: [], final: true },
 ];
 
 export function showFirstOpenTutorial({ force = false } = {}) {
@@ -70,57 +68,49 @@ export function showFirstOpenTutorial({ force = false } = {}) {
   if (!force && document.getElementById('mobile-install-gate')) return;
   document.getElementById('atlas-tutorial')?.remove();
   let index = 0;
+  let transitioning = false;
   const screen = document.createElement('div');
   screen.className = 'tutorial-screen';
   screen.id = 'atlas-tutorial';
-  let transitioning = false;
+
+  const finishTutorial = ({ openAccount = false, route = '' } = {}) => {
+    localStorage.setItem(TUTORIAL_KEY, 'true');
+    screen.classList.add('is-leaving');
+    window.setTimeout(() => {
+      screen.remove();
+      if (openAccount) document.querySelector('[data-open-profile]')?.click();
+      else if (route) window.location.hash = `#/${route}`;
+    }, 320);
+  };
 
   const render = async (direction = 0) => {
     if (transitioning) return;
     transitioning = true;
     const previous = screen.querySelector('.tutorial-card');
     if (previous && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      try {
-        await previous.animate([
-          { opacity: 1, transform: 'translateX(0) scale(1)' },
-          { opacity: 0, transform: `translateX(${direction < 0 ? '18px' : '-18px'}) scale(0.985)` },
-        ], { duration: 160, easing: 'ease-in', fill: 'forwards' }).finished;
-      } catch { /* A closing tutorial can cancel step motion. */ }
+      await previous.animate([{ opacity: 1, transform: 'translateX(0) scale(1)' }, { opacity: 0, transform: `translateX(${direction < 0 ? '18px' : '-18px'}) scale(0.985)` }], { duration: 160, easing: 'ease-in', fill: 'forwards' }).finished.catch(() => {});
     }
     const step = tutorialSteps[index];
     screen.dataset.direction = direction < 0 ? 'back' : 'forward';
     screen.innerHTML = `
       <section class="tutorial-card" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
-        <div class="tutorial-progress" aria-label="Tutorial step ${index + 1} of ${tutorialSteps.length}">
-          ${tutorialSteps.map((_, stepIndex) => `<span class="${stepIndex <= index ? 'is-active' : ''}"></span>`).join('')}
-        </div>
-        <p class="eyebrow">${step.eyebrow}</p>
+        <div class="tutorial-progress" aria-label="Tutorial step ${index + 1} of ${tutorialSteps.length}">${tutorialSteps.map((_, stepIndex) => `<span class="${stepIndex <= index ? 'is-active' : ''}"></span>`).join('')}</div>
+        <div class="tutorial-topline"><p class="eyebrow">${step.eyebrow}</p><button class="tutorial-skip" id="tutorial-skip" type="button">Skip tour</button></div>
         <h1 id="tutorial-title">${step.title}</h1>
         <p>${step.body}</p>
+        ${step.points.length ? `<div class="tutorial-feature-list">${step.points.map(([label, copy]) => `<div><span>${label}</span><strong>${copy}</strong></div>`).join('')}</div>` : ''}
         <div class="tutorial-actions">
           ${index ? '<button class="secondary-action" id="tutorial-back" type="button">Back</button>' : '<span></span>'}
-          ${index === tutorialSteps.length - 1
-            ? '<div class="tutorial-choice-actions"><button class="secondary-action" id="tutorial-skip-account" type="button">Not now</button><button class="primary-action" id="tutorial-create-account" type="button">Create account</button></div>'
-            : '<button class="primary-action" id="tutorial-next" type="button">Next</button>'}
+          ${step.final ? '<div class="tutorial-start-actions"><button class="secondary-action" id="tutorial-explore" type="button">Explore Atlas</button><button class="secondary-action" id="tutorial-create-account" type="button">Set up sync</button><button class="primary-action" id="tutorial-import" type="button">Import schedule</button></div>' : `<button class="primary-action" id="tutorial-next" type="button">${step.next || 'Continue'}</button>`}
         </div>
       </section>`;
     transitioning = false;
     screen.querySelector('#tutorial-back')?.addEventListener('click', () => { index -= 1; render(-1); });
-    screen.querySelector('#tutorial-next')?.addEventListener('click', async () => {
-      index += 1;
-      await render(1);
-    });
-    const finishTutorial = (openAccount) => {
-      localStorage.setItem(TUTORIAL_KEY, 'true');
-      screen.classList.add('is-leaving');
-      window.setTimeout(() => {
-        screen.remove();
-        if (openAccount) document.querySelector('[data-open-profile]')?.click();
-        else window.location.hash = '#/import';
-      }, 320);
-    };
-    screen.querySelector('#tutorial-create-account')?.addEventListener('click', () => finishTutorial(true));
-    screen.querySelector('#tutorial-skip-account')?.addEventListener('click', () => finishTutorial(false));
+    screen.querySelector('#tutorial-next')?.addEventListener('click', () => { index += 1; render(1); });
+    screen.querySelector('#tutorial-skip')?.addEventListener('click', () => finishTutorial());
+    screen.querySelector('#tutorial-create-account')?.addEventListener('click', () => finishTutorial({ openAccount: true }));
+    screen.querySelector('#tutorial-import')?.addEventListener('click', () => finishTutorial({ route: 'import' }));
+    screen.querySelector('#tutorial-explore')?.addEventListener('click', () => finishTutorial({ route: 'home' }));
   };
 
   render();

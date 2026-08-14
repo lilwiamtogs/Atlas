@@ -17,7 +17,7 @@ import enhanceDatePickers from './components/datePicker.js?v=3';
 import enhanceTimePickers from './components/timePicker.js?v=2';
 import Atmosphere from './components/atmosphere.js?v=5';
 import HelpPanel, { helpTopics } from './components/helpPanel.js?v=4';
-import { showFirstOpenTutorial } from './components/onboarding.js?v=37';
+import { showFirstOpenTutorial } from './components/onboarding.js?v=38';
 import { closeOverlay, openOverlay } from './utils/animations.js?v=9';
 import { applyPersonalization, savePersonalization } from './services/personalization.js?v=2';
 

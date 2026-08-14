@@ -2910,6 +2910,14 @@ input[data-time-enhanced] { display: none !important; }
   background: var(--primary-light);
 }
 
+.tutorial-topline { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.tutorial-topline .eyebrow { margin: 0; }
+.tutorial-skip { padding: 5px 0; border: 0; background: transparent; color: var(--text-muted); font-size: .5rem; text-decoration: underline; text-underline-offset: 3px; }
+.tutorial-feature-list { display: grid; gap: 8px; margin-top: 22px; }
+.tutorial-feature-list > div { display: grid; grid-template-columns: 62px minmax(0, 1fr); align-items: center; gap: 12px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface-2); }
+.tutorial-feature-list span { color: var(--primary-light); font-size: .45rem; letter-spacing: .09em; }
+.tutorial-feature-list strong { color: var(--text); font-size: .58rem; font-weight: 400; line-height: 1.45; }
+
 .tutorial-actions {
   display: flex;
   align-items: center;
@@ -2928,6 +2936,15 @@ input[data-time-enhanced] { display: none !important; }
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+}
+.tutorial-actions:has(.tutorial-start-actions) { display: grid; grid-template-columns: 1fr; align-items: stretch; }
+.tutorial-actions:has(.tutorial-start-actions) > #tutorial-back { justify-self: start; }
+.tutorial-start-actions { display: grid; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; order: -1; }
+.tutorial-start-actions .primary-action, .tutorial-start-actions .secondary-action { width: 100%; min-width: 0; white-space: nowrap; }
+.tutorial-start-actions .primary-action { grid-column: 1 / -1; grid-row: 1; }
+@media (max-width: 360px) {
+  .tutorial-start-actions { grid-template-columns: 1fr; }
+  .tutorial-start-actions .primary-action { grid-column: auto; }
 }
 
 @keyframes tutorial-card-in {

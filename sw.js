@@ -1,4 +1,4 @@
-const CACHE_NAME = 'atlas-shell-v181';
+const CACHE_NAME = 'atlas-shell-v183';
 const APP_SHELL = [
   './',
   './index.html',
@@ -6,7 +6,7 @@ const APP_SHELL = [
   './css/variables.css?v=2',
   './css/global.css?v=3',
   './css/layout.css?v=43',
-  './css/components.css?v=150',
+  './css/components.css?v=152',
   './data/defaultSchedule.json',
   './assets/icons/atlas-192.png',
   './assets/icons/atlas-512.png',
@@ -32,7 +32,7 @@ const APP_SHELL = [
   './js/components/developerTools.js',
   './js/components/installButton.js',
   './js/components/navbar.js?v=3',
-  './js/components/onboarding.js?v=37',
+  './js/components/onboarding.js?v=38',
   './js/components/helpPanel.js?v=4',
   './js/components/settingsPanel.js?v=10',
   './js/components/profilePanel.js?v=10',
