@@ -4313,7 +4313,27 @@ html.is-page-transitioning body {
 .route-home .hero-path-section {
   min-height: 230px;
   margin-bottom: clamp(78px, 13vw, 122px);
-  padding-top: 4px;
+  padding: clamp(24px, 5vw, 38px);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--primary) 54%, var(--line));
+  border-radius: 26px;
+  background: color-mix(in srgb, var(--surface) 94%, var(--primary));
+  box-shadow: 0 24px 64px rgba(0, 0, 0, .18);
+}
+
+.route-home .hero-path-section::after {
+  position: absolute;
+  top: 28px;
+  bottom: 28px;
+  left: 0;
+  width: 3px;
+  border-radius: 0 4px 4px 0;
+  background: var(--primary-light);
+  content: '';
+}
+
+:root[data-theme='light'] .route-home .hero-path-section {
+  box-shadow: 0 24px 58px rgba(52, 70, 58, .11);
 }
 
 .route-home .hero-path-section .path-content,
@@ -4626,6 +4646,18 @@ html.is-page-transitioning body {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
     margin-bottom: 58px;
+  }
+
+  .route-home .hero-path-section {
+    min-height: 0;
+    margin-bottom: 68px;
+    padding: 24px 22px;
+    border-radius: 21px;
+  }
+
+  .route-home .hero-path-section::after {
+    top: 22px;
+    bottom: 22px;
   }
 
   .route-schedule .brand { font-size: clamp(3.25rem, 17vw, 4.4rem); }
