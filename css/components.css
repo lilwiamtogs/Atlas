@@ -1940,6 +1940,15 @@ button.home-task:focus-visible { outline: 2px solid var(--primary-light); outlin
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .route-schedule .week-class-group {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .route-schedule .week-class-group > .empty-day-state {
+    grid-column: 1 / -1;
+  }
+
   .week-tools-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
