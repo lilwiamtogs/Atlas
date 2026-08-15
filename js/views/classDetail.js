@@ -16,6 +16,7 @@ let editingTaskId = '';
 let examMessage = '';
 let editingClass = false;
 let classMessage = '';
+let actionMessage = '';
 
 function dateInputValue(date = new Date()) {
   const offset = date.getTimezoneOffset();
@@ -96,7 +97,7 @@ function addTaskForm() {
       <label class="task-form-field">Due time
         <input name="dueTime" type="time" value="23:59" required>
       </label>
-      <div class="class-add-task-actions"><button class="primary-action" type="submit">Add task</button></div>
+      <div class="class-add-task-actions"><button class="primary-action" type="submit">Save task</button></div>
     </form>`;
 }
 
@@ -238,7 +239,7 @@ function addNoteForm() {
         <strong id="class-note-file-name">Choose a note file</strong>
       </label>
       <input class="visually-hidden" id="class-note-file" name="file" type="file" accept=".txt,.pdf,text/plain,application/pdf" required>
-      <button class="primary-action" type="submit">Add note</button>
+      <button class="primary-action" type="submit">Attach note</button>
       ${noteMessage ? `<p class="note-message" role="status">${escapeHtml(noteMessage)}</p>` : ''}
     </form>`;
 }
@@ -266,7 +267,7 @@ function examSection(exams, now) {
       <label class="task-form-field">Date
         <input name="date" type="date" min="${dateInputValue()}" value="${dateInputValue()}" required>
       </label>
-      <button class="primary-action" type="submit">Add test</button>
+      <button class="primary-action" type="submit">Save test</button>
       ${examMessage ? `<p class="note-message" role="status">${escapeHtml(examMessage)}</p>` : ''}
     </form>`;
 }
@@ -356,6 +357,7 @@ export default {
         <p class="eyebrow">Class details</p>
       </header>
       ${classProfile(item, state.schedule)}
+      ${actionMessage ? `<div class="product-feedback" role="status"><span>${escapeHtml(actionMessage)}</span><button type="button" id="class-feedback-dismiss">Dismiss</button></div>` : ''}
       ${masterDirectory(tasks, notes)}
       ${overdue.length ? PathSection('Needs attention', assignmentSection(overdue, now, ''), { active: true }) : ''}
       ${PathSection('Upcoming assignments', `${assignmentSection(upcoming, now, 'No upcoming assignments.')}${addTaskForm()}`)}
@@ -366,6 +368,7 @@ export default {
   },
 
   bind(router, state, now, context = {}) {
+    document.getElementById('class-feedback-dismiss')?.addEventListener('click', () => { actionMessage = ''; router.render(); });
     document.getElementById('class-back')?.addEventListener('click', () => router.go('schedule'));
     document.getElementById('note-back')?.addEventListener('click', () => router.go(context.classId?.startsWith('personal-day-') ? 'schedule' : `class/${encodeURIComponent(context.classId)}`));
     const openNote = context.noteId ? state.notes.find((note) => note.id === context.noteId) : null;
@@ -556,6 +559,7 @@ export default {
         dueTime: data.get('dueTime'),
       });
       const tasks = saveTasks([...state.tasks, task]);
+      actionMessage = `“${task.title}” was added to this class.`;
       await transitionAddConfirmation(event.currentTarget);
       Store.set(withAutoSave(state, { tasks }));
     });
@@ -565,7 +569,8 @@ export default {
       try {
         const data = new FormData(event.currentTarget);
         const exam = createExam({ classId: context.classId, title: data.get('title'), date: data.get('date') });
-        examMessage = 'Test added.';
+        examMessage = `${exam.title} was saved to this class.`;
+        actionMessage = examMessage;
         Store.set({ exams: saveExams([...(state.exams || []), exam]) });
       } catch (error) {
         examMessage = error.message;
@@ -642,7 +647,8 @@ export default {
           fileName: file.name,
           ...fileData,
         });
-        noteMessage = '';
+        noteMessage = `“${note.name}” is ready in Class notes.`;
+        actionMessage = noteMessage;
         const notes = saveNotes([...state.notes, note]);
         await transitionAddConfirmation(event.currentTarget);
         Store.set(withAutoSave(state, { notes }));

@@ -4359,6 +4359,48 @@ html.is-page-transitioning body {
   font-size: clamp(1.9rem, 6vw, 3rem);
 }
 
+.product-feedback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: -36px 0 48px;
+  padding: 13px 15px;
+  border: 1px solid color-mix(in srgb, var(--success) 42%, var(--line));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--success) 8%, var(--surface));
+  color: var(--text);
+  font-size: .61rem;
+  line-height: 1.5;
+}
+
+.product-feedback button {
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  border: 0;
+  background: transparent;
+  color: var(--primary-light);
+  font-size: .53rem;
+}
+
+.route-home .priority-section .path-content {
+  padding: 4px 14px 8px;
+  border-left: 2px solid color-mix(in srgb, var(--warning) 48%, transparent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--warning) 5%, transparent), transparent 72%);
+}
+
+.route-home .has-exams,
+.route-home .no-exams {
+  opacity: .88;
+}
+
+.route-home .cosmic-planet,
+.route-home .cosmic-orbits,
+.route-home .cosmic-eclipse { opacity: .09; }
+.route-home .cosmic-galaxy,
+.route-home .cosmic-plate-feature .cosmic-galaxy { opacity: .1; }
+.coordinate-label { opacity: .12; }
+
 .home-task,
 .home-exam,
 .exam-row {
@@ -4709,8 +4751,10 @@ html.is-page-transitioning body {
   }
 
   .coordinate-label {
-    opacity: 0.18;
+    display: none;
   }
+
+  .product-feedback { margin: -28px 0 40px; }
 
   .bottom-nav,
   .global-help-button,

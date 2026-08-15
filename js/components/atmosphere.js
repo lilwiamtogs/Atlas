@@ -83,15 +83,11 @@ export default function Atmosphere(route) {
   const atmosphereRoute = route === 'class' ? 'schedule' : route;
   const routeOffset = { home: 0, schedule: 1, import: 2 }[atmosphereRoute] || 0;
   const plates = baseDesigns[(atmosphereSeed + routeOffset) % baseDesigns.length]();
-  if (atmosphereRoute === 'schedule') {
-    const additional = baseDesigns[(atmosphereSeed + routeOffset + 2) % baseDesigns.length]();
-    plates.push(additional[0], additional[2]);
-  }
   const coordinates = atmosphereRoute === 'home'
-    ? ['ORBITAL PLATE 01 / ARC 214&deg;', '14.5995&deg; N / 120.9842&deg; E', 'FIELD AP-26 / PASS 07', 'AZ 042.6&deg; / EL +18.2', 'NODE 05 / REV 03', '120&deg;59&prime;03&Prime; E']
+    ? ['ATLAS / TODAY', 'LOCAL TIME / YOUR SCHEDULE']
     : atmosphereRoute === 'import'
-      ? ['SCAN PLATE 03 / ARC 118&deg;', 'DATUM OCR / FIELD 04', 'CAPTURE AXIS / PASS 03', 'FRAME 06 / ROT +02.4&deg;', 'NODE 11 / REV 02', '14&deg;35&prime;58&Prime; N']
-      : ['ORBITAL PLATE 02 / ARC 286&deg;', 'DATUM WK-26 / FIELD 06', 'WEEK PLATE / PASS 12', 'AZ 286.2&deg; / EL +09.7', 'NODE 08 / REV 01', 'GRID 14 / SECTOR C'];
+      ? ['ATLAS / IMPORT', 'PRIVATE OCR / REVIEW FIRST']
+      : ['ATLAS / YOUR WEEK', 'CLASSES / PERSONAL'];
 
   return `
     <div class="atlas-atmosphere atmosphere-${atmosphereRoute}" aria-hidden="true">

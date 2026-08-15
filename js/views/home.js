@@ -11,6 +11,7 @@ import enhanceDatePickers from '../components/datePicker.js?v=3';
 import enhanceTimePickers from '../components/timePicker.js?v=2';
 
 let examMessage = '';
+let homeMessage = '';
 const openTodayClassIds = new Set();
 
 function dateInputValue(date = new Date()) {
@@ -23,7 +24,7 @@ function empty(message) {
 }
 
 function focusClass(item, now, label) {
-  if (!item) return empty(label === 'Current class' ? 'No class right now.' : 'Nothing else scheduled.');
+  if (!item) return empty(label === 'In class now' ? 'You are between classes right now.' : 'Nothing else is scheduled today.');
   const dayPrefix = item.day === now.getDay() ? '' : `${DAY_NAMES[item.day]} · `;
   return `
     <article class="focus-class">
@@ -48,8 +49,8 @@ function waitingClass(item, now) {
 }
 
 function dayComplete(next) {
-  if (!next) return `<article class="day-complete"><p class="focus-code">Day complete</p><h2>You're done for today.</h2><p>Want to get ahead on an assignment?</p></article>`;
-  return `<article class="day-complete"><p class="focus-code">Day complete</p><h2>You're done for today.</h2><p>Want to get ahead on an assignment?</p><small>Next up · ${escapeHtml(DAY_NAMES[next.day])}, ${formatTime(next.start)} · ${escapeHtml(next.code)}</small></article>`;
+  if (!next) return `<article class="day-complete"><p class="focus-code">All clear</p><h2>You're finished for today.</h2><p>Nothing else is scheduled. Take a break or get ahead when you feel ready.</p></article>`;
+  return `<article class="day-complete"><p class="focus-code">All clear</p><h2>You're finished for today.</h2><p>Nothing else needs your attention right now.</p><small>Your next class is ${escapeHtml(DAY_NAMES[next.day])} at ${formatTime(next.start)} · ${escapeHtml(next.code)}</small></article>`;
 }
 
 function urgentTasks(tasks, classes, now) {
@@ -57,7 +58,7 @@ function urgentTasks(tasks, classes, now) {
     .filter((task) => !task.completed && daysUntil(task.dueDate, now) <= 14)
     .slice(0, 4);
 
-  if (!items.length) return empty('No urgent tasks. Your path is clear.');
+  if (!items.length) return empty('Nothing is due soon. Add work from Week when you are ready.');
 
   return `<div class="home-task-list">${items.map((task) => {
     const subject = classes.find((item) => item.id === task.classId);
@@ -113,7 +114,7 @@ function addExamForm(classes) {
       <label class="task-form-field">Date
         <input name="date" type="date" min="${dateInputValue()}" value="${dateInputValue()}" required>
       </label>
-      <button class="primary-action" type="submit">Add test</button>
+      <button class="primary-action" type="submit">Save test</button>
       ${examMessage ? `<p class="note-message" role="status">${escapeHtml(examMessage)}</p>` : ''}
     </form>`;
 }
@@ -132,11 +133,11 @@ export default {
     const { today, current, next } = getClassState(classes, now);
     const nextIsToday = next?.day === now.getDay();
     const focus = current || (nextIsToday ? next : null);
-    const focusLabel = current ? 'Current class' : nextIsToday ? 'Next class' : 'Today';
+    const focusLabel = current ? 'In class now' : nextIsToday ? 'Up next' : 'Today at a glance';
     const focusContent = current ? focusClass(current, now, focusLabel) : nextIsToday ? waitingClass(next, now) : dayComplete(next);
     const todayList = today.length
       ? today.map((item) => ClassItem(item, { current: item.id === current?.id, finished: minutesFromTime(item.end) <= now.getHours() * 60 + now.getMinutes(), open: openTodayClassIds.has(item.id) })).join('')
-      : empty(classes.length ? 'No classes scheduled today.' : 'Your schedule is empty. Add classes to data/defaultSchedule.json.');
+      : empty(classes.length ? 'No classes are scheduled today.' : 'Your schedule is empty. Import a schedule or add a class from the Import page.');
     const hasUpcomingExams = (state.exams || []).some((exam) => daysUntil(exam.date, now) >= 0);
     const examsSection = PathSection('Tests & exams', `
       ${upcomingExams(state.exams, classes, now)}
@@ -154,12 +155,12 @@ export default {
           <span>${formatDate(now)}</span>
         </div>
       </header>
+      ${homeMessage ? `<div class="product-feedback" role="status"><span>${escapeHtml(homeMessage)}</span><button type="button" data-route="schedule">Open Week</button></div>` : ''}
       ${PathSection(focusLabel, focusContent, { active: Boolean(current), className: `hero-path-section ${nextIsToday && !current ? 'is-waiting' : ''}` })}
-      ${current && next ? PathSection('Next', focusClass(next, now, 'Next class')) : ''}
-      ${hasUpcomingExams ? examsSection : ''}
-      ${PathSection('Due / urgent', urgentTasks(state.tasks, classes, now), { className: 'tasks-preview' })}
-      ${PathSection('Today', `<div class="agenda-list">${todayList}</div>`, { className: 'today-section' })}
-      ${hasUpcomingExams ? '' : examsSection}
+      ${current && next ? PathSection('Up next', focusClass(next, now, 'Up next')) : ''}
+      ${PathSection('Needs your attention', urgentTasks(state.tasks, classes, now), { className: 'tasks-preview priority-section' })}
+      ${PathSection('Rest of today', `<div class="agenda-list">${todayList}</div>`, { className: 'today-section' })}
+      ${examsSection}
     `;
   },
 
@@ -232,6 +233,7 @@ export default {
         await closeOverlay(screen, 180);
         screen.remove();
         const tasks = saveTasks(state.tasks.map((item) => item.id === task.id ? { ...item, title: data.get('title'), description: data.get('description'), dueDate: data.get('dueDate'), dueTime: data.get('dueTime') } : item));
+        homeMessage = `Changes to “${data.get('title')}” were saved.`;
         Store.set(withAutoSave(state, { tasks }));
       });
       screen.querySelector('[data-home-task-yes]')?.addEventListener('click', async () => {
@@ -239,6 +241,7 @@ export default {
         screen.remove();
         await transitionTaskRow(taskButton, true);
         const tasks = saveTasks(state.tasks.map((item) => item.id === task.id ? { ...item, completed: true } : item));
+        homeMessage = `“${task.title}” is complete.`;
         Store.set(withAutoSave(state, { tasks }));
       });
     }));
@@ -256,7 +259,8 @@ export default {
       try {
         const data = new FormData(event.currentTarget);
         const exam = createExam({ classId: data.get('classId'), title: data.get('title'), date: data.get('date') });
-        examMessage = 'Test added.';
+        examMessage = `${exam.title} was saved to Tests & exams.`;
+        homeMessage = examMessage;
         Store.set({ exams: saveExams([...(state.exams || []), exam]) });
       } catch (error) {
         examMessage = error.message;

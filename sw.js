@@ -1,4 +1,4 @@
-const CACHE_NAME = 'atlas-shell-v185';
+const CACHE_NAME = 'atlas-shell-v186';
 const OCR_CACHE_NAME = 'atlas-ocr-runtime-v1';
 const APP_SHELL = [
   './',
@@ -7,15 +7,15 @@ const APP_SHELL = [
   './css/variables.css?v=2',
   './css/global.css?v=3',
   './css/layout.css?v=43',
-  './css/components.css?v=154',
+  './css/components.css?v=155',
   './data/defaultSchedule.json',
   './assets/icons/atlas-192.png',
   './assets/icons/atlas-512.png',
   './assets/icons/atlas-brand.png',
   './assets/icons/atlas-maskable.png',
-  './js/app.js?v=156',
-  './js/atlas.js?v=155',
-  './js/router.js?v=151',
+  './js/app.js?v=157',
+  './js/atlas.js?v=156',
+  './js/router.js?v=152',
   './js/store.js',
   './js/cloud/config.js',
   './js/cloud/client.js',
@@ -29,7 +29,7 @@ const APP_SHELL = [
   './js/sync/sync.js?v=5',
   './js/sync/backup.js',
   './js/components/classItem.js?v=3',
-  './js/components/atmosphere.js?v=5',
+  './js/components/atmosphere.js?v=6',
   './js/components/developerTools.js',
   './js/components/installButton.js',
   './js/components/navbar.js?v=3',
@@ -60,10 +60,10 @@ const APP_SHELL = [
   './js/utils/html.js',
   './js/utils/animations.js?v=9',
   './js/utils/time.js',
-  './js/views/home.js?v=61',
+  './js/views/home.js?v=62',
   './js/views/importSchedule.js?v=69',
-  './js/views/schedule.js?v=78',
-  './js/views/classDetail.js?v=56'
+  './js/views/schedule.js?v=79',
+  './js/views/classDetail.js?v=57'
 ];
 
 self.addEventListener('install', (event) => {

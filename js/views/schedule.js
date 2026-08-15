@@ -10,6 +10,7 @@ import { transitionAddConfirmation, transitionClassDisclosure, transitionStrikeR
 import { withAutoSave } from '../services/autosave.js';
 
 let noteMessage = '';
+let weekMessage = '';
 let editingTaskId = '';
 const openClassIds = new Set();
 let weekContentMode = sessionStorage.getItem('atlas.weekContentMode') === 'personal' ? 'personal' : 'classes';
@@ -191,7 +192,7 @@ function addTaskPanel(classes) {
       <label class="task-form-field" data-due-time-field ${personalOnly ? 'hidden' : ''}>Due time
         <input name="dueTime" type="time" value="23:59" required>
       </label>
-      <button class="primary-action add-task-button" type="submit">Add task</button>
+      <button class="primary-action add-task-button" type="submit">Save task</button>
     </form>`;
 }
 
@@ -207,7 +208,7 @@ function addNotePanel(classes) {
         <strong id="note-file-name">Choose a note file</strong>
       </label>
       <input class="visually-hidden" id="note-file" name="file" type="file" accept=".txt,.pdf,text/plain,application/pdf" required>
-      <button class="primary-action" type="submit">Add note</button>
+      <button class="primary-action" type="submit">Attach note</button>
       ${noteMessage ? `<p class="note-message" role="status">${escapeHtml(noteMessage)}</p>` : ''}
     </form>`;
 }
@@ -304,10 +305,11 @@ export default {
         </div>
       </header>
       <div class="settings-pill week-content-switch" data-week-mode="${weekContentMode}" role="group" aria-label="Week content"><button class="${weekContentMode === 'classes' ? 'is-active' : ''}" data-week-content="classes" type="button">Classes</button><button class="${weekContentMode === 'personal' ? 'is-active' : ''}" data-week-content="personal" type="button">Personal</button></div>
+      ${weekMessage ? `<div class="product-feedback" role="status"><span>${escapeHtml(weekMessage)}</span><button type="button" data-route="home">View Now</button></div>` : ''}
       <div class="week-list">${content}</div>
       <div class="week-tools-grid">
-        ${PathSection('Add task', addTaskPanel(classes), { className: 'add-task-section' })}
-        ${PathSection('Add note', addNotePanel(classes), { className: 'add-note-section' })}
+        ${PathSection('Plan a task', addTaskPanel(classes), { className: 'add-task-section' })}
+        ${PathSection('Keep a note', addNotePanel(classes), { className: 'add-note-section' })}
       </div>
       <div class="schedule-print-action">
         <button class="secondary-action" id="print-schedule" type="button"><span>Print schedule</span><span aria-hidden="true">↗</span></button>
@@ -395,6 +397,10 @@ export default {
         dueTime: data.get('dueTime'),
       });
       const tasks = saveTasks([...state.tasks, task]);
+      const target = task.classId.startsWith('personal-day-')
+        ? `your ${DAY_NAMES[Number(task.classId.split('-').at(-1))]} personal plan`
+        : state.schedule.classes.find((item) => item.id === task.classId)?.code || 'your week';
+      weekMessage = `“${task.title}” was added to ${target}.`;
       await transitionAddConfirmation(event.currentTarget);
       clearFormDraft('add-task-form');
       Store.set(withAutoSave(state, { tasks }));
@@ -470,7 +476,11 @@ export default {
           fileName: file.name,
           ...fileData,
         });
-        noteMessage = 'Note attached. Open the class page to read it.';
+        const destination = note.classId.startsWith('personal-day-')
+          ? `${DAY_NAMES[Number(note.classId.split('-').at(-1))]} personal plans`
+          : state.schedule.classes.find((item) => item.id === note.classId)?.code || 'your week';
+        noteMessage = `“${note.name}” is ready in ${destination}.`;
+        weekMessage = noteMessage;
         const notes = saveNotes([...state.notes, note]);
         await transitionAddConfirmation(event.currentTarget);
         pendingNoteFile = null;
