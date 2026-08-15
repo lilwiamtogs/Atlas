@@ -2,9 +2,10 @@ import PathSection from '../components/pathSection.js';
 import Store from '../store.js';
 import { escapeHtml } from '../utils/html.js';
 import { DAY_NAMES } from '../utils/time.js';
-import { scanScheduleImage } from '../services/ocr.js?v=41';
-import { scanScheduleWithAi } from '../services/aiSchedule.js?v=4';
-import { parseScheduleText } from '../services/scheduleParser.js?v=46';
+import { prepareScheduleImageFile, scanScheduleImage } from '../services/ocr.js?v=42';
+import { scanScheduleWithAi } from '../services/aiSchedule.js?v=5';
+import { parseScheduleText } from '../services/scheduleParser.js?v=47';
+import { applyLearnedOcrCorrections, learnOcrCorrections } from '../services/ocrCorrections.js';
 import {
   loadSchedule,
   removeImportedSchedule,
@@ -35,6 +36,10 @@ let animateArchiveDirectory = false;
 let archiveMessage = '';
 let pendingScheduleReplacement = null;
 let imageSourcePickerOpen = false;
+let pasteListener = null;
+let imageEdit = { rotation: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 } };
+let autoAiRepair = false;
+let originalOcrClasses = [];
 
 function currentScheduleIsSaved(state) {
   const current = JSON.stringify(state.schedule);
@@ -72,11 +77,17 @@ function filePicker() {
       <button class="upload-zone" id="open-image-source-picker" type="button">
         <span class="upload-ring" aria-hidden="true"></span>
         <strong>Choose image source</strong>
-        <span>PNG, JPG, or a photo from your camera</span>
+        <span>PNG, JPG, a camera photo, or paste an image</span>
       </button>`}
     <input class="visually-hidden" id="schedule-image-library" type="file" accept=".png,.jpg,.jpeg,.webp">
     <input class="visually-hidden" id="schedule-image-camera" type="file" accept="image/*" capture="environment">
-    ${previewUrl ? `<img class="schedule-preview" src="${escapeHtml(previewUrl)}" alt="Selected class schedule">` : ''}
+    ${previewUrl ? `<div class="schedule-preview-frame" style="--crop-top:${imageEdit.crop.top * 100}%;--crop-right:${imageEdit.crop.right * 100}%;--crop-bottom:${imageEdit.crop.bottom * 100}%;--crop-left:${imageEdit.crop.left * 100}%"><img class="schedule-preview" src="${escapeHtml(previewUrl)}" alt="Selected class schedule" style="transform:rotate(${imageEdit.rotation}deg)"></div>
+      <details class="image-editor">
+        <summary>Crop or rotate image</summary>
+        <div class="image-rotate-actions"><button type="button" data-image-rotate="-90">Rotate left</button><button type="button" data-image-rotate="90">Rotate right</button><button type="button" id="reset-image-edit">Reset</button></div>
+        <div class="image-crop-grid">${['top', 'right', 'bottom', 'left'].map((edge) => `<label>${edge}<input type="range" min="0" max="30" value="${imageEdit.crop[edge] * 100}" data-image-crop="${edge}"></label>`).join('')}</div>
+      </details>
+      <label class="ai-repair-option"><input id="auto-ai-repair" type="checkbox" ${autoAiRepair ? 'checked' : ''}><span><strong>Repair uncertain rows with AI</strong><small>If the private scan is unsure, send this image to Atlas AI automatically.</small></span></label>` : ''}
     ${selectedFile ? `
       <div class="image-actions">
       <button class="primary-action" id="scan-schedule" type="button" ${scanning ? 'disabled' : ''}>
@@ -125,29 +136,31 @@ function dayOptions(selected) {
 }
 
 function reviewRow(item, index) {
+  const uncertain = new Set(item.uncertainFields || []);
+  const uncertainLabel = (field) => uncertain.has(field) ? '<span class="field-confidence" title="Low OCR confidence">Check this</span>' : '';
   return `
-    <article class="review-row review-card" data-review-row="${index}">
+    <article class="review-row review-card ${uncertain.size ? 'has-uncertain-fields' : ''}" data-review-row="${index}">
       <div class="review-row-heading">
         <span>Class ${index + 1}</span>
         ${draft.classes.length > 1 ? `<button class="remove-class" type="button" data-remove-class="${index}">Remove</button>` : ''}
       </div>
       <div class="review-grid">
-        <label class="review-field code-field">Code
+        <label class="review-field code-field">Code ${uncertainLabel('code')}
           <input data-field="code" data-index="${index}" value="${escapeHtml(item.code)}" required>
         </label>
-        <label class="review-field day-field">Day
+        <label class="review-field day-field">Day ${uncertainLabel('day')}
           <select data-field="day" data-index="${index}">${dayOptions(item.day)}</select>
         </label>
-        <label class="review-field title-field">Subject
+        <label class="review-field title-field">Subject ${uncertainLabel('title')}
           <input data-field="title" data-index="${index}" value="${escapeHtml(item.title)}" required>
         </label>
-        <label class="review-field">Starts
+        <label class="review-field">Starts ${uncertainLabel('start')}
           <input type="time" data-field="start" data-index="${index}" value="${escapeHtml(item.start)}" required>
         </label>
-        <label class="review-field">Ends
+        <label class="review-field">Ends ${uncertainLabel('end')}
           <input type="time" data-field="end" data-index="${index}" value="${escapeHtml(item.end)}" required>
         </label>
-        <label class="review-field">Room
+        <label class="review-field">Room ${uncertainLabel('room')}
           <input data-field="room" data-index="${index}" value="${escapeHtml(item.room)}">
         </label>
       </div>
@@ -182,14 +195,14 @@ function reviewPanel() {
       </label>
       <div class="archive-name-preview"><span>Saved as</span><strong id="archive-name-preview">${escapeHtml(archiveNameFor(draft))}</strong></div>
       <div class="review-list">${reviewRow(item, reviewIndex)}</div>
-      <div class="review-manual-actions">
-        <button class="secondary-action" id="add-review-class" type="button">Add another class</button>
-      </div>
       <div class="review-navigation">
         ${reviewIndex > 0 ? '<button class="secondary-action review-back" id="previous-class" type="button">Previous</button>' : '<span></span>'}
         ${reviewIndex < draft.classes.length - 1
           ? '<button class="primary-action review-next" id="verify-class" type="button">Verify & next</button>'
           : '<button class="primary-action save-schedule" type="submit">Use this schedule</button>'}
+      </div>
+      <div class="review-manual-actions">
+        <button class="secondary-action" id="add-review-class" type="button">Add another class</button>
       </div>
     </form>`);
 }
@@ -337,7 +350,9 @@ export default {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       selectedFile = file;
       previewUrl = URL.createObjectURL(file);
+      imageEdit = { rotation: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 } };
       draft = null;
+      originalOcrClasses = [];
       aiOffered = false;
       message = '';
       imageSourcePickerOpen = false;
@@ -346,6 +361,32 @@ export default {
     const handleScheduleImage = (event) => useScheduleImage(event.target.files?.[0]);
     document.getElementById('schedule-image-library')?.addEventListener('change', handleScheduleImage);
     document.getElementById('schedule-image-camera')?.addEventListener('change', handleScheduleImage);
+    document.getElementById('auto-ai-repair')?.addEventListener('change', (event) => { autoAiRepair = event.target.checked; });
+    document.querySelectorAll('[data-image-rotate]').forEach((button) => button.addEventListener('click', () => {
+      imageEdit.rotation = (imageEdit.rotation + Number(button.dataset.imageRotate) + 360) % 360;
+      router.render();
+    }));
+    document.querySelectorAll('[data-image-crop]').forEach((input) => input.addEventListener('input', () => {
+      imageEdit.crop[input.dataset.imageCrop] = Number(input.value) / 100;
+      const frame = document.querySelector('.schedule-preview-frame');
+      if (frame) frame.style.setProperty(`--crop-${input.dataset.imageCrop}`, `${input.value}%`);
+    }));
+    document.getElementById('reset-image-edit')?.addEventListener('click', () => {
+      imageEdit = { rotation: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 } };
+      router.render();
+    });
+    if (pasteListener) document.removeEventListener('paste', pasteListener);
+    pasteListener = (event) => {
+      if (!document.querySelector('#main-content.route-import')) return;
+      const imageItem = [...(event.clipboardData?.items || [])].find((item) => item.kind === 'file' && item.type.startsWith('image/'));
+      if (!imageItem) return;
+      const blob = imageItem.getAsFile();
+      if (!blob) return;
+      event.preventDefault();
+      const extension = blob.type.split('/')[1]?.replace('jpeg', 'jpg') || 'png';
+      useScheduleImage(new File([blob], `pasted-schedule.${extension}`, { type: blob.type, lastModified: Date.now() }));
+    };
+    document.addEventListener('paste', pasteListener);
     const uploadZone = document.getElementById('open-image-source-picker');
     uploadZone?.addEventListener('dragover', (event) => {
       event.preventDefault();
@@ -375,10 +416,13 @@ export default {
           const fill = document.getElementById('progress-fill');
           if (statusNode) statusNode.textContent = `${status || 'Scanning'}${progress ? ` · ${Math.round(progress * 100)}%` : ''}`;
           if (fill) fill.style.width = `${Math.max(4, progress * 100)}%`;
-        });
-        draft = parseScheduleText(text);
+        }, imageEdit);
+        const parsedDraft = parseScheduleText(text);
+        originalOcrClasses = structuredClone(parsedDraft.classes);
+        draft = applyLearnedOcrCorrections(parsedDraft);
         reviewIndex = 0;
-        aiOffered = draft.classes.length < 2 && draft.documentType !== 'exam';
+        const uncertainCount = draft.classes.filter((item) => item.uncertainFields?.length).length;
+        aiOffered = (draft.classes.length < 2 || uncertainCount > 0) && draft.documentType !== 'exam';
         message = draft.classes.length >= 2
           ? ''
           : draft.classes.length === 1
@@ -386,6 +430,18 @@ export default {
           : draft.documentType === 'exam'
             ? 'Atlas recognized an examination schedule, not a recurring class schedule. Exam-image importing is not supported yet.'
             : 'Atlas could not find schedule rows. Try the free AI scan or choose a clearer image.';
+        if (autoAiRepair && aiOffered && draft.documentType !== 'exam') {
+          scanStatus = `Repairing ${Math.max(uncertainCount, 1)} uncertain row(s) with Atlas AI...`;
+          try {
+            const editedFile = await prepareScheduleImageFile(selectedFile, imageEdit);
+            draft = await scanScheduleWithAi(editedFile, draft.rawText || '', { currentDraft: draft, uncertainOnly: true });
+            aiOffered = false;
+            message = '';
+          } catch (error) {
+            console.warn('Automatic AI repair failed; keeping the private scan.', error);
+            message = `The private scan is ready, but AI repair could not finish: ${error.message}`;
+          }
+        }
       } catch (error) {
         console.error('Schedule scan failed.', error);
         aiOffered = true;
@@ -404,7 +460,8 @@ export default {
       message = 'The free AI scan sends this schedule image to Cloudflare for processing.';
       router.render();
       try {
-        draft = await scanScheduleWithAi(selectedFile, draft?.rawText || '');
+        const editedFile = await prepareScheduleImageFile(selectedFile, imageEdit);
+        draft = await scanScheduleWithAi(editedFile, draft?.rawText || '', { currentDraft: draft, uncertainOnly: Boolean(draft?.classes?.length) });
         reviewIndex = 0;
         message = '';
       } catch (error) {
@@ -418,10 +475,14 @@ export default {
     });
 
     document.querySelectorAll('[data-field]').forEach((input) => {
-      input.addEventListener('input', () => {
+      const updateDraftField = () => {
         const item = draft.classes[Number(input.dataset.index)];
         item[input.dataset.field] = input.dataset.field === 'day' ? Number(input.value) : input.value;
-      });
+        item.uncertainFields = (item.uncertainFields || []).filter((field) => field !== input.dataset.field);
+        input.closest('.review-field')?.querySelector('.field-confidence')?.remove();
+      };
+      input.addEventListener('input', updateDraftField);
+      input.addEventListener('change', updateDraftField);
     });
 
     const updateArchivePreview = () => {
@@ -463,6 +524,7 @@ export default {
       event.preventDefault();
       rememberReviewDetails();
       requestScheduleReplacement(state, router, () => { try {
+        learnOcrCorrections(originalOcrClasses, draft.classes);
         const classes = draft.classes.map((item, index) => ({
           ...item,
           id: `${item.code.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${item.day}-${index}`,

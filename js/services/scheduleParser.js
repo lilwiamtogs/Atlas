@@ -53,6 +53,45 @@ function cleanRoom(value) {
   return value.trim().replace(/^[\$§](?=\d)/, 'S').replace(/\s+/g, ' ');
 }
 
+function normalizeOcrScheduleText(value) {
+  return String(value || '')
+    .replace(/(?<=\d)[Oo](?=\d|\s*(?:AM|PM)\b)/gi, '0')
+    .replace(/(?<=\d)[Il](?=\d)/g, '1')
+    .replace(/\b(?:M0N|MONOAY)\b/gi, 'MON')
+    .replace(/\b(?:TUE5|TUESOAY)\b/gi, 'TUE')
+    .replace(/\b(?:WE0|WEDNESOAY)\b/gi, 'WED')
+    .replace(/\b(?:THU8|THURSOAY)\b/gi, 'THU')
+    .replace(/\bFR[Il1]\b/gi, 'FRI');
+}
+
+function confidenceForValue(value, words) {
+  const tokens = String(value || '').toUpperCase().match(/[A-Z0-9]{2,}/g) || [];
+  if (!tokens.length) return 72;
+  const matches = tokens.map((token) => words
+    .filter((word) => word.token.includes(token) || token.includes(word.token))
+    .sort((a, b) => b.confidence - a.confidence)[0]?.confidence).filter(Number.isFinite);
+  return matches.length ? Math.round(matches.reduce((sum, score) => sum + score, 0) / matches.length) : 48;
+}
+
+function enrichConfidence(classes, layouts) {
+  const words = layouts.flatMap((candidate) => candidate?.words || []).map((word) => ({
+    token: String(word.text || '').toUpperCase().replace(/[^A-Z0-9]/g, ''),
+    confidence: Number(word.confidence) || 0,
+  })).filter((word) => word.token);
+  return classes.map((item) => {
+    const confidence = {
+      code: confidenceForValue(item.code, words),
+      title: confidenceForValue(item.title, words),
+      day: 78,
+      start: confidenceForValue(item.start.replace(':', ''), words),
+      end: confidenceForValue(item.end.replace(':', ''), words),
+      room: item.room ? confidenceForValue(item.room, words) : 70,
+    };
+    const uncertainFields = Object.entries(confidence).filter(([, score]) => score < 62).map(([field]) => field);
+    return { ...item, confidence, uncertainFields };
+  });
+}
+
 function slug(value) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
@@ -554,7 +593,7 @@ function parseSubjectScheduleLayout(layout) {
 
 export function parseScheduleText(input) {
   const text = typeof input === 'string' ? input : input?.text || '';
-  const normalized = text.replace(/[|]/g, ' ').replace(/[‐‑‒–—]/g, '-').replace(/\r/g, '');
+  const normalized = normalizeOcrScheduleText(text).replace(/[|]/g, ' ').replace(/[‐‑‒–—]/g, '-').replace(/\r/g, '');
   const layout = typeof input === 'object' ? input.layout : null;
   const layouts = typeof input === 'object' && Array.isArray(input.layouts) ? input.layouts : [layout];
   const candidateScore = (item) => {
@@ -598,7 +637,7 @@ export function parseScheduleText(input) {
       course: parseCourse(normalized),
       yearLevel: '',
       semester: parseSemester(normalized),
-      classes: uniqueSubjectClasses,
+      classes: enrichConfidence(uniqueSubjectClasses, layouts),
       warnings: [],
       rawText: text,
       documentType: 'classes',
@@ -614,7 +653,7 @@ export function parseScheduleText(input) {
       course: parseCourse(normalized),
       yearLevel: '',
       semester: parseSemester(normalized),
-      classes: uniqueClassTableClasses,
+      classes: enrichConfidence(uniqueClassTableClasses, layouts),
       warnings: [],
       rawText: text,
       documentType: 'classes',
@@ -637,5 +676,5 @@ export function parseScheduleText(input) {
   classes.push(...parseRegistrarLayout(layout));
   const unique = [...new Map(classes.map((item) => [`${item.day}-${item.start}-${item.title.toLowerCase()}`, item])).values()];
   const documentType = /(?:schedule\s+of\s+.*examinations|\bexam\b.*\bdate\b|\blong exam\b)/i.test(normalized) ? 'exam' : 'classes';
-  return { course: parseCourse(normalized), yearLevel: '', semester: parseSemester(normalized), classes: unique, warnings, rawText: text, documentType };
+  return { course: parseCourse(normalized), yearLevel: '', semester: parseSemester(normalized), classes: enrichConfidence(unique, layouts), warnings, rawText: text, documentType };
 }

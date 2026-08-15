@@ -1782,7 +1782,7 @@
 .mobile-card-tasks p small, .mobile-card-tasks > small { color: var(--warning); font-size: .43rem; }
 .home-task-actions { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); }
 .home-task-actions button { width: 100%; padding-inline: 10px; }
-.home-task-dialog { display: grid; width: min(100%, 354px); padding: 22px 23px; border-radius: 23px; contain: layout paint; }
+.home-task-dialog { display: grid; width: min(100%, 354px); padding: 22px 23px; border-radius: 23px; contain: layout; }
 .home-task-dialog > [data-home-task-actions], .home-task-dialog > .home-task-edit-form { grid-area: 1 / 1; min-width: 0; width: 100%; }
 .home-task-dialog h2 { margin: 7px 0 9px; font-size: 1.28rem; line-height: 1.12; }
 .home-task-dialog [data-home-task-actions] > p:not(.eyebrow) { margin: 0; color: var(--text); font-size: .62rem; line-height: 1.55; }
@@ -1792,6 +1792,8 @@
 .home-task-dialog .home-task-actions [data-home-task-no] { grid-column: 1 / -1; grid-row: 2; min-height: 24px; padding: 3px; border-color: transparent; color: var(--text-muted); background: transparent; }
 .home-task-dialog .home-task-edit-form { gap: 10px; }
 .home-task-dialog .home-task-edit-form .confirm-actions { margin-top: 8px; }
+.home-task-dialog .home-task-edit-form .atlas-time-panel { top: auto; bottom: calc(100% + 7px); }
+.home-task-dialog .home-task-edit-form .atlas-time:has(.atlas-time-panel:not([hidden])) { z-index: 72; }
 .home-task-edit-form { display: grid; gap: 12px; }
 .home-task-edit-form[hidden], [data-home-task-actions][hidden] { display: none; }
 .home-task-edit-form h2 { margin-bottom: 4px; }
@@ -3523,11 +3525,34 @@ html.is-page-transitioning body {
   display: block;
   width: 100%;
   max-height: 320px;
+  object-fit: contain;
+  clip-path: inset(var(--crop-top) var(--crop-right) var(--crop-bottom) var(--crop-left));
+  transition: transform 180ms ease, clip-path 120ms ease;
+}
+
+.schedule-preview-frame {
+  display: grid;
+  max-height: 340px;
   margin-top: 18px;
+  overflow: hidden;
+  place-items: center;
   border: 1px solid var(--line);
   border-radius: 30px;
-  object-fit: contain;
+  background: var(--bg);
 }
+
+.image-editor { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 17px; color: var(--text-muted); font-size: .58rem; }
+.image-editor summary { cursor: pointer; color: var(--primary-light); }
+.image-rotate-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.image-rotate-actions button { padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: transparent; color: var(--text); font-size: .5rem; }
+.image-crop-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px 14px; margin-top: 13px; }
+.image-crop-grid label { display: grid; gap: 5px; text-transform: capitalize; }
+.image-crop-grid input { width: 100%; accent-color: var(--primary-light); }
+.ai-repair-option { display: flex; gap: 10px; margin-top: 12px; padding: 13px 14px; border: 1px solid var(--line); border-radius: 17px; background: var(--surface); }
+.ai-repair-option input { flex: 0 0 auto; accent-color: var(--primary-light); }
+.ai-repair-option span { display: grid; gap: 4px; }
+.ai-repair-option strong { color: var(--text); font-size: .58rem; }
+.ai-repair-option small { color: var(--text-muted); font-size: .5rem; line-height: 1.45; }
 
 .image-actions {
   display: flex;
@@ -3944,6 +3969,14 @@ html.is-page-transitioning body {
 .review-navigation .primary-action,
 .review-navigation .secondary-action {
   margin-top: 0;
+}
+
+.field-confidence { width: fit-content; padding: 2px 5px; border-radius: 999px; background: color-mix(in srgb, var(--warning) 14%, transparent); color: var(--warning); font-size: .42rem; letter-spacing: .03em; text-transform: uppercase; }
+.review-row.has-uncertain-fields { border-color: color-mix(in srgb, var(--warning) 42%, var(--line)); }
+
+.review-manual-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 @keyframes review-card-enter {

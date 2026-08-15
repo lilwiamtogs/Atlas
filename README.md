@@ -8,6 +8,8 @@ Atlas stores a common snapshot behind every successful sync and uses determinist
 
 Cloud sync includes private PDF restoration with path and SHA-256 validation, a local recovery snapshot, atomic planner-data application, and a final remote revision check before resolved data is written. Manual Sync now remains available as an explicit status check and recovery control.
 
+Version 0.4.0 also upgrades schedule importing with pasted images, crop and rotation controls, automatic geometry and lighting correction, table-aware OCR passes, field confidence warnings, local correction learning, and opt-in AI repair limited to uncertain fields. The mobile task editor time picker now remains visible outside its dialog bounds.
+
 Version 0.3.6 refines mobile motion without sacrificing the corrected responsive layout. Class cards now use a FLIP transition so surrounding sections move smoothly without animated-height reflow or scroll-anchor bounce. Mobile page navigation restores Atlas's three-strip wipe as a short, fixed-viewport, transform-only animation with reduced-motion support.
 
 ## Import a schedule image
@@ -15,7 +17,7 @@ Version 0.3.6 refines mobile motion without sacrificing the corrected responsive
 Open **Import** in the bottom navigation and choose a clear PNG, JPG, WebP, or camera photo of a tabular class schedule. Atlas uses Tesseract.js in the browser to read the image, converts recognized rows to the normal Atlas schedule structure, and requires a review before saving.
 
 - The default private scan keeps the image and recognized text in the browser.
-- The first scan requires internet access to download the OCR engine and English recognition data.
+- The first scan requires internet access to download the OCR engine and English recognition data; Atlas caches that runtime for later offline scans.
 - Imported schedules are saved to `localStorage` under `atlas.schedule` and take priority over `data/defaultSchedule.json` on that device.
 - Multi-day codes such as `TF`, `MWF`, and `TTH` become separate class entries for each day.
 - Use **Restore default JSON schedule** from the Import view to remove the saved import.

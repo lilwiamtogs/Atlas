@@ -1,4 +1,5 @@
-const CACHE_NAME = 'atlas-shell-v183';
+const CACHE_NAME = 'atlas-shell-v185';
+const OCR_CACHE_NAME = 'atlas-ocr-runtime-v1';
 const APP_SHELL = [
   './',
   './index.html',
@@ -6,15 +7,15 @@ const APP_SHELL = [
   './css/variables.css?v=2',
   './css/global.css?v=3',
   './css/layout.css?v=43',
-  './css/components.css?v=152',
+  './css/components.css?v=154',
   './data/defaultSchedule.json',
   './assets/icons/atlas-192.png',
   './assets/icons/atlas-512.png',
   './assets/icons/atlas-brand.png',
   './assets/icons/atlas-maskable.png',
-  './js/app.js?v=154',
-  './js/atlas.js?v=153',
-  './js/router.js?v=149',
+  './js/app.js?v=156',
+  './js/atlas.js?v=155',
+  './js/router.js?v=151',
   './js/store.js',
   './js/cloud/config.js',
   './js/cloud/client.js',
@@ -44,22 +45,23 @@ const APP_SHELL = [
   './js/components/datePicker.js?v=3',
   './js/components/themeToggle.js?v=2',
   './js/components/welcomeScreen.js?v=47',
-  './js/services/ocr.js?v=41',
+  './js/services/ocr.js?v=42',
+  './js/services/ocrCorrections.js',
   './js/services/autosave.js',
-  './js/services/aiSchedule.js?v=3',
+  './js/services/aiSchedule.js?v=5',
   './js/services/notes.js?v=37',
   './js/services/pdfText.js?v=38',
   './js/services/exams.js',
   './js/services/notifications.js',
   './js/services/schedule.js',
   './js/services/scheduleArchives.js',
-  './js/services/scheduleParser.js?v=46',
+  './js/services/scheduleParser.js?v=47',
   './js/services/tasks.js',
   './js/utils/html.js',
   './js/utils/animations.js?v=9',
   './js/utils/time.js',
   './js/views/home.js?v=61',
-  './js/views/importSchedule.js?v=67',
+  './js/views/importSchedule.js?v=69',
   './js/views/schedule.js?v=78',
   './js/views/classDetail.js?v=56'
 ];
@@ -71,7 +73,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => Promise.all(
-      keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+      keys.filter((key) => ![CACHE_NAME, OCR_CACHE_NAME].includes(key)).map((key) => caches.delete(key))
     )).then(() => self.clients.claim())
   );
 });
@@ -79,6 +81,18 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
+  const isOcrRuntime = /(?:cdn\.jsdelivr\.net|tessdata\.projectnaptha\.com)$/.test(url.hostname)
+    && /(?:tesseract|traineddata)/i.test(url.pathname);
+  if (isOcrRuntime) {
+    event.respondWith(caches.open(OCR_CACHE_NAME).then(async (cache) => {
+      const cached = await cache.match(event.request);
+      if (cached) return cached;
+      const response = await fetch(event.request);
+      if (response.ok || response.type === 'opaque') cache.put(event.request, response.clone()).catch(() => {});
+      return response;
+    }));
+    return;
+  }
   if (url.origin !== self.location.origin) return;
 
   if (event.request.mode === 'navigate') {

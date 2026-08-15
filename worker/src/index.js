@@ -116,11 +116,11 @@ function parseModelJson(value) {
   }
 }
 
-function parserRequest(transcript, structured) {
+function parserRequest(transcript, structured, repairContext = '') {
   const request = {
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: `Convert this timetable transcription into the required schedule JSON. Preserve every row.\n\n${transcript}` },
+      { role: 'user', content: `Convert this timetable transcription into the required schedule JSON. Preserve every row.${repairContext}\n\n${transcript}` },
     ],
     temperature: 0,
     max_completion_tokens: 2400,
@@ -153,11 +153,11 @@ async function transcribeSchedule(env, image) {
   return transcript;
 }
 
-async function scheduleFromTranscript(env, transcript) {
+async function scheduleFromTranscript(env, transcript, repairContext = '') {
   let lastError;
   for (const model of PARSER_MODELS) {
     try {
-      const result = await env.AI.run(model.id, parserRequest(transcript, model.structured));
+      const result = await env.AI.run(model.id, parserRequest(transcript, model.structured, repairContext));
       return normalizeSchedule(parseModelJson(responseValue(result)));
     } catch (error) {
       lastError = error;
@@ -230,7 +230,11 @@ export default {
       const transcript = suppliedText.length >= 20
         ? suppliedText
         : await transcribeSchedule(env, image);
-      const schedule = await scheduleFromTranscript(env, transcript);
+      const knownRows = Array.isArray(body?.knownRows) ? body.knownRows.slice(0, 100) : [];
+      const repairContext = body?.uncertainOnly && knownRows.length
+        ? ` Focus on correcting only fields marked uncertain in these locally detected rows; return matching corrected rows and do not invent replacements for confident fields:\n${JSON.stringify(knownRows).slice(0, 20_000)}`
+        : '';
+      const schedule = await scheduleFromTranscript(env, transcript, repairContext);
       return json({ schedule }, 200, corsOrigin);
     } catch (error) {
       console.error('Atlas vision scan failed.', error);

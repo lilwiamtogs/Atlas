@@ -1,6 +1,6 @@
 import Home from './views/home.js?v=61';
 import Schedule from './views/schedule.js?v=78';
-import ImportSchedule from './views/importSchedule.js?v=67';
+import ImportSchedule from './views/importSchedule.js?v=69';
 import ClassDetail from './views/classDetail.js?v=56';
 import Navbar from './components/navbar.js?v=3';
 import DeveloperTools from './components/developerTools.js';
