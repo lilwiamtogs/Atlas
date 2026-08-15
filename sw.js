@@ -1,13 +1,13 @@
-const CACHE_NAME = 'atlas-shell-v188';
+const CACHE_NAME = 'atlas-shell-v189';
 const OCR_CACHE_NAME = 'atlas-ocr-runtime-v1';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
-  './css/variables.css?v=2',
+  './css/variables.css?v=3',
   './css/global.css?v=3',
   './css/layout.css?v=43',
-  './css/components.css?v=157',
+  './css/components.css?v=158',
   './data/defaultSchedule.json',
   './assets/icons/atlas-192.png',
   './assets/icons/atlas-512.png',
