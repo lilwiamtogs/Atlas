@@ -157,10 +157,16 @@ export default {
       </header>
       ${homeMessage ? `<div class="product-feedback" role="status"><span>${escapeHtml(homeMessage)}</span><button type="button" data-route="schedule">Open Week</button></div>` : ''}
       ${PathSection(focusLabel, focusContent, { active: Boolean(current), className: `hero-path-section ${nextIsToday && !current ? 'is-waiting' : ''}` })}
-      ${current && next ? PathSection('Up next', focusClass(next, now, 'Up next')) : ''}
-      ${PathSection('Needs your attention', urgentTasks(state.tasks, classes, now), { className: 'tasks-preview priority-section' })}
-      ${PathSection('Rest of today', `<div class="agenda-list">${todayList}</div>`, { className: 'today-section' })}
-      ${examsSection}
+      <div class="home-dashboard-grid">
+        <div class="home-dashboard-primary">
+          ${current && next ? PathSection('Up next', focusClass(next, now, 'Up next')) : ''}
+          ${PathSection('Needs your attention', urgentTasks(state.tasks, classes, now), { className: 'tasks-preview priority-section' })}
+        </div>
+        <div class="home-dashboard-secondary">
+          ${PathSection('Rest of today', `<div class="agenda-list">${todayList}</div>`, { className: 'today-section' })}
+          ${examsSection}
+        </div>
+      </div>
     `;
   },
 
