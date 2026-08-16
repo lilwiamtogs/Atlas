@@ -1838,127 +1838,6 @@
 .sync-review-screen.is-closing,
 .sync-review-card { animation: none; }
 
-/* Atlas component primitives: the shared authority for icons, cards, and actions. */
-.atlas-icon {
-  display: block;
-  flex: 0 0 auto;
-  width: 1.25em;
-  height: 1.25em;
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 1.6;
-  vector-effect: non-scaling-stroke;
-}
-
-.atlas-card {
-  padding: var(--space-4);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  box-shadow: 0 0 0 1px transparent, 0 12px 36px rgba(122, 158, 135, 0.035);
-}
-
-.atlas-card--flush {
-  padding: 0;
-}
-
-.atlas-button,
-.primary-action,
-.secondary-action,
-.danger-action {
-  display: inline-flex;
-  width: fit-content;
-  min-height: 42px;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  margin: 0;
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--primary);
-  border-radius: var(--radius-pill);
-  background: var(--primary);
-  color: var(--bg);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  line-height: 1;
-  text-decoration: none;
-  text-transform: uppercase;
-  transition: color 180ms ease, border-color 180ms ease, background-color 180ms ease, transform 180ms var(--motion);
-}
-
-.atlas-button--secondary,
-.secondary-action {
-  background: transparent;
-  color: var(--primary-light);
-}
-
-.atlas-button--danger,
-.danger-action {
-  border-color: color-mix(in srgb, var(--danger) 58%, transparent);
-  background: transparent;
-  color: var(--danger);
-}
-
-.atlas-button--quiet {
-  border-color: transparent;
-  background: transparent;
-  color: var(--text-muted);
-}
-
-.atlas-button:hover:not(:disabled),
-.primary-action:hover:not(:disabled),
-.secondary-action:hover:not(:disabled),
-.danger-action:hover:not(:disabled) {
-  transform: translateY(-2px);
-  border-color: var(--primary-light);
-}
-
-.atlas-button:active:not(:disabled),
-.primary-action:active:not(:disabled),
-.secondary-action:active:not(:disabled),
-.danger-action:active:not(:disabled) {
-  transform: scale(0.98);
-}
-
-.atlas-button:disabled,
-.primary-action:disabled,
-.secondary-action:disabled,
-.danger-action:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-.nav-item .atlas-icon {
-  width: 17px;
-  height: 17px;
-  transition: transform 180ms var(--motion), color 180ms ease;
-}
-
-.nav-item.is-active .atlas-icon {
-  color: var(--primary-light);
-  transform: translateY(-1px);
-}
-
-.desktop-settings-button .atlas-icon,
-.mobile-profile-button .atlas-icon {
-  width: 18px;
-  height: 18px;
-}
-
-.global-help-button .atlas-icon {
-  width: 20px;
-  height: 20px;
-}
-
-.settings-close .atlas-icon {
-  width: 18px;
-  height: 18px;
-  margin: auto;
-}
-
 button.home-task { width: 100%; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 button.home-task .home-task-copy strong { position: relative; }
 button.home-task:focus-visible { outline: 2px solid var(--primary-light); outline-offset: 3px; }
@@ -5242,3 +5121,368 @@ html[data-focus-mode='true'] .route-home .no-exams { display: none; }
 .sync-review-screen,
 .sync-review-screen.is-closing,
 .sync-review-card { animation: none; }
+
+/* Atlas component primitives: the shared authority for icons, cards, and actions. */
+.atlas-icon {
+  display: block;
+  flex: 0 0 auto;
+  width: 1.25em;
+  height: 1.25em;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+}
+
+.atlas-card {
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px transparent, 0 12px 36px rgba(122, 158, 135, 0.035);
+}
+
+.atlas-card--flush {
+  padding: 0;
+}
+
+.atlas-button,
+.primary-action,
+.secondary-action,
+.danger-action {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-pill);
+  background: var(--primary);
+  color: var(--bg);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color 180ms ease, border-color 180ms ease, background-color 180ms ease, transform 180ms var(--motion);
+}
+
+.atlas-button--secondary,
+.secondary-action {
+  background: transparent;
+  color: var(--primary-light);
+}
+
+.atlas-button--danger,
+.danger-action {
+  border-color: color-mix(in srgb, var(--danger) 58%, transparent);
+  background: transparent;
+  color: var(--danger);
+}
+
+.atlas-button--quiet {
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.atlas-button:hover:not(:disabled),
+.primary-action:hover:not(:disabled),
+.secondary-action:hover:not(:disabled),
+.danger-action:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: var(--primary-light);
+}
+
+.atlas-button:active:not(:disabled),
+.primary-action:active:not(:disabled),
+.secondary-action:active:not(:disabled),
+.danger-action:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.atlas-button:disabled,
+.primary-action:disabled,
+.secondary-action:disabled,
+.danger-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.nav-item .atlas-icon {
+  width: 17px;
+  height: 17px;
+  transition: transform 180ms var(--motion), color 180ms ease;
+}
+
+.nav-item.is-active .atlas-icon {
+  color: var(--primary-light);
+  transform: translateY(-1px);
+}
+
+.desktop-settings-button .atlas-icon,
+.mobile-profile-button .atlas-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.global-help-button .atlas-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.settings-close .atlas-icon {
+  width: 18px;
+  height: 18px;
+  margin: auto;
+}
+
+/* Home: one daily narrative with a compact attention rail. */
+.route-home .home-header {
+  margin-bottom: var(--space-8);
+}
+
+.home-dashboard {
+  display: grid;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.today-card {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  padding: clamp(var(--space-6), 5vw, var(--space-8));
+  border-color: color-mix(in srgb, var(--primary) 54%, var(--line));
+  background: color-mix(in srgb, var(--surface) 94%, var(--primary));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 8%, transparent), 0 22px 64px rgba(122, 158, 135, 0.07);
+}
+
+.today-card::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--primary-light);
+  content: '';
+}
+
+.today-card.is-waiting::before { background: var(--warning); }
+.today-card.is-complete::before { background: var(--success); }
+
+.today-card-heading,
+.today-agenda-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.today-card-heading {
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--line);
+}
+
+.today-card-heading .eyebrow { color: var(--primary-light); }
+.today-card-heading > span,
+.today-agenda-heading small {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.today-primary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+  padding-block: var(--space-8);
+}
+
+.today-state-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--primary) 62%, var(--line));
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary-light);
+}
+
+.today-state-icon .atlas-icon { width: 20px; height: 20px; }
+.today-code { margin-bottom: var(--space-2); color: var(--primary-light); font-size: var(--text-xs); letter-spacing: .12em; text-transform: uppercase; }
+.today-primary h1 { max-width: 15ch; overflow-wrap: anywhere; font-size: clamp(2.25rem, 6vw, 4.1rem); letter-spacing: -.045em; line-height: .98; }
+.today-primary h1 + p { margin-top: var(--space-3); color: var(--text-muted); font-size: var(--text-sm); line-height: 1.6; }
+
+.today-progress {
+  height: 3px;
+  margin-bottom: var(--space-6);
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--line);
+}
+
+.today-progress span { display: block; height: 100%; border-radius: inherit; background: var(--primary-light); }
+
+.today-countdown {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: calc(var(--space-4) * -1) 0 var(--space-6);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--warning) 44%, var(--line));
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--warning) 6%, transparent);
+  color: var(--warning);
+}
+
+.today-countdown span { font-size: var(--text-xs); letter-spacing: .08em; text-transform: uppercase; }
+.today-countdown strong { font-family: var(--display-font); font-size: var(--text-xl); font-weight: 500; }
+
+.today-next {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-1) var(--space-3);
+  margin-bottom: var(--space-6);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--surface-2) 78%, transparent);
+}
+
+.today-next > span { grid-row: span 2; align-self: center; color: var(--primary-light); font-size: var(--text-xs); text-transform: uppercase; }
+.today-next strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--text-sm); }
+.today-next small { color: var(--text-muted); font-size: var(--text-xs); }
+.today-import-action { margin-bottom: var(--space-6); }
+
+.today-agenda-heading {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line);
+  color: var(--primary-light);
+  font-size: var(--text-xs);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.today-timeline { display: grid; margin-top: var(--space-2); }
+.today-timeline-item {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+  width: 100%;
+  padding: var(--space-3) 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  transition: color 180ms ease, transform 180ms var(--motion);
+}
+
+.today-timeline-item:last-child { border-bottom: 0; }
+.today-timeline-item:hover { color: var(--primary-light); transform: translateX(3px); }
+.today-timeline-item.is-finished { opacity: .52; }
+.today-timeline-item.is-current { opacity: 1; }
+.today-timeline-time { color: var(--text-muted); font-size: var(--text-xs); }
+.today-timeline-item.is-current .today-timeline-time { color: var(--primary-light); }
+.today-timeline-item > span:nth-child(2) { display: grid; min-width: 0; gap: 2px; }
+.today-timeline-item strong { font-size: var(--text-sm); }
+.today-timeline-item small { overflow: hidden; color: var(--text-muted); font-size: var(--text-xs); text-overflow: ellipsis; white-space: nowrap; }
+.today-timeline-item .atlas-icon { width: 16px; height: 16px; color: var(--text-muted); }
+
+.attention-rail { display: grid; min-width: 0; gap: var(--space-4); }
+.attention-panel { min-width: 0; padding: var(--space-4); box-shadow: none; }
+.attention-heading { display: flex; gap: var(--space-3); align-items: center; margin-bottom: var(--space-3); padding-bottom: var(--space-3); border-bottom: 1px solid var(--line); }
+.attention-heading > span { display: grid; width: 32px; height: 32px; place-items: center; border-radius: var(--radius-control); background: color-mix(in srgb, var(--primary) 9%, transparent); color: var(--primary-light); }
+.attention-heading .atlas-icon { width: 16px; height: 16px; }
+.attention-heading .eyebrow { margin-bottom: var(--space-1); font-size: var(--text-xs); }
+.attention-heading h2 { color: var(--text); font-family: var(--ui-font); font-size: var(--text-sm); font-weight: 700; }
+
+.attention-panel .empty-state { padding: var(--space-3) 0; font-size: var(--text-xs); line-height: 1.6; }
+.home-task-list,
+.home-exam-list { display: grid; gap: 0; }
+.home-task {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: center;
+  width: 100%;
+  padding: var(--space-3) 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+
+.home-task-dot { display: grid; width: 18px; height: 18px; place-items: center; border: 1px solid var(--warning); border-radius: var(--radius-control); color: transparent; }
+.home-task-dot .atlas-icon { width: 11px; height: 11px; }
+.home-task:hover .home-task-dot { color: var(--bg); background: var(--primary-light); border-color: var(--primary-light); }
+.home-task-copy { display: grid; min-width: 0; gap: var(--space-1); }
+.home-task-copy strong { overflow: hidden; font-size: var(--text-xs); text-overflow: ellipsis; white-space: nowrap; }
+.home-task-copy span { overflow: hidden; color: var(--text-muted); font-size: .625rem; text-overflow: ellipsis; white-space: nowrap; }
+.home-task-days { padding: var(--space-1) var(--space-2); border: 1px solid color-mix(in srgb, var(--warning) 60%, var(--line)); border-radius: var(--radius-pill); color: var(--warning); font-size: .625rem; white-space: nowrap; }
+
+.home-exam { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-3); align-items: center; padding: var(--space-3) 0; border: 0; border-bottom: 1px solid var(--line); background: transparent; }
+.home-exam-date { display: grid; width: 42px; height: 42px; place-content: center; border: 1px solid color-mix(in srgb, var(--warning) 64%, var(--line)); border-radius: var(--radius-control); text-align: center; }
+.home-exam-date strong { font-size: var(--text-md); }
+.home-exam > span:last-child { min-width: 0; }
+.home-exam > span:last-child > strong { overflow: hidden; font-size: var(--text-xs); text-overflow: ellipsis; white-space: nowrap; }
+
+.exam-composer { margin-top: var(--space-3); }
+.exam-composer > summary { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) 0; color: var(--primary-light); font-size: var(--text-xs); cursor: pointer; list-style: none; }
+.exam-composer > summary::-webkit-details-marker { display: none; }
+.exam-composer > summary .atlas-icon { width: 15px; height: 15px; transition: transform 180ms ease; }
+.exam-composer[open] > summary .atlas-icon { transform: rotate(45deg); }
+.exam-composer .add-exam-form { margin-top: var(--space-2); padding: var(--space-3); border-radius: var(--radius-control); box-shadow: none; }
+
+.home-toast {
+  position: fixed;
+  z-index: 15;
+  right: var(--space-4);
+  bottom: calc(var(--nav-height) + var(--space-6) + env(safe-area-inset-bottom));
+  left: var(--space-4);
+  display: flex;
+  max-width: 520px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-inline: auto;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--success) 48%, var(--line));
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--surface) 94%, var(--success));
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .2);
+  font-size: var(--text-xs);
+}
+
+.home-toast > span { display: flex; align-items: center; gap: var(--space-2); }
+.home-toast .atlas-icon { width: 16px; height: 16px; color: var(--success); }
+.home-toast button { padding: var(--space-2); border: 0; border-radius: var(--radius-control); background: transparent; color: var(--primary-light); font-weight: 700; }
+
+html[data-focus-mode='true'] .route-home .attention-rail { display: none; }
+
+@media (min-width: 620px) {
+  .home-dashboard { grid-template-columns: minmax(0, 1.6fr) minmax(260px, .72fr); gap: var(--space-6); }
+  .attention-rail { gap: var(--space-4); }
+}
+
+@media (max-width: 619px) {
+  .route-home .home-header { margin-bottom: var(--space-6); }
+  .today-card { padding: var(--space-6) var(--space-4); }
+  .today-primary { grid-template-columns: 1fr; padding-block: var(--space-6); }
+  .today-state-icon { width: 36px; height: 36px; }
+  .today-primary h1 { font-size: clamp(2rem, 11vw, 3.2rem); }
+  .today-next { grid-template-columns: 1fr; }
+  .today-next > span { grid-row: auto; }
+  .today-timeline-item { grid-template-columns: 52px minmax(0, 1fr) auto; }
+}

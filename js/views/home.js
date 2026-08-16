@@ -1,18 +1,18 @@
 import PathSection from '../components/pathSection.js';
-import ClassItem from '../components/classItem.js';
+import Icon from '../components/icon.js';
+import { Button, Card } from '../components/ui.js';
 import { escapeHtml } from '../utils/html.js';
 import { daysUntil, saveTasks, sortTasks, urgencyFor } from '../services/tasks.js';
 import { DAY_NAMES, formatDate, formatTime, getClassState, minutesFromTime } from '../utils/time.js';
 import Store from '../store.js';
 import { createExam, saveExams } from '../services/exams.js';
-import { closeOverlay, openOverlay, transitionClassDisclosure, transitionTaskRow } from '../utils/animations.js';
+import { transitionTaskRow } from '../utils/animations.js';
 import { withAutoSave } from '../services/autosave.js';
-import enhanceDatePickers from '../components/datePicker.js';
-import enhanceTimePickers from '../components/timePicker.js';
 
 let examMessage = '';
-let homeMessage = '';
-const openTodayClassIds = new Set();
+let feedback = null;
+let pendingTaskUndo = null;
+let feedbackTimer = 0;
 
 function dateInputValue(date = new Date()) {
   const offset = date.getTimezoneOffset();
@@ -21,18 +21,6 @@ function dateInputValue(date = new Date()) {
 
 function empty(message) {
   return `<p class="empty-state">${escapeHtml(message)}</p>`;
-}
-
-function focusClass(item, now, label) {
-  if (!item) return empty(label === 'In class now' ? 'You are between classes right now.' : 'Nothing else is scheduled today.');
-  const dayPrefix = item.day === now.getDay() ? '' : `${DAY_NAMES[item.day]} · `;
-  return `
-    <article class="focus-class">
-      <p class="focus-code">${escapeHtml(item.code)}</p>
-      <h2>${escapeHtml(item.title)}</h2>
-      <p>${dayPrefix}${formatTime(item.start)} — ${formatTime(item.end)}</p>
-      <p>${escapeHtml(item.room)}</p>
-    </article>`;
 }
 
 function countdownTo(item, now) {
@@ -44,224 +32,128 @@ function countdownTo(item, now) {
   return `${hours ? `${hours}h ` : ''}${String(minutes).padStart(hours ? 2 : 1, '0')}m ${String(remainder).padStart(2, '0')}s`;
 }
 
-function waitingClass(item, now) {
-  return `<article class="focus-class is-waiting"><p class="focus-code">Starts in</p><strong class="class-countdown" data-countdown-start="${escapeHtml(item.start)}">${countdownTo(item, now)}</strong><h2>${escapeHtml(item.title)}</h2><p>${formatTime(item.start)} — ${formatTime(item.end)} · ${escapeHtml(item.room)}</p></article>`;
+function classMeta(item, includeDay = false) {
+  const day = includeDay ? `${DAY_NAMES[item.day]} · ` : '';
+  return `${day}${formatTime(item.start)} — ${formatTime(item.end)}${item.room ? ` · ${escapeHtml(item.room)}` : ''}`;
 }
 
-function dayComplete(next) {
-  if (!next) return `<article class="day-complete"><p class="focus-code">All clear</p><h2>You're finished for today.</h2><p>Nothing else is scheduled. Take a break or get ahead when you feel ready.</p></article>`;
-  return `<article class="day-complete"><p class="focus-code">All clear</p><h2>You're finished for today.</h2><p>Nothing else needs your attention right now.</p><small>Your next class is ${escapeHtml(DAY_NAMES[next.day])} at ${formatTime(next.start)} · ${escapeHtml(next.code)}</small></article>`;
+function todayTimeline(today, current, now) {
+  if (!today.length) return empty('No classes are scheduled today.');
+  const currentMinute = now.getHours() * 60 + now.getMinutes();
+  return `<div class="today-timeline" aria-label="Today’s classes">${today.map((item) => {
+    const finished = minutesFromTime(item.end) <= currentMinute;
+    const status = item.id === current?.id ? 'Now' : finished ? 'Done' : formatTime(item.start);
+    return `<button class="today-timeline-item ${item.id === current?.id ? 'is-current' : ''} ${finished ? 'is-finished' : ''}" type="button" data-open-class="${escapeHtml(item.id)}" aria-label="Open ${escapeHtml(item.code)} details">
+      <span class="today-timeline-time">${escapeHtml(status)}</span><span><strong>${escapeHtml(item.code)}</strong><small>${escapeHtml(item.title)}</small></span>${Icon('arrow-right')}
+    </button>`;
+  }).join('')}</div>`;
+}
+
+function todayCard(classes, today, current, next, now) {
+  const nextIsToday = next?.day === now.getDay();
+  let stateClass = 'is-complete';
+  let eyebrow = 'Today at a glance';
+  let primary = `<div class="today-primary"><span class="today-state-icon">${Icon('check')}</span><div><h1 id="today-card-title">All clear for today.</h1><p>${next ? `Next: ${escapeHtml(next.code)} · ${classMeta(next, true)}` : 'Nothing else is scheduled. Take the space you earned.'}</p></div></div>`;
+  let secondary = '';
+
+  if (current) {
+    stateClass = 'is-current';
+    eyebrow = 'In class now';
+    const elapsed = now.getHours() * 60 + now.getMinutes() - minutesFromTime(current.start);
+    const duration = Math.max(1, minutesFromTime(current.end) - minutesFromTime(current.start));
+    const progress = Math.min(100, Math.max(0, Math.round((elapsed / duration) * 100)));
+    primary = `<div class="today-primary"><span class="today-state-icon">${Icon('calendar')}</span><div><p class="today-code">${escapeHtml(current.code)}</p><h1 id="today-card-title">${escapeHtml(current.title)}</h1><p>${classMeta(current)}</p></div></div><div class="today-progress" aria-label="Class progress"><span style="width:${progress}%"></span></div>`;
+    if (next) secondary = `<div class="today-next"><span>Up next</span><strong>${escapeHtml(next.code)} · ${escapeHtml(next.title)}</strong><small>${classMeta(next, !nextIsToday)}</small></div>`;
+  } else if (nextIsToday) {
+    stateClass = 'is-waiting';
+    eyebrow = 'Up next';
+    primary = `<div class="today-primary"><span class="today-state-icon">${Icon('calendar')}</span><div><p class="today-code">${escapeHtml(next.code)}</p><h1 id="today-card-title">${escapeHtml(next.title)}</h1><p>${classMeta(next)}</p></div></div><div class="today-countdown"><span>Starts in</span><strong data-countdown-start="${escapeHtml(next.start)}">${countdownTo(next, now)}</strong></div>`;
+  } else if (!classes.length) {
+    primary = `<div class="today-primary"><span class="today-state-icon">${Icon('import')}</span><div><h1 id="today-card-title">Build your first week.</h1><p>Import a schedule to let Atlas map the path ahead.</p></div></div>${Button({ label: 'Import schedule', variant: 'primary', icon: 'import', className: 'today-import-action', attributes: 'data-route="import"' })}`;
+  }
+
+  const content = `<div class="today-card-heading"><p class="eyebrow">${eyebrow}</p><span>${formatDate(now)}</span></div>${primary}${secondary}<div class="today-agenda-heading"><span>Today’s path</span><small>${today.length} ${today.length === 1 ? 'class' : 'classes'}</small></div>${todayTimeline(today, current, now)}`;
+  return Card(content, { tag: 'section', className: `today-card ${stateClass}`, attributes: 'aria-labelledby="today-card-title"' });
 }
 
 function urgentTasks(tasks, classes, now) {
-  const items = sortTasks(tasks)
-    .filter((task) => !task.completed && daysUntil(task.dueDate, now) <= 14)
-    .slice(0, 4);
-
+  const items = sortTasks(tasks).filter((task) => !task.completed && daysUntil(task.dueDate, now) <= 14).slice(0, 4);
   if (!items.length) return empty('Nothing is due soon. Add work from Week when you are ready.');
-
   return `<div class="home-task-list">${items.map((task) => {
     const subject = classes.find((item) => item.id === task.classId);
     const personalDay = task.classId.match(/^personal-day-([1-6])$/);
     const subjectLabel = subject?.code || (personalDay ? `Personal · ${DAY_NAMES[Number(personalDay[1])]}` : 'Class');
     const days = daysUntil(task.dueDate, now);
     const remaining = days < 0 ? `${Math.abs(days)}d overdue` : days === 0 ? 'Today' : `${days}d left`;
-    const dueTime = task.dueTime
-      ? new Date(`2000-01-01T${task.dueTime}:00`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
-      : '';
-    return `
-      <button class="home-task is-${urgencyFor(task, now)}" data-complete-home-task="${escapeHtml(task.id)}" type="button" aria-label="Mark ${escapeHtml(task.title)} complete">
-        <span class="home-task-dot" aria-hidden="true"></span>
-        <span class="home-task-copy">
-          <strong>${escapeHtml(task.title)}</strong>
-          <span>${escapeHtml(subjectLabel)}${dueTime ? ` · due ${escapeHtml(dueTime)}` : ''}</span>
-        </span>
-        <span class="home-task-days">${remaining}</span>
-      </button>`;
+    const dueTime = task.dueTime ? new Date(`2000-01-01T${task.dueTime}:00`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : '';
+    return `<button class="home-task is-${urgencyFor(task, now)}" data-complete-home-task="${escapeHtml(task.id)}" type="button" aria-label="Mark ${escapeHtml(task.title)} complete"><span class="home-task-dot" aria-hidden="true">${Icon('check')}</span><span class="home-task-copy"><strong>${escapeHtml(task.title)}</strong><span>${escapeHtml(subjectLabel)}${dueTime ? ` · due ${escapeHtml(dueTime)}` : ''}</span></span><span class="home-task-days">${remaining}</span></button>`;
   }).join('')}</div>`;
 }
 
 function upcomingExams(exams, classes, now) {
-  const items = [...(exams || [])]
-    .filter((exam) => daysUntil(exam.date, now) >= 0)
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .slice(0, 3);
+  const items = [...(exams || [])].filter((exam) => daysUntil(exam.date, now) >= 0).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3);
   if (!items.length) return empty('No upcoming tests or exams.');
-
   return `<div class="home-exam-list">${items.map((exam) => {
     const subject = classes.find((item) => item.id === exam.classId);
     const days = daysUntil(exam.date, now);
-    return `
-      <article class="atlas-card home-exam">
-        <span class="home-exam-date"><strong>${exam.date.slice(8, 10)}</strong><small>${new Date(`${exam.date}T00:00:00`).toLocaleDateString(undefined, { month: 'short' })}</small></span>
-        <span><strong>${escapeHtml(exam.title)}</strong><small>${escapeHtml(subject?.code || 'Class')} · ${days === 0 ? 'Today' : `${days}d away`}</small></span>
-      </article>`;
+    return `<article class="home-exam"><span class="home-exam-date"><strong>${exam.date.slice(8, 10)}</strong><small>${new Date(`${exam.date}T00:00:00`).toLocaleDateString(undefined, { month: 'short' })}</small></span><span><strong>${escapeHtml(exam.title)}</strong><small>${escapeHtml(subject?.code || 'Class')} · ${days === 0 ? 'Today' : `${days}d away`}</small></span></article>`;
   }).join('')}</div>`;
 }
 
 function addExamForm(classes) {
   if (!classes.length) return '';
-  return `
-    <form class="add-exam-form home-exam-form" id="home-add-exam-form">
-      <label class="task-form-field">Test / exam name
-        <input name="title" placeholder="e.g. Midterm exam" required>
-      </label>
-      <label class="task-form-field">Class
-        <select name="classId" required>
-          ${classes.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.code)} · ${escapeHtml(item.title)}</option>`).join('')}
-        </select>
-      </label>
-      <label class="task-form-field">Date
-        <input name="date" type="date" min="${dateInputValue()}" value="${dateInputValue()}" required>
-      </label>
-      <button class="primary-action" type="submit">Save test</button>
-      ${examMessage ? `<p class="note-message" role="status">${escapeHtml(examMessage)}</p>` : ''}
-    </form>`;
+  return `<details class="exam-composer"><summary>${Icon('plus')}<span>Add a test</span></summary><form class="add-exam-form home-exam-form" id="home-add-exam-form"><label class="task-form-field">Test / exam name<input name="title" placeholder="e.g. Midterm exam" required></label><label class="task-form-field">Class<select name="classId" required>${classes.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.code)} · ${escapeHtml(item.title)}</option>`).join('')}</select></label><label class="task-form-field">Date<input name="date" type="date" min="${dateInputValue()}" value="${dateInputValue()}" required></label>${Button({ label: 'Save test', variant: 'primary', icon: 'check', type: 'submit' })}${examMessage ? `<p class="note-message" role="status">${escapeHtml(examMessage)}</p>` : ''}</form></details>`;
+}
+
+function feedbackToast() {
+  if (!feedback) return '';
+  const action = feedback.action === 'undo-task' ? '<button type="button" data-undo-home-task>Undo</button>' : '<button type="button" data-route="schedule">Open Week</button>';
+  return `<div class="home-toast" role="status"><span>${Icon('check')}${escapeHtml(feedback.message)}</span>${action}</div>`;
 }
 
 export default {
   render(state, now) {
-    if (state.scheduleError) {
-      return PathSection('Schedule unavailable', `
-        <div class="error-state">
-          <p>${escapeHtml(state.scheduleError)}</p>
-          <p>Open Atlas through a local server, then reload.</p>
-        </div>`);
-    }
-
+    if (state.scheduleError) return PathSection('Schedule unavailable', `<div class="error-state"><p>${escapeHtml(state.scheduleError)}</p><p>Open Atlas through a local server, then reload.</p></div>`);
     const { classes } = state.schedule;
     const { today, current, next } = getClassState(classes, now);
-    const nextIsToday = next?.day === now.getDay();
-    const focus = current || (nextIsToday ? next : null);
-    const focusLabel = current ? 'In class now' : nextIsToday ? 'Up next' : 'Today at a glance';
-    const focusContent = current ? focusClass(current, now, focusLabel) : nextIsToday ? waitingClass(next, now) : dayComplete(next);
-    const todayList = today.length
-      ? today.map((item) => ClassItem(item, { current: item.id === current?.id, finished: minutesFromTime(item.end) <= now.getHours() * 60 + now.getMinutes(), open: openTodayClassIds.has(item.id) })).join('')
-      : empty(classes.length ? 'No classes are scheduled today.' : 'Your schedule is empty. Import a schedule or add a class from the Import page.');
-    const hasUpcomingExams = (state.exams || []).some((exam) => daysUntil(exam.date, now) >= 0);
-    const examsSection = PathSection('Tests & exams', `
-      ${upcomingExams(state.exams, classes, now)}
-      ${addExamForm(classes)}`, { className: hasUpcomingExams ? 'has-exams' : 'no-exams' });
-
-    return `
-      <header class="page-header">
-        <div>
-          <button class="brand" id="atlas-brand" type="button" aria-label="Atlas">Atlas</button>
-          <p class="course">${escapeHtml(state.schedule.course || 'Course not set')}</p>
-          <p class="semester">${escapeHtml(state.schedule.semester || 'Student planner')}</p>
-        </div>
-        <div class="clock-block" aria-live="off">
-          <time id="live-clock"></time>
-          <span>${formatDate(now)}</span>
-        </div>
-      </header>
-      ${homeMessage ? `<div class="product-feedback" role="status"><span>${escapeHtml(homeMessage)}</span><button type="button" data-route="schedule">Open Week</button></div>` : ''}
-      ${PathSection(focusLabel, focusContent, { active: Boolean(current), className: `hero-path-section ${nextIsToday && !current ? 'is-waiting' : ''}` })}
-      ${current && next ? PathSection('Up next', focusClass(next, now, 'Up next')) : ''}
-      ${PathSection('Needs your attention', urgentTasks(state.tasks, classes, now), { className: 'tasks-preview priority-section' })}
-      ${PathSection('Rest of today', `<div class="agenda-list">${todayList}</div>`, { className: 'today-section' })}
-      ${examsSection}
-    `;
+    return `<header class="page-header home-header"><div><button class="brand" id="atlas-brand" type="button" aria-label="Atlas">Atlas</button><p class="course">${escapeHtml(state.schedule.course || 'Course not set')}</p><p class="semester">${escapeHtml(state.schedule.semester || 'Student planner')}</p></div><div class="clock-block" aria-live="off"><time id="live-clock"></time><span>${formatDate(now)}</span></div></header>${feedbackToast()}<div class="home-dashboard">${todayCard(classes, today, current, next, now)}<aside class="attention-rail" aria-label="Needs your attention"><section class="atlas-card attention-panel"><div class="attention-heading"><span>${Icon('check')}</span><div><p class="eyebrow">Needs attention</p><h2>Due soon</h2></div></div>${urgentTasks(state.tasks, classes, now)}</section><section class="atlas-card attention-panel"><div class="attention-heading"><span>${Icon('calendar')}</span><div><p class="eyebrow">On the horizon</p><h2>Tests & exams</h2></div></div>${upcomingExams(state.exams, classes, now)}${addExamForm(classes)}</section></aside></div>`;
   },
 
   bind(router, state) {
-    const updateCountdown = () => document.querySelectorAll('[data-countdown-start]').forEach((element) => {
-      element.textContent = countdownTo({ day: new Date().getDay(), start: element.dataset.countdownStart }, new Date());
-    });
-    updateCountdown();
-    document.querySelectorAll('[data-complete-home-task]').forEach((taskButton) => taskButton.addEventListener('click', () => {
-      const task = state.tasks.find((item) => item.id === taskButton.dataset.completeHomeTask);
-      if (!task || document.getElementById('home-task-confirm')) return;
-      const screen = document.createElement('div');
-      screen.className = 'confirm-screen';
-      screen.id = 'home-task-confirm';
-      screen.innerHTML = `<section class="confirm-card home-task-dialog" role="dialog" aria-modal="true" aria-labelledby="home-task-confirm-title"><div data-home-task-actions><p class="eyebrow">Task</p><h2 id="home-task-confirm-title">Done with this?</h2><p>${escapeHtml(task.title)}</p>${task.description ? `<small class="task-dialog-description">${escapeHtml(task.description)}</small>` : ''}<div class="confirm-actions home-task-actions"><button class="secondary-action" data-home-task-no type="button">Not yet</button><button class="secondary-action" data-home-task-edit type="button">Edit task</button><button class="primary-action" data-home-task-yes type="button">Mark done</button></div></div><form class="home-task-edit-form" data-home-task-edit-form hidden><p class="eyebrow">Edit task</p><h2>Update details</h2><label class="task-form-field">Task<input name="title" value="${escapeHtml(task.title)}" required></label><label class="task-form-field">Short description<textarea name="description" maxlength="500" placeholder="What needs to be done?">${escapeHtml(task.description || '')}</textarea></label><label class="task-form-field">Due date<input name="dueDate" type="date" value="${escapeHtml(task.dueDate)}" required></label><label class="task-form-field">Due time<input name="dueTime" type="time" value="${escapeHtml(task.dueTime || '23:59')}" required></label><div class="confirm-actions"><button class="secondary-action" data-home-task-edit-cancel type="button">Cancel</button><button class="primary-action" type="submit">Save changes</button></div></form></section>`;
-      document.getElementById('app').append(screen);
-      openOverlay(screen);
-      const dismiss = async () => { await closeOverlay(screen); screen.remove(); };
-      let dialogViewTransitioning = false;
-      const transitionDialogView = async (outgoing, incoming, direction) => {
-        if (dialogViewTransitioning || outgoing.hidden || !incoming.hidden) return;
-        dialogViewTransitioning = true;
-        const card = screen.querySelector('.home-task-dialog');
-        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const startHeight = card.getBoundingClientRect().height;
-        try {
-          card.style.height = `${startHeight}px`;
-          card.style.overflow = 'clip';
-          outgoing.hidden = true;
-          incoming.hidden = false;
-          card.style.removeProperty('height');
-          const endHeight = card.getBoundingClientRect().height;
-          card.style.height = `${startHeight}px`;
-          outgoing.hidden = false;
-          if (!reduceMotion && typeof card.animate === 'function') {
-            const options = { duration: 230, easing: 'cubic-bezier(.22,1,.36,1)', fill: 'both' };
-            const height = card.animate([{ height: `${startHeight}px` }, { height: `${endHeight}px` }], options);
-            const out = outgoing.animate([{ opacity: 1, transform: 'translateX(0)' }, { opacity: 0, transform: `translateX(${-10 * direction}px)` }], { duration: 120, easing: 'ease-out', fill: 'both' });
-            const enter = incoming.animate([{ opacity: 0, transform: `translateX(${10 * direction}px)` }, { opacity: 1, transform: 'translateX(0)' }], options);
-            await Promise.allSettled([height.finished, out.finished, enter.finished]);
-          }
-          outgoing.hidden = true;
-          card.style.height = `${endHeight}px`;
-        } finally {
-          outgoing.getAnimations().forEach((animation) => animation.cancel());
-          incoming.getAnimations().forEach((animation) => animation.cancel());
-          card.getAnimations().forEach((animation) => animation.cancel());
-          card.getBoundingClientRect();
-          card.style.removeProperty('height');
-          card.style.removeProperty('overflow');
-          dialogViewTransitioning = false;
-        }
-      };
-      screen.addEventListener('click', (event) => { if (event.target === screen || event.target.closest('[data-home-task-no]')) dismiss(); });
-      screen.querySelector('[data-home-task-edit]')?.addEventListener('click', () => {
-        const actions = screen.querySelector('[data-home-task-actions]');
-        const form = screen.querySelector('[data-home-task-edit-form]');
-        enhanceDatePickers(screen);
-        enhanceTimePickers(screen);
-        transitionDialogView(actions, form, 1).then(() => form.elements.title.focus());
-      });
-      screen.querySelector('[data-home-task-edit-cancel]')?.addEventListener('click', async () => {
-        const form = screen.querySelector('[data-home-task-edit-form]');
-        const actions = screen.querySelector('[data-home-task-actions]');
-        await transitionDialogView(form, actions, -1);
-      });
-      screen.querySelector('[data-home-task-edit-form]')?.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const data = new FormData(event.currentTarget);
-        await closeOverlay(screen, 180);
-        screen.remove();
-        const tasks = saveTasks(state.tasks.map((item) => item.id === task.id ? { ...item, title: data.get('title'), description: data.get('description'), dueDate: data.get('dueDate'), dueTime: data.get('dueTime') } : item));
-        homeMessage = `Changes to “${data.get('title')}” were saved.`;
-        Store.set(withAutoSave(state, { tasks }));
-      });
-      screen.querySelector('[data-home-task-yes]')?.addEventListener('click', async () => {
-        await closeOverlay(screen, 180);
-        screen.remove();
-        await transitionTaskRow(taskButton, true);
-        const tasks = saveTasks(state.tasks.map((item) => item.id === task.id ? { ...item, completed: true } : item));
-        homeMessage = `“${task.title}” is complete.`;
-        Store.set(withAutoSave(state, { tasks }));
-      });
+    document.querySelectorAll('[data-countdown-start]').forEach((element) => { element.textContent = countdownTo({ day: new Date().getDay(), start: element.dataset.countdownStart }, new Date()); });
+    document.querySelectorAll('[data-complete-home-task]').forEach((taskButton) => taskButton.addEventListener('click', async () => {
+      const task = Store.get().tasks.find((item) => item.id === taskButton.dataset.completeHomeTask);
+      if (!task) return;
+      await transitionTaskRow(taskButton, true);
+      pendingTaskUndo = { ...task };
+      feedback = { message: `“${task.title}” is complete.`, action: 'undo-task' };
+      window.clearTimeout(feedbackTimer);
+      feedbackTimer = window.setTimeout(() => { pendingTaskUndo = null; feedback = null; router.render(); }, 8000);
+      const latest = Store.get();
+      const tasks = saveTasks(latest.tasks.map((item) => item.id === task.id ? { ...item, completed: true } : item));
+      Store.set(withAutoSave(latest, { tasks }));
     }));
-    document.querySelectorAll('.today-section details.class-item').forEach((card) => {
-      card.querySelector(':scope > summary')?.addEventListener('click', (event) => {
-        event.preventDefault();
-        const opening = !card.open;
-        if (opening) openTodayClassIds.add(card.dataset.classId);
-        else openTodayClassIds.delete(card.dataset.classId);
-        transitionClassDisclosure(card, opening);
-      });
+    document.querySelector('[data-undo-home-task]')?.addEventListener('click', () => {
+      if (!pendingTaskUndo) return;
+      window.clearTimeout(feedbackTimer);
+      const task = pendingTaskUndo;
+      pendingTaskUndo = null;
+      feedback = { message: `“${task.title}” was restored.`, action: 'week' };
+      const latest = Store.get();
+      const tasks = saveTasks(latest.tasks.map((item) => item.id === task.id ? { ...item, completed: false } : item));
+      Store.set(withAutoSave(latest, { tasks }));
+    });
+    document.querySelectorAll('[data-open-class]').forEach((button) => {
+      button.addEventListener('click', () => router.go(`class/${encodeURIComponent(button.dataset.openClass)}`));
     });
     document.getElementById('home-add-exam-form')?.addEventListener('submit', (event) => {
       event.preventDefault();
       try {
         const data = new FormData(event.currentTarget);
         const exam = createExam({ classId: data.get('classId'), title: data.get('title'), date: data.get('date') });
-        examMessage = `${exam.title} was saved to Tests & exams.`;
-        homeMessage = examMessage;
-        Store.set({ exams: saveExams([...(state.exams || []), exam]) });
+        examMessage = `${exam.title} was saved.`;
+        feedback = { message: `${exam.title} was added to Tests & exams.`, action: 'week' };
+        Store.set({ exams: saveExams([...(Store.get().exams || []), exam]) });
       } catch (error) {
         examMessage = error.message;
         router.render();

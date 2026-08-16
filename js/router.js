@@ -38,7 +38,6 @@ const atmosphereLayouts = new Map();
 
 function hasOpenTransientUI() {
   return Boolean(document.querySelector([
-    '#home-task-confirm',
     '.atlas-time-panel:not([hidden])',
     '.atlas-color-panel:not([hidden])',
     '[data-atlas-calendar]:not([hidden])',
