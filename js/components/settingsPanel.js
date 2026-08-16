@@ -33,7 +33,7 @@ Anything else:
             <p class="eyebrow">Atlas</p>
             <h2 id="settings-title">Settings</h2>
           </div>
-          <button class="settings-close" id="close-settings" type="button" aria-label="Close settings">${Icon('close')}</button>
+          <button class="settings-close" id="close-settings" data-overlay-close type="button" aria-label="Close settings">${Icon('close')}</button>
         </header>
 
         <div class="settings-section settings-focus-mode">

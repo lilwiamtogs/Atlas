@@ -42,7 +42,7 @@ export async function hideWelcomeScreen(screen) {
 
   if (!reduceMotion) {
     const compactScreen = window.matchMedia('(max-width: 619px), (pointer: coarse)').matches;
-    await new Promise((resolve) => window.setTimeout(resolve, compactScreen ? 520 : 620));
+    await new Promise((resolve) => window.setTimeout(resolve, compactScreen ? 340 : 380));
   }
 
   screen.remove();

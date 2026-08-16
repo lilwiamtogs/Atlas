@@ -1,4 +1,16 @@
+import Icon from '../components/icon.js';
+
 const STRIKE_DURATION = 320;
+const overlayStates = new WeakMap();
+const FOCUSABLE = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled]):not([type="hidden"])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  'summary',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',');
 
 function wait(duration) {
   return new Promise((resolve) => window.setTimeout(resolve, duration));
@@ -43,7 +55,7 @@ export async function transitionTaskRow(row, completing) {
   if (check) {
     check.setAttribute('aria-pressed', String(completing));
     const mark = check.querySelector('span');
-    if (mark) mark.textContent = completing ? '✓' : '';
+    if (mark) mark.innerHTML = completing ? Icon('check') : '';
   }
   if (completing) {
     row.classList.add('is-striking');
@@ -168,32 +180,66 @@ export async function transitionClassDisclosure(card, opening) {
   delete card.dataset.animating;
 }
 
-export async function closeOverlay(element, duration = 260) {
+function syncBackgroundInert() {
+  const modalOpen = Boolean(document.querySelector('.is-visible:not(.is-closing) [aria-modal="true"], [aria-modal="true"].is-visible:not(.is-closing)'));
+  document.querySelectorAll('#main-content, .app-controls, .nav-dock, .developer-panel').forEach((region) => {
+    if (modalOpen && !region.closest('.is-visible')) region.setAttribute('inert', '');
+    else region.removeAttribute('inert');
+  });
+}
+
+function focusableElements(element) {
+  return [...element.querySelectorAll(FOCUSABLE)].filter((item) => !item.hidden && item.getClientRects().length);
+}
+
+function finishOverlayClose(element) {
+  const state = overlayStates.get(element);
+  state?.keydown && element.removeEventListener('keydown', state.keydown);
+  overlayStates.delete(element);
+  element.classList.remove('is-visible');
+  element.setAttribute('aria-hidden', 'true');
+  syncBackgroundInert();
+  if (state?.previousFocus?.isConnected) state.previousFocus.focus({ preventScroll: true });
+  state?.resolveClosing?.();
+}
+
+export async function closeOverlay(element, duration = 240) {
   if (!element) return;
-  if (duration === 260 && element.matches('.install-gate, .tutorial-screen')) duration = 280;
-  if (element.classList.contains('is-closing')) return;
-  // Commit the fully-open frame before swapping to the exit animation. Without
-  // this read, a fast click can let the browser coalesce both visual states.
+  if (duration === 240 && element.matches('.install-gate, .tutorial-screen')) duration = 280;
+  const existingState = overlayStates.get(element) || {};
+  if (element.classList.contains('is-closing')) {
+    await existingState.closingDone;
+    return;
+  }
+  existingState.closingDone = new Promise((resolve) => { existingState.resolveClosing = resolve; });
+  overlayStates.set(element, existingState);
   element.getBoundingClientRect();
   element.classList.add('is-closing');
-  element.getAnimations({ subtree: true }).forEach((animation) => animation.cancel());
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const state = overlayStates.get(element);
+  state?.animations?.forEach((animation) => animation.cancel());
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    finishOverlayClose(element);
+    return;
+  }
 
   if (typeof element.animate !== 'function') {
     await wait(duration);
+    finishOverlayClose(element);
     return;
   }
 
   const panel = element.firstElementChild;
+  const overlayOpacity = getComputedStyle(element).opacity;
+  const panelStyle = panel ? getComputedStyle(panel) : null;
   const overlayAnimation = element.animate(
-    [
-      { opacity: 1 },
-      { opacity: 0 },
-    ],
+    [{ opacity: overlayOpacity }, { opacity: 0 }],
     { duration, easing: 'ease-in', fill: 'forwards' },
   );
   const panelAnimation = panel?.animate(
-    [{ transform: 'translateY(0)', opacity: 1 }, { transform: 'translateY(36px)', opacity: 0 }],
+    [
+      { transform: panelStyle?.transform === 'none' ? 'translateY(0) scale(1)' : panelStyle?.transform, opacity: panelStyle?.opacity || 1 },
+      { transform: 'translateY(24px) scale(.985)', opacity: 0 },
+    ],
     { duration, easing: 'cubic-bezier(0.4, 0, 1, 1)', fill: 'forwards' },
   );
 
@@ -201,21 +247,64 @@ export async function closeOverlay(element, duration = 260) {
     Promise.allSettled([overlayAnimation.finished, panelAnimation?.finished].filter(Boolean)),
     wait(duration + 120),
   ]);
+  finishOverlayClose(element);
 }
 
 export function openOverlay(element, duration = 260) {
   if (!element) return;
+  element.classList.remove('is-closing');
+  element.removeAttribute('aria-hidden');
   element.classList.add('is-visible');
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || typeof element.animate !== 'function') return;
   const panel = element.firstElementChild;
-  element.animate([{ opacity: 0 }, { opacity: 1 }], {
-    duration,
-    easing: 'ease-out',
-    fill: 'both',
-  });
-  panel?.animate([{ transform: 'translateY(36px)', opacity: 0 }, { transform: 'translateY(0)', opacity: 1 }], {
-    duration,
-    easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
-    fill: 'both',
+  const dialog = element.matches('[aria-modal="true"]') ? element : element.querySelector('[aria-modal="true"]') || panel;
+  const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const keydown = (event) => {
+    if (event.key === 'Escape') {
+      const closeControl = element.querySelector('[data-overlay-close]');
+      if (closeControl) {
+        event.preventDefault();
+        closeControl.click();
+      }
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusable = focusableElements(dialog || element);
+    if (!focusable.length) {
+      event.preventDefault();
+      dialog?.focus();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable.at(-1);
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+  element.addEventListener('keydown', keydown);
+  dialog?.setAttribute('tabindex', '-1');
+  const animations = [];
+  overlayStates.set(element, { previousFocus, keydown, animations });
+  syncBackgroundInert();
+
+  if (duration > 0 && !window.matchMedia('(prefers-reduced-motion: reduce)').matches && typeof element.animate === 'function') {
+    animations.push(element.animate([{ opacity: 0 }, { opacity: 1 }], {
+      duration: duration - 40,
+      easing: 'ease-out',
+      fill: 'both',
+    }));
+    if (panel) animations.push(panel.animate(
+      [{ transform: 'translateY(24px) scale(.985)', opacity: 0 }, { transform: 'translateY(0) scale(1)', opacity: 1 }],
+      { duration, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'both' },
+    ));
+    Promise.allSettled(animations.map((animation) => animation.finished)).then(() => animations.forEach((animation) => animation.cancel()));
+  }
+
+  if (duration > 0) requestAnimationFrame(() => {
+    const preferred = element.querySelector('[autofocus], [data-overlay-close], input:not([type="hidden"]), button:not([disabled])');
+    (preferred || dialog)?.focus({ preventScroll: true });
   });
 }

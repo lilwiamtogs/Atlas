@@ -9,6 +9,7 @@ import { createExam, saveExams } from '../services/exams.js';
 import { saveImportedSchedule } from '../services/schedule.js';
 import { withAutoSave } from '../services/autosave.js';
 import { extractPdfPages } from '../services/pdfText.js';
+import Icon from '../components/icon.js';
 
 let noteMessage = '';
 let pendingDeleteNoteId = '';
@@ -64,7 +65,7 @@ function assignmentRow(task, now) {
   return `
     <article class="detail-assignment is-${urgencyFor(task, now)}">
       <button class="task-check" type="button" data-class-toggle-task="${escapeHtml(task.id)}" aria-label="${task.completed ? 'Restore assignment' : 'Complete assignment'}" aria-pressed="${task.completed}">
-        <span aria-hidden="true">${task.completed ? '✓' : ''}</span>
+        <span aria-hidden="true">${task.completed ? Icon('check') : ''}</span>
       </button>
       <span class="detail-assignment-copy">
         <strong>${escapeHtml(task.title)}</strong>
@@ -119,7 +120,7 @@ function noteSection(notes) {
             <strong>${escapeHtml(note.name)}</strong>
             <small>${escapeHtml(note.fileName || 'Text note')}</small>
           </span>
-          <span class="note-open-label" aria-hidden="true">→</span>
+          <span class="note-open-label" aria-hidden="true">${Icon('arrow-right')}</span>
         </button>
         <button class="note-delete-quick" type="button" data-request-delete-note="${escapeHtml(note.id)}" aria-label="Delete ${escapeHtml(note.name)}">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 4v5m4-5v5"/></svg>
@@ -136,7 +137,7 @@ function noteReader(item, note) {
   if (!note) {
     return `
       <header class="class-detail-header">
-        <button class="secondary-action" id="note-back" type="button">← Class notes</button>
+        <button class="secondary-action" id="note-back" type="button">${Icon('arrow-left')}<span>Class notes</span></button>
         <p class="eyebrow">Note unavailable</p>
       </header>
       ${PathSection('File unavailable', '<p class="empty-state">This note may have been removed from this device.</p>')}`;
@@ -145,7 +146,7 @@ function noteReader(item, note) {
   const isPdf = note.mimeType === 'application/pdf';
   return `
     <header class="class-detail-header">
-      <button class="secondary-action" id="note-back" type="button">← Class notes</button>
+      <button class="secondary-action" id="note-back" type="button">${Icon('arrow-left')}<span>Class notes</span></button>
       <p class="eyebrow">${escapeHtml(item.code)} · Note</p>
     </header>
     <article class="note-reader" data-note-reader="${escapeHtml(note.id)}">
@@ -216,12 +217,12 @@ function deleteNoteDialog(notes) {
 
   return `
     <div class="confirm-screen" role="dialog" aria-modal="true" aria-labelledby="delete-note-title">
-      <div class="confirm-card">
+      <div class="atlas-card confirm-card">
         <p class="eyebrow">Delete note</p>
         <h2 id="delete-note-title">Remove “${escapeHtml(note.name)}”?</h2>
         <p>This permanently removes the note from this device.</p>
         <div class="confirm-actions">
-          <button class="secondary-action" id="cancel-note-delete" type="button">Keep note</button>
+          <button class="secondary-action" id="cancel-note-delete" data-overlay-close type="button">Keep note</button>
           <button class="danger-action" id="confirm-note-delete" type="button">Delete</button>
         </div>
       </div>
@@ -335,7 +336,7 @@ export default {
     }
     if (!item) {
       return `
-        <button class="secondary-action class-back" id="class-back" type="button">← Back to week</button>
+        <button class="secondary-action class-back" id="class-back" type="button">${Icon('arrow-left')}<span>Back to week</span></button>
         ${PathSection('Class unavailable', '<p class="empty-state">This class is not part of the active schedule.</p>')}`;
     }
 
@@ -353,7 +354,7 @@ export default {
 
     return `
       <header class="class-detail-header">
-        <button class="secondary-action class-back" id="class-back" type="button">← Back to week</button>
+      <button class="secondary-action class-back" id="class-back" type="button">${Icon('arrow-left')}<span>Back to week</span></button>
         <p class="eyebrow">Class details</p>
       </header>
       ${classProfile(item, state.schedule)}
@@ -393,7 +394,7 @@ export default {
           button.type = 'button';
           button.dataset.masterType = match.type.toLowerCase();
           button.dataset.masterId = match.id;
-          button.innerHTML = `<span>${escapeHtml(match.type)}</span><strong>${escapeHtml(match.title)}</strong><small>${escapeHtml(match.meta)}</small><i aria-hidden="true">→</i>`;
+          button.innerHTML = `<span>${escapeHtml(match.type)}</span><strong>${escapeHtml(match.title)}</strong><small>${escapeHtml(match.meta)}</small>${Icon('arrow-right')}`;
           results.append(button);
         });
         if (!results.children.length) results.innerHTML = '<p class="empty-state">No matching tasks or notes.</p>';

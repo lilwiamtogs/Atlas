@@ -1,5 +1,6 @@
 import { escapeHtml } from '../utils/html.js';
 import { daysUntil, urgencyFor } from '../services/tasks.js';
+import Icon from './icon.js';
 
 function formatDueTime(value) {
   if (!value) return '';
@@ -59,7 +60,7 @@ function taskRow(task, now, editingTaskId, showDueDate) {
   return `
     <article class="atlas-card task-row is-${urgency}">
       <button class="task-check" type="button" data-toggle-task="${escapeHtml(task.id)}" aria-label="${task.completed ? 'Mark incomplete' : 'Complete task'}" aria-pressed="${task.completed}">
-        <span aria-hidden="true">${task.completed ? '✓' : ''}</span>
+        <span aria-hidden="true">${task.completed ? Icon('check') : ''}</span>
       </button>
       <div class="task-copy">
         <strong>${escapeHtml(task.title)}</strong>

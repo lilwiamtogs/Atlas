@@ -85,6 +85,7 @@ function enhanceSelect(select) {
     const options = [...menu.querySelectorAll('[role="option"]:not(:disabled)')];
     const current = options.indexOf(document.activeElement);
     if (event.key === 'Escape') {
+      event.preventDefault();
       closePicker(picker);
       trigger.focus();
     } else if (event.key === 'ArrowDown') {

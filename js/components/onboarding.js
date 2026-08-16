@@ -5,6 +5,25 @@ export function isInstalledApp() {
   return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 }
 
+const DIALOG_FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function containDialogFocus(container, { onEscape } = {}) {
+  container.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && onEscape) {
+      event.preventDefault();
+      onEscape();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const items = [...container.querySelectorAll(DIALOG_FOCUSABLE)].filter((item) => item.getClientRects().length);
+    const first = items[0];
+    const last = items.at(-1);
+    if (!items.length) event.preventDefault();
+    else if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  });
+}
+
 export function isMobileWeb() {
   const compact = window.matchMedia('(max-width: 619px)').matches;
   const touchFirst = window.matchMedia('(pointer: coarse)').matches || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -33,7 +52,7 @@ export function showInstallGate(canPrompt = false) {
   gate.className = 'install-gate';
   gate.id = 'mobile-install-gate';
   gate.innerHTML = `
-    <section class="install-gate-card" role="dialog" aria-modal="true" aria-labelledby="install-gate-title">
+    <section class="atlas-card install-gate-card" role="dialog" aria-modal="true" aria-labelledby="install-gate-title" tabindex="-1">
       <img src="assets/icons/atlas-192.png" alt="" aria-hidden="true">
       <p class="eyebrow">Atlas for mobile</p>
       <h1 id="install-gate-title">${installKnown ? 'Atlas is installed.' : 'Install Atlas to continue'}</h1>
@@ -47,6 +66,8 @@ export function showInstallGate(canPrompt = false) {
       <p class="install-gate-hint">${installKnown ? 'You can safely close this browser tab.' : 'Already installed? Open Atlas from your home screen.'}</p>
     </section>`;
   document.body.append(gate);
+  containDialogFocus(gate);
+  requestAnimationFrame(() => gate.querySelector('button:not([disabled]), [role="dialog"]')?.focus({ preventScroll: true }));
   gate.querySelector('#reinstall-atlas')?.addEventListener('click', () => {
     localStorage.removeItem(INSTALL_KEY);
     showInstallGate(canPrompt);
@@ -80,7 +101,7 @@ export function showFirstOpenTutorial({ force = false } = {}) {
       screen.remove();
       if (openAccount) document.querySelector('[data-open-profile]')?.click();
       else if (route) window.location.hash = `#/${route}`;
-    }, 320);
+    }, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 320);
   };
 
   const render = async (direction = 0) => {
@@ -93,7 +114,7 @@ export function showFirstOpenTutorial({ force = false } = {}) {
     const step = tutorialSteps[index];
     screen.dataset.direction = direction < 0 ? 'back' : 'forward';
     screen.innerHTML = `
-      <section class="tutorial-card" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
+      <section class="atlas-card tutorial-card" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
         <div class="tutorial-progress" aria-label="Tutorial step ${index + 1} of ${tutorialSteps.length}">${tutorialSteps.map((_, stepIndex) => `<span class="${stepIndex <= index ? 'is-active' : ''}"></span>`).join('')}</div>
         <div class="tutorial-topline"><p class="eyebrow">${step.eyebrow}</p><button class="tutorial-skip" id="tutorial-skip" type="button">Skip tour</button></div>
         <h1 id="tutorial-title">${step.title}</h1>
@@ -111,8 +132,10 @@ export function showFirstOpenTutorial({ force = false } = {}) {
     screen.querySelector('#tutorial-create-account')?.addEventListener('click', () => finishTutorial({ openAccount: true }));
     screen.querySelector('#tutorial-import')?.addEventListener('click', () => finishTutorial({ route: 'import' }));
     screen.querySelector('#tutorial-explore')?.addEventListener('click', () => finishTutorial({ route: 'home' }));
+    requestAnimationFrame(() => screen.querySelector('#tutorial-skip, [role="dialog"]')?.focus({ preventScroll: true }));
   };
 
   render();
   document.body.append(screen);
+  containDialogFocus(screen, { onEscape: () => finishTutorial() });
 }

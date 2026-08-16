@@ -1,3 +1,5 @@
+import { escapeHtml } from '../utils/html.js';
+
 const ICONS = {
   home: '<path d="M3.5 10.5 12 3l8.5 7.5"></path><path d="M5.5 9.5V21h13V9.5M9.5 21v-6h5v6"></path>',
   calendar: '<rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M7 3v4M17 3v4M3 10h18"></path>',
@@ -22,6 +24,6 @@ export const ICON_NAMES = Object.freeze(Object.keys(ICONS));
 export default function Icon(name, { className = '', label = '' } = {}) {
   const drawing = ICONS[name];
   if (!drawing) throw new Error(`Unknown Atlas icon: ${name}`);
-  const accessibility = label ? `role="img" aria-label="${label}"` : 'aria-hidden="true"';
+  const accessibility = label ? `role="img" aria-label="${escapeHtml(label)}"` : 'aria-hidden="true"';
   return `<svg class="atlas-icon ${className}" viewBox="0 0 24 24" ${accessibility}>${drawing}</svg>`;
 }

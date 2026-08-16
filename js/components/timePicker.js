@@ -1,3 +1,7 @@
+import Icon from './icon.js';
+
+let globalDismissBound = false;
+
 function parts(value = '23:59') {
   const [hours = 23, minute = 59] = String(value).split(':').map(Number);
   return { hour: hours % 12 || 12, minute, period: hours >= 12 ? 'PM' : 'AM' };
@@ -13,7 +17,7 @@ export default function enhanceTimePickers(root = document) {
     input.dataset.timeEnhanced = 'true';
     const shell = document.createElement('div');
     shell.className = 'atlas-time';
-    shell.innerHTML = `<button class="atlas-time-trigger" type="button" aria-expanded="false"><span>${labelFor(input.value)}</span><i aria-hidden="true">◷</i></button><div class="atlas-time-panel" hidden><label>Hour<input data-time-hour inputmode="numeric" maxlength="2"></label><span>:</span><label>Minute<input data-time-minute inputmode="numeric" maxlength="2"></label><label>AM / PM<select data-time-period><option>AM</option><option>PM</option></select></label><button class="atlas-time-done" type="button">Done</button></div>`;
+    shell.innerHTML = `<button class="atlas-time-trigger" type="button" aria-expanded="false"><span>${labelFor(input.value)}</span>${Icon('calendar')}</button><div class="atlas-time-panel" hidden><label>Hour<input data-time-hour inputmode="numeric" maxlength="2"></label><span>:</span><label>Minute<input data-time-minute inputmode="numeric" maxlength="2"></label><label>AM / PM<select data-time-period><option>AM</option><option>PM</option></select></label><button class="atlas-time-done" type="button">Done</button></div>`;
     input.after(shell);
     const panel = shell.querySelector('.atlas-time-panel');
     const trigger = shell.querySelector('.atlas-time-trigger');
@@ -53,7 +57,7 @@ export default function enhanceTimePickers(root = document) {
     });
     period.addEventListener('change', commit);
     period.addEventListener('wheel', (event) => { event.preventDefault(); period.value = period.value === 'AM' ? 'PM' : 'AM'; commit(); }, { passive: false });
-    const setPanelOpen = async (open) => {
+    const setPanelOpen = async (open, { restoreFocus = false } = {}) => {
       if (panelTransitioning || open === !panel.hidden) return;
       panelTransitioning = true;
       const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -69,10 +73,36 @@ export default function enhanceTimePickers(root = document) {
       }
       if (!open) panel.hidden = true;
       else hour.focus();
+      if (!open && restoreFocus) trigger.focus();
       panelTransitioning = false;
     };
-    trigger.addEventListener('click', () => setPanelOpen(panel.hidden));
-    shell.querySelector('.atlas-time-done').addEventListener('click', () => { commit(); setPanelOpen(false); });
+    trigger.addEventListener('click', () => {
+      if (panel.hidden) document.dispatchEvent(new CustomEvent('atlas:close-time-pickers', { detail: { except: shell } }));
+      setPanelOpen(panel.hidden);
+    });
+    shell.querySelector('.atlas-time-done').addEventListener('click', () => { commit(); setPanelOpen(false, { restoreFocus: true }); });
+    shell.addEventListener('atlas:close-time-picker', (event) => {
+      if (!panel.hidden) setPanelOpen(false, { restoreFocus: Boolean(event.detail?.restoreFocus) });
+    });
     readNative();
+  });
+
+  if (globalDismissBound) return;
+  globalDismissBound = true;
+  document.addEventListener('atlas:close-time-pickers', (event) => {
+    document.querySelectorAll('.atlas-time').forEach((shell) => {
+      if (shell !== event.detail?.except) shell.dispatchEvent(new CustomEvent('atlas:close-time-picker'));
+    });
+  });
+  document.addEventListener('pointerdown', (event) => {
+    if (event.target.closest('.atlas-time')) return;
+    document.dispatchEvent(new CustomEvent('atlas:close-time-pickers'));
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    const openShell = document.querySelector('.atlas-time:has(.atlas-time-panel:not([hidden]))');
+    if (!openShell) return;
+    event.preventDefault();
+    openShell.dispatchEvent(new CustomEvent('atlas:close-time-picker', { detail: { restoreFocus: true } }));
   });
 }

@@ -60,12 +60,12 @@ function replacementWarning() {
   if (!pendingScheduleReplacement) return '';
   return `
     <div class="confirm-screen" role="dialog" aria-modal="true" aria-labelledby="replace-schedule-title">
-      <div class="confirm-card">
+      <div class="atlas-card confirm-card">
         <p class="eyebrow">Unsaved schedule</p>
         <h2 id="replace-schedule-title">Replace the current schedule?</h2>
         <p>This schedule is not in your Saved Schedules directory yet. Loading another one may permanently remove it.</p>
         <div class="confirm-actions">
-          <button class="secondary-action" id="cancel-schedule-replacement" type="button">Keep current</button>
+          <button class="secondary-action" id="cancel-schedule-replacement" data-overlay-close type="button">Keep current</button>
           <button class="danger-action" id="confirm-schedule-replacement" type="button">Replace anyway</button>
         </div>
       </div>
@@ -125,7 +125,7 @@ function imageSourcePicker() {
             <small>Open the camera</small>
           </label>
         </div>
-        <button class="secondary-action" id="close-image-source-picker" type="button">Cancel</button>
+        <button class="secondary-action" id="close-image-source-picker" data-overlay-close type="button">Cancel</button>
       </div>
     </div>`;
 }

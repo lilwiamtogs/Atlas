@@ -811,9 +811,9 @@
 }
 
 .atlas-calendar-header h2 { margin: 3px 0 0; font-size: 1.35rem; }
-.atlas-calendar-close { display: grid; width: 38px; height: 38px; flex: 0 0 38px; padding: 0; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: transparent; color: var(--text-muted); font: 1rem/1 var(--mono-font); }
+.atlas-calendar-close { display: grid; width: 38px; height: 38px; flex: 0 0 38px; padding: 0; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: transparent; color: var(--text-muted); font: 1rem/1 var(--ui-font); }
 .atlas-calendar-nav { margin: 20px 0 14px; }
-.atlas-calendar-nav button { display: grid; min-width: 42px; min-height: 38px; padding: 8px 12px; place-items: center; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--primary-light); font: .56rem/1 var(--mono-font); }
+.atlas-calendar-nav button { display: grid; min-width: 42px; min-height: 38px; padding: 8px 12px; place-items: center; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--primary-light); font: .56rem/1 var(--ui-font); }
 .atlas-calendar-nav [data-calendar-today] { min-width: 76px; }
 
 .atlas-calendar-weekdays,
@@ -1772,7 +1772,7 @@
 .task-check {
   transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
 }
-.task-form-field textarea { width: 100%; min-height: 72px; padding: 12px 13px; resize: vertical; border: 1px solid var(--line); border-radius: 13px; background: var(--bg); color: var(--text); font: .62rem/1.55 var(--mono-font); }
+.task-form-field textarea { width: 100%; min-height: 72px; padding: 12px 13px; resize: vertical; border: 1px solid var(--line); border-radius: 13px; background: var(--bg); color: var(--text); font: .62rem/1.55 var(--ui-font); }
 .task-description { display: block; margin: 3px 0; color: var(--text-muted); font-size: .5rem; line-height: 1.45; }
 .task-dialog-description { display: block; margin-top: 8px; color: var(--text-muted); font-size: .58rem; line-height: 1.55; }
 .mobile-card-tasks { display: grid; gap: 6px; margin: 0 14px 13px 39px; padding-top: 10px; border-top: 1px solid var(--line); pointer-events: none; }
@@ -2648,7 +2648,7 @@ button.home-task:focus-visible { outline: 2px solid var(--primary-light); outlin
 .atlas-color-palette { display: grid; grid-template-columns: repeat(5,1fr); gap: 7px; }
 .atlas-color-palette button { width: 28px; height: 28px; border: 1px solid var(--line); border-radius: 50%; background: var(--color-preview); }
 .atlas-color-panel label { display: grid; gap: 5px; margin-top: 10px; color: var(--text-muted); font-size: .48rem; }
-.atlas-color-panel label input { padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); font-family: var(--mono-font); }
+.atlas-color-panel label input { padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--text); font-family: var(--ui-font); }
 .atlas-color-wheel input[type='color'] { width: 100%; height: 128px; padding: 0; overflow: hidden; border-radius: 50%; cursor: crosshair; }
 .atlas-color-wheel input[type='color']::-webkit-color-swatch-wrapper { padding: 0; }
 .atlas-color-wheel input[type='color']::-webkit-color-swatch { border: 0; border-radius: 50%; }
@@ -2657,14 +2657,14 @@ button.home-task:focus-visible { outline: 2px solid var(--primary-light); outlin
 
 .atlas-time { position: relative; width: 100%; }
 input[data-time-enhanced] { display: none !important; }
-.atlas-time-trigger { display: flex; width: 100%; align-items: center; justify-content: space-between; padding: 13px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--text); font-family: var(--mono-font); font-size: .7rem; }
+.atlas-time-trigger { display: flex; width: 100%; align-items: center; justify-content: space-between; padding: 13px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--text); font-family: var(--ui-font); font-size: .7rem; }
 .atlas-time-trigger i { color: var(--primary-light); font-style: normal; }
 .atlas-time-panel { position: absolute; z-index: 40; top: calc(100% + 7px); right: 0; left: 0; padding: 12px; border: 1px solid var(--primary); border-radius: 16px; background: var(--surface); box-shadow: 0 18px 38px rgba(0,0,0,.22); }
 .atlas-time-panel[hidden] { display: none; }
 .atlas-time-panel { grid-template-columns: minmax(0,1fr) auto minmax(0,1fr) minmax(0,1.15fr); align-items: end; gap: 6px; }
 .atlas-time-panel:not([hidden]) { display: grid; }
 .atlas-time-panel label { display: grid; gap: 5px; color: var(--text-muted); font-size: .42rem; text-align: center; text-transform: uppercase; }
-.atlas-time-panel input, .atlas-time-panel select { width: 100%; min-width: 0; padding: 10px 4px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); color: var(--display-text); font: .68rem/1 var(--mono-font); text-align: center; appearance: none; }
+.atlas-time-panel input, .atlas-time-panel select { width: 100%; min-width: 0; padding: 10px 4px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); color: var(--display-text); font: .68rem/1 var(--ui-font); text-align: center; appearance: none; }
 .atlas-time-panel > span { align-self: center; padding-top: 14px; color: var(--text-muted); }
 .atlas-time-done { grid-column: 1 / -1; width: 100%; margin-top: 3px; padding: 8px 5px; border: 1px solid var(--primary); border-radius: 9px; background: transparent; color: var(--primary-light); font-size: .46rem; text-transform: uppercase; }
 .class-add-task-form .atlas-time-panel { right: 0; left: auto; width: min(264px, calc(100vw - 32px)); }
@@ -5705,4 +5705,48 @@ html[data-focus-mode='true'] .route-home .attention-rail { display: none; }
   .route-import .upload-zone.atlas-card { min-height: 190px; padding: var(--space-6) var(--space-4); }
   .settings-section { align-items: stretch; }
   .review-navigation { grid-template-columns: 1fr 1fr; }
+}
+
+/* Motion polish: brisk entrances, readable exits, and no competing CSS dialog motion. */
+.page-transition span {
+  transition-duration: 280ms;
+}
+
+.page-transition span:nth-child(2) { transition-delay: 35ms; }
+.page-transition span:nth-child(3) { transition-delay: 70ms; }
+
+.welcome-screen::before { animation-duration: 520ms; animation-delay: 360ms; }
+.welcome-icon-stage { animation-duration: 640ms; animation-delay: 80ms; }
+.welcome-screen p { animation-duration: 420ms; animation-delay: 720ms; }
+.welcome-screen.is-leaving { animation-duration: 380ms; }
+
+#main-content:focus { outline: none; }
+
+.help-panel.atlas-card,
+.confirm-card.atlas-card,
+.tutorial-card.atlas-card,
+.install-gate-card.atlas-card,
+.atlas-calendar.atlas-card {
+  border: 1px solid color-mix(in srgb, var(--primary) 42%, var(--line));
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: 0 24px 72px rgba(122, 158, 135, .09);
+}
+
+.help-topic-summary .atlas-icon {
+  width: 16px;
+  height: 16px;
+  transition: transform 180ms var(--motion);
+}
+
+.help-topic.is-open .help-topic-summary .atlas-icon { transform: rotate(45deg); }
+.task-check .atlas-icon { width: 12px; height: 12px; }
+.note-open-label .atlas-icon,
+.note-search-results .atlas-icon,
+.atlas-time-trigger .atlas-icon { width: 16px; height: 16px; }
+
+@media (max-width: 619px) {
+  .page-transition.is-mobile span { transition-duration: 300ms; }
+  .page-transition.is-mobile span:nth-child(2) { transition-delay: 55ms; }
+  .page-transition.is-mobile span:nth-child(3) { transition-delay: 110ms; }
 }

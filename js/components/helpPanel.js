@@ -1,3 +1,5 @@
+import Icon from './icon.js';
+
 const helpTopics = [
   { title: 'Import a schedule', body: 'Open Import, choose a clear screenshot, then review each detected class before saving.', route: 'import', target: '#open-image-source-picker, #scan-schedule, .route-import .path-section:first-of-type', action: 'Take me there' },
   { title: 'Fix a class Atlas read incorrectly', body: 'On Import, edit the detected code, title, days, time, and room before accepting the class.', route: 'import', target: '.review-card, #open-image-source-picker, .route-import .path-section:first-of-type', action: 'Take me there' },
@@ -11,19 +13,19 @@ const helpTopics = [
 export default function HelpPanel() {
   return `
     <div class="help-screen" id="help-screen">
-      <section class="help-panel" role="dialog" aria-modal="true" aria-labelledby="help-title">
+      <section class="atlas-card help-panel" role="dialog" aria-modal="true" aria-labelledby="help-title">
         <header class="settings-header">
           <div><p class="eyebrow">Atlas guide</p><h2 id="help-title">How do I…?</h2></div>
-          <button class="settings-close" id="close-help" type="button" aria-label="Close help">×</button>
+          <button class="settings-close" id="close-help" data-overlay-close type="button" aria-label="Close help">${Icon('close')}</button>
         </header>
         <p class="help-intro">Choose what you want to do. Atlas will explain it and take you to the right place.</p>
         <div class="help-topic-list">
           ${helpTopics.map((topic, index) => `
             <article class="help-topic">
               <button class="help-topic-summary" type="button" aria-expanded="false">
-                <span>${topic.title}</span><i aria-hidden="true">+</i>
+                <span>${topic.title}</span>${Icon('plus')}
               </button>
-              <div class="help-topic-content"><div><p>${topic.body}</p><button class="secondary-action" type="button" data-help-action="${index}">${topic.action} →</button></div></div>
+              <div class="help-topic-content"><div><p>${topic.body}</p><button class="secondary-action" type="button" data-help-action="${index}"><span>${topic.action}</span>${Icon('arrow-right')}</button></div></div>
             </article>`).join('')}
         </div>
         <button class="help-replay" id="replay-tutorial" type="button">Replay the introduction</button>

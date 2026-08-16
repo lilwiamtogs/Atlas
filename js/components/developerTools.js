@@ -1,6 +1,7 @@
 import Store from '../store.js';
 import { escapeHtml } from '../utils/html.js';
 import { getClassState, getNow, toDateTimeLocal } from '../utils/time.js';
+import Icon from './icon.js';
 
 let unlocked = false;
 let tapCount = 0;
@@ -22,7 +23,7 @@ const DeveloperTools = {
             <p class="eyebrow">Developer mode</p>
             <h2>Time controls</h2>
           </div>
-          <button class="icon-button" id="close-dev" type="button" aria-label="Hide developer mode">×</button>
+          <button class="icon-button" id="close-dev" type="button" aria-label="Hide developer mode">${Icon('close')}</button>
         </div>
         <label class="field-label" for="time-override">Simulated date and time</label>
         <input id="time-override" type="datetime-local" value="${escapeHtml(toDateTimeLocal(now))}">

@@ -16,10 +16,18 @@ function dateKey(date) {
   return `${year}-${month}-${day}`;
 }
 
+function setBackgroundInert(inert) {
+  const modalRemains = !inert && Boolean(document.querySelector('.is-visible:not(.is-closing) [aria-modal="true"], [aria-modal="true"].is-visible:not(.is-closing)'));
+  document.querySelectorAll('#main-content, .app-controls, .nav-dock, .developer-panel').forEach((region) => {
+    if (inert || modalRemains) region.setAttribute('inert', '');
+    else region.removeAttribute('inert');
+  });
+}
+
 function calendarMarkup() {
   return `
     <div class="atlas-calendar-screen" data-atlas-calendar hidden>
-      <section class="atlas-calendar" role="dialog" aria-modal="true" aria-labelledby="atlas-calendar-title">
+      <section class="atlas-card atlas-calendar" role="dialog" aria-modal="true" aria-labelledby="atlas-calendar-title">
         <header class="atlas-calendar-header">
           <div><p class="eyebrow">Choose date</p><h2 id="atlas-calendar-title"></h2></div>
           <button class="atlas-calendar-close" type="button" aria-label="Close calendar">${Icon('close')}</button>
@@ -60,7 +68,8 @@ export default function enhanceDatePickers(root = document) {
     closeTimer = window.setTimeout(() => {
       screen.hidden = true;
       closeTimer = 0;
-    }, 180);
+      setBackgroundInert(false);
+    }, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 180);
     activeTrigger?.focus();
   };
 
@@ -89,6 +98,7 @@ export default function enhanceDatePickers(root = document) {
     viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
     renderMonth();
     screen.hidden = false;
+    setBackgroundInert(true);
     requestAnimationFrame(() => {
       screen.classList.add('is-visible');
       screen.querySelector('.is-selected:not(:disabled), [data-calendar-date]:not(:disabled)')?.focus();
@@ -119,6 +129,24 @@ export default function enhanceDatePickers(root = document) {
     renderMonth();
   };
   screen.querySelector('.atlas-calendar-close').onclick = close;
+  screen.onkeydown = (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      close();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusable = [...screen.querySelectorAll('button:not([disabled])')];
+    const first = focusable[0];
+    const last = focusable.at(-1);
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last?.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first?.focus();
+    }
+  };
   screen.onclick = (event) => {
     if (event.target === screen) close();
     const button = event.target.closest('[data-calendar-date]');

@@ -12,7 +12,8 @@ export default {
     const installed = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
     const welcomeScreen = showWelcomeScreen({ fromSplash: installed });
     const compactScreen = window.matchMedia('(max-width: 619px), (pointer: coarse)').matches;
-    const minimumWelcomeTime = new Promise((resolve) => window.setTimeout(resolve, compactScreen ? 2400 : installed ? 2700 : 2500));
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const minimumWelcomeTime = new Promise((resolve) => window.setTimeout(resolve, reduceMotion ? 0 : compactScreen ? 1250 : installed ? 1400 : 1200));
     Router.init();
     const authReady = initializeAuth(Store).catch((error) => {
       console.error('Atlas account setup failed.', error);

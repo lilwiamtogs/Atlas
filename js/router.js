@@ -52,6 +52,33 @@ function layoutKey(element, index) {
   return `${element.matches('.path-section') ? 'section' : element.className}:${label || index}`;
 }
 
+function elementIdentity(element) {
+  if (!(element instanceof HTMLElement)) return '';
+  if (element.id) return `#${CSS.escape(element.id)}`;
+  const dataAttribute = [...element.attributes].find((attribute) => attribute.name.startsWith('data-') && attribute.value);
+  if (dataAttribute) return `[${dataAttribute.name}="${CSS.escape(dataAttribute.value)}"]`;
+  if (element.getAttribute('name')) return `[name="${CSS.escape(element.getAttribute('name'))}"]`;
+  return '';
+}
+
+function captureUiContinuity(app) {
+  return {
+    focus: app.contains(document.activeElement) ? elementIdentity(document.activeElement) : '',
+    overlayScroll: new Map([...app.querySelectorAll('[id] > [aria-modal="true"], [id][aria-modal="true"]')]
+      .map((panel) => [panel.closest('[id]')?.id || panel.id, panel.scrollTop])),
+  };
+}
+
+function restoreUiContinuity(app, continuity) {
+  continuity.overlayScroll.forEach((scrollTop, id) => {
+    const overlay = document.getElementById(id);
+    const panel = overlay?.matches('[aria-modal="true"]') ? overlay : overlay?.querySelector('[aria-modal="true"]');
+    if (panel) panel.scrollTop = scrollTop;
+  });
+  if (!continuity.focus) return;
+  app.querySelector(continuity.focus)?.focus({ preventScroll: true });
+}
+
 function captureLayout(main) {
   if (!main) return null;
   const elements = [...main.querySelectorAll(':scope > .path-section:not(.hero-path-section), :scope > .class-profile-card, :scope > .class-master-directory')];
@@ -127,6 +154,10 @@ function createPageTransition() {
   return overlay;
 }
 
+function focusRouteContent() {
+  requestAnimationFrame(() => document.getElementById('main-content')?.focus({ preventScroll: true }));
+}
+
 const Router = {
   animateAtmosphere() {
     const plates = [...document.querySelectorAll('#main-content .cosmic-plate')];
@@ -147,8 +178,19 @@ const Router = {
       this.render();
     });
     document.addEventListener('keydown', (event) => {
-      if (event.key !== 'Escape') return;
-      const closeButton = document.querySelector('#cancel-sync-review, #close-profile, #close-settings, #close-help, #close-image-source-picker, #cancel-note-delete, #cancel-schedule-replacement');
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      const colorPanel = document.querySelector('.atlas-color-panel:not([hidden])');
+      if (colorPanel) {
+        event.preventDefault();
+        colorPanel.hidden = true;
+        const trigger = colorPanel.closest('[data-color-control]')?.querySelector('[data-color-trigger]');
+        trigger?.setAttribute('aria-expanded', 'false');
+        trigger?.focus();
+        return;
+      }
+      if (document.querySelector('.atlas-time-panel:not([hidden]), [data-atlas-calendar]:not([hidden]), [data-atlas-select].is-open')) return;
+      const visibleOverlay = [...document.querySelectorAll('.is-visible:not(.is-closing)')].at(-1);
+      const closeButton = visibleOverlay?.querySelector('[data-overlay-close]');
       if (closeButton) {
         event.preventDefault();
         closeButton.click();
@@ -161,6 +203,7 @@ const Router = {
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       shouldAnimatePage = true;
       this.render();
+      focusRouteContent();
     });
     document.getElementById('app')?.addEventListener('click', async (event) => {
       if (!event.target.closest('#replay-tutorial')) return;
@@ -174,6 +217,13 @@ const Router = {
       installGate?.remove();
       window.setTimeout(() => showFirstOpenTutorial({ force: true }), 0);
     }, true);
+    document.addEventListener('pointerdown', (event) => {
+      if (event.target.closest('[data-color-control]')) return;
+      document.querySelectorAll('.atlas-color-panel:not([hidden])').forEach((panel) => {
+        panel.hidden = true;
+        panel.closest('[data-color-control]')?.querySelector('[data-color-trigger]')?.setAttribute('aria-expanded', 'false');
+      });
+    });
     Store.subscribe((state) => {
       const changedKeys = Object.keys(state).filter((key) => state[key] !== previousStoreSnapshot[key]);
       previousStoreSnapshot = { ...state };
@@ -186,6 +236,7 @@ const Router = {
       this.render();
     });
     this.render();
+    focusRouteContent();
   },
 
   getRoute() {
@@ -206,6 +257,7 @@ const Router = {
     window.history.pushState(null, '', `#/${route}`);
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     this.render();
+    focusRouteContent();
   },
 
   async go(route) {
@@ -231,11 +283,11 @@ const Router = {
         requestAnimationFrame(() => overlay.classList.add('is-covering'));
         // The final mobile panel is delayed, so wait until every panel fully
         // covers the viewport before replacing the route underneath it.
-        await wait(590);
+        await wait(430);
         this.commitRoute(route);
         await new Promise((resolve) => requestAnimationFrame(resolve));
         overlay.classList.add('is-revealing');
-        await wait(590);
+        await wait(430);
         overlay.remove();
         document.documentElement.classList.remove('is-page-transitioning');
         transitioning = false;
@@ -246,12 +298,12 @@ const Router = {
       const overlay = createPageTransition();
       document.documentElement.classList.add('is-page-transitioning');
       requestAnimationFrame(() => overlay.classList.add('is-covering'));
-      await wait(460);
+      await wait(370);
       this.commitRoute(route);
       await new Promise((resolve) => requestAnimationFrame(resolve));
       await wait(20);
       overlay.classList.add('is-revealing');
-      await wait(460);
+      await wait(370);
       overlay.remove();
       document.documentElement.classList.remove('is-page-transitioning');
       transitioning = false;
@@ -261,6 +313,7 @@ const Router = {
 
   render() {
     const app = document.getElementById('app');
+    const continuity = captureUiContinuity(app);
     const previousRoute = app.querySelector('#main-content')?.className.match(/route-([^\s]+)/)?.[1];
     const previousLayout = previousRoute === this.getRoute() && !shouldAnimatePage
       ? captureLayout(app.querySelector('#main-content'))
@@ -283,7 +336,7 @@ const Router = {
 
     Store.get().currentView = route;
     app.innerHTML = `
-      <main id="main-content" class="app-main route-${route} ${shouldAnimatePage && !suppressPageAnimation && !transitioning ? 'page-enter-active' : ''}">${atmosphereMarkup}${routes[route].render(state, now, context)}</main>
+      <main id="main-content" class="app-main route-${route} ${shouldAnimatePage && !suppressPageAnimation && !transitioning ? 'page-enter-active' : ''}" tabindex="-1">${atmosphereMarkup}${routes[route].render(state, now, context)}</main>
       <div class="app-controls">
         ${InstallButton()}
         ${ThemeToggle(state.personalization)}
@@ -312,9 +365,10 @@ const Router = {
 
     app.querySelectorAll('#settings-screen, #profile-screen, #help-screen, #sync-review-screen, .confirm-screen, .image-source-screen, .note-upload-screen')
       .forEach((overlay) => {
-        if (previouslyOpenOverlays.has(overlay.id)) overlay.classList.add('is-visible');
+        if (previouslyOpenOverlays.has(overlay.id)) openOverlay(overlay, 0);
         else openOverlay(overlay);
       });
+    restoreUiContinuity(app, continuity);
 
     const atmosphere = app.querySelector('.atlas-atmosphere');
     if (atmosphere) {
@@ -552,8 +606,14 @@ const Router = {
     };
     app.querySelectorAll('[data-color-trigger]').forEach((button) => button.addEventListener('click', () => {
       const panel = button.closest('[data-color-control]').querySelector('.atlas-color-panel');
-      app.querySelectorAll('.atlas-color-panel:not([hidden])').forEach((other) => { if (other !== panel) other.hidden = true; });
+      app.querySelectorAll('.atlas-color-panel:not([hidden])').forEach((other) => {
+        if (other === panel) return;
+        other.hidden = true;
+        other.closest('[data-color-control]')?.querySelector('[data-color-trigger]')?.setAttribute('aria-expanded', 'false');
+      });
       panel.hidden = !panel.hidden;
+      button.setAttribute('aria-expanded', String(!panel.hidden));
+      if (!panel.hidden) panel.querySelector('input:not([type="hidden"])')?.focus();
     }));
     app.querySelectorAll('[data-color-value]').forEach((button) => button.addEventListener('click', () => {
       const control = button.closest('[data-color-control]');
@@ -579,7 +639,13 @@ const Router = {
       control.querySelector('[data-color-trigger]').style.setProperty('--color-preview', valueInput.value);
       previewProfileColors(valueInput.form);
     }));
-    app.querySelectorAll('.atlas-color-done').forEach((button) => button.addEventListener('click', () => { button.closest('.atlas-color-panel').hidden = true; }));
+    app.querySelectorAll('.atlas-color-done').forEach((button) => button.addEventListener('click', () => {
+      const panel = button.closest('.atlas-color-panel');
+      panel.hidden = true;
+      const trigger = panel.closest('[data-color-control]')?.querySelector('[data-color-trigger]');
+      trigger?.setAttribute('aria-expanded', 'false');
+      trigger?.focus();
+    }));
     document.getElementById('profile-theme-form')?.addEventListener('submit', (event) => {
       event.preventDefault();
       const data = new FormData(event.currentTarget);
@@ -664,8 +730,12 @@ const Router = {
       window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
         const target = targetSelector.split(',').map((selector) => document.querySelector(selector.trim())).find(Boolean);
         if (!target) return;
-        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const disclosure = target.closest('details');
+        if (disclosure) disclosure.open = true;
+        target.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
         target.classList.add('help-target-highlight');
+        const focusTarget = target.matches('button, input, select, textarea, [tabindex]') ? target : target.querySelector('button, input, select, textarea, [tabindex]');
+        focusTarget?.focus({ preventScroll: true });
         window.setTimeout(() => target.classList.remove('help-target-highlight'), 4000);
       }));
     }
