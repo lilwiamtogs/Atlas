@@ -17,6 +17,32 @@
   --danger: #e46b6b;
   --display-font: 'Gelasio', Georgia, serif;
   --ui-font: 'Space Mono', 'Courier New', monospace;
+
+  /* Type scale: minor third (1.2), anchored at the 1rem body size. */
+  --text-xs: 0.694rem;
+  --text-sm: 0.833rem;
+  --text-md: 1rem;
+  --text-lg: 1.2rem;
+  --text-xl: 1.44rem;
+  --text-2xl: 1.728rem;
+  --text-3xl: 2.074rem;
+  --text-4xl: 2.488rem;
+
+  /* 8-point spacing scale, with 4px reserved for fine alignment. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* One radius for controls, one for surfaces, and one for pills. */
+  --radius-control: 10px;
+  --radius-card: 20px;
+  --radius-pill: 999px;
+
   --page-width: 980px;
   --nav-height: 74px;
 }
