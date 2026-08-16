@@ -1,6 +1,7 @@
 import { escapeHtml } from '../utils/html.js';
 import { hasCompleteScheduleData } from '../services/autosave.js';
 import { activeTheme } from '../services/personalization.js';
+import Icon from './icon.js';
 
 export default function SettingsPanel(state, message = '') {
   const supported = typeof Notification !== 'undefined' && 'serviceWorker' in navigator;
@@ -32,7 +33,7 @@ Anything else:
             <p class="eyebrow">Atlas</p>
             <h2 id="settings-title">Settings</h2>
           </div>
-          <button class="settings-close" id="close-settings" type="button" aria-label="Close settings">×</button>
+          <button class="settings-close" id="close-settings" type="button" aria-label="Close settings">${Icon('close')}</button>
         </header>
 
         <div class="settings-section settings-focus-mode">

@@ -20,6 +20,7 @@ import HelpPanel, { helpTopics } from './components/helpPanel.js';
 import { showFirstOpenTutorial } from './components/onboarding.js';
 import { closeOverlay, openOverlay } from './utils/animations.js';
 import { applyPersonalization, savePersonalization } from './services/personalization.js';
+import Icon from './components/icon.js';
 
 const routes = { home: Home, schedule: Schedule, import: ImportSchedule, class: ClassDetail };
 let transitioning = false;
@@ -109,7 +110,7 @@ function mobileProfileControl(state) {
   const signedIn = account.status === 'signed-in' && account.user;
   const syncState = state.syncStatus?.state || 'disabled';
   return `<button class="mobile-profile-button is-${syncState}" data-open-profile type="button" aria-label="${signedIn ? 'Open profile and cloud sync' : 'Sign up or log in'}">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.25"></circle><path d="M5.5 19c.7-3.3 3.1-5.2 6.5-5.2s5.8 1.9 6.5 5.2"></path></svg>
+    ${Icon('user')}
     <span class="mobile-profile-status" aria-hidden="true"></span>
   </button>`;
 }
@@ -288,13 +289,13 @@ const Router = {
         ${InstallButton()}
         ${ThemeToggle(state.personalization)}
         <button class="desktop-settings-button" data-open-settings type="button" aria-label="Open settings">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"></path></svg>
+          ${Icon('settings')}
         </button>
       </div>
       <div class="nav-dock">
         ${mobileProfileControl(state)}
         ${Navbar(route === 'class' ? 'schedule' : route)}
-        <button class="global-help-button" data-open-help type="button" aria-label="Open Atlas help">?</button>
+        <button class="global-help-button" data-open-help type="button" aria-label="Open Atlas help">${Icon('help')}</button>
       </div>
       ${DeveloperTools.render(state, now, route)}
       ${settingsOpen ? SettingsPanel(state, settingsMessage) : ''}

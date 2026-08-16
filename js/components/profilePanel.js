@@ -1,6 +1,8 @@
 import { escapeHtml } from '../utils/html.js';
 import { getPendingSyncReview } from '../sync/sync.js';
 import { BUILT_IN_THEMES } from '../services/personalization.js';
+import { Card } from './ui.js';
+import Icon from './icon.js';
 
 const syncLabels = { ready: 'Ready to sync', checking: 'Checking', review: 'Review needed', syncing: 'Syncing', synced: 'Synced', offline: 'Offline', error: 'Sync error', disabled: 'Cloud sync off' };
 function colorControl(name, label, description, value) {
@@ -20,13 +22,14 @@ export function SyncReviewPanel() {
   const summary = review.conflicts.length
     ? `${review.conflicts.length} item${review.conflicts.length === 1 ? '' : 's'} need a choice`
     : `${review.changes.length} change${review.changes.length === 1 ? '' : 's'} ready to sync`;
-  return `<div class="sync-review-screen" id="sync-review-screen" role="dialog" aria-modal="true" aria-labelledby="sync-review-title"><section class="sync-review-card">
-    <header class="sync-review-heading"><div><p class="eyebrow">Cloud sync</p><h2 id="sync-review-title">Review changes</h2></div><button class="settings-close" id="cancel-sync-review" type="button" aria-label="Cancel sync">×</button></header>
+  const content = `
+    <header class="sync-review-heading"><div><p class="eyebrow">Cloud sync</p><h2 id="sync-review-title">Review changes</h2></div><button class="settings-close" id="cancel-sync-review" type="button" aria-label="Cancel sync">${Icon('close')}</button></header>
     <p class="sync-review-message">Atlas found changes on this device and in the cloud. Nothing is replaced until you confirm.</p>
     <div class="sync-review-summary"><strong>${escapeHtml(summary)}</strong><span>${review.conflicts.length ? 'This device is selected by default. Change only the items you want from the cloud.' : 'Atlas can safely combine these changes.'}</span></div>
     ${review.changes.length ? `<div class="sync-change-list">${review.changes.map((change) => `<p><strong>${escapeHtml(change.type)}</strong><span>${escapeHtml(change.label)}${change.item ? ` · ${escapeHtml(change.item)}` : ''}</span></p>`).join('')}</div>` : ''}
     ${review.conflicts.length ? `<form id="sync-review-form"><div class="sync-conflict-list">${review.conflicts.map((conflict) => `<fieldset class="sync-conflict"><legend>${escapeHtml(conflict.path === '$' ? 'Complete Atlas copy' : conflict.path)}</legend><label><input type="radio" name="conflict-${conflict.id}" value="local" required><span><strong>This device</strong><small>${escapeHtml(compactValue(conflict.local))}</small></span></label><label><input type="radio" name="conflict-${conflict.id}" value="remote" required><span><strong>Cloud</strong><small>${escapeHtml(compactValue(conflict.remote))}</small></span></label></fieldset>`).join('')}</div><div class="sync-review-actions"><button class="secondary-action" data-cancel-sync-review type="button">Not now</button><button class="primary-action" type="submit">Use selected versions</button></div></form>` : `<div class="sync-review-actions"><button class="secondary-action" data-cancel-sync-review type="button">Not now</button><button class="primary-action" id="confirm-safe-sync" type="button">Sync these changes</button></div>`}
-  </section></div>`;
+  `;
+  return `<div class="sync-review-screen" id="sync-review-screen" role="dialog" aria-modal="true" aria-labelledby="sync-review-title">${Card(content, { tag: 'section', className: 'sync-review-card' })}</div>`;
 }
 
 export default function ProfilePanel(state) {
@@ -39,7 +42,7 @@ export default function ProfilePanel(state) {
   const colors = personalization.draftColors || {};
   const themeChoices = [...BUILT_IN_THEMES, ...(personalization.savedThemes || [])];
   return `<div class="profile-screen" id="profile-screen"><section class="profile-panel" role="dialog" aria-modal="true" aria-labelledby="profile-title">
-    <header class="settings-header"><div><p class="eyebrow">Atlas cloud</p><h2 id="profile-title">Profile</h2></div><button class="settings-close" id="close-profile" type="button" aria-label="Close profile">×</button></header>
+    <header class="settings-header"><div><p class="eyebrow">Atlas cloud</p><h2 id="profile-title">Profile</h2></div><button class="settings-close" id="close-profile" type="button" aria-label="Close profile">${Icon('close')}</button></header>
     <div class="settings-section settings-account"><div class="account-settings-heading"><div><strong>${signedIn ? escapeHtml(account.user.email || 'Atlas account') : 'Sign up or log in'}</strong><span>${signedIn ? 'You are logged in. Atlas can safely sync this device with your cloud copy.' : 'Enter your email. Atlas will create an account or log you in with a secure email link.'}</span></div><span class="sync-status is-${escapeHtml(syncState)}"><span aria-hidden="true"></span>${escapeHtml(syncLabel)}</span></div>
     ${signedIn ? `<div class="account-actions"><button class="primary-action account-action" id="sync-atlas-now" type="button" ${['checking', 'syncing'].includes(syncState) ? 'disabled' : ''}>${syncState === 'checking' ? 'Checking…' : syncState === 'syncing' ? 'Syncing…' : 'Sync now'}</button><button class="secondary-action account-action" id="sign-out-atlas" type="button">Sign out</button></div>` : `<div class="account-login-options"><button class="google-sign-in" id="google-sign-in" type="button" ${account.status === 'loading' || account.status === 'offline' ? 'disabled' : ''}><span aria-hidden="true">G</span>Continue with Google</button><button class="account-email-toggle" id="show-email-sign-in" type="button">Use email instead</button><div class="account-email-option" id="account-email-option" hidden><div class="account-login-divider"><span>email sign in</span></div><form class="account-sign-in-form" id="atlas-sign-in-form"><label for="atlas-account-email">Email magic link</label><div><input id="atlas-account-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required ${account.status === 'loading' ? 'disabled' : ''}><button class="primary-action" type="submit" ${account.status === 'loading' || account.status === 'offline' ? 'disabled' : ''}>${account.status === 'loading' ? 'Connecting…' : 'Continue with email'}</button></div></form></div></div>`}
     ${signedIn ? `<form class="profile-name-form" id="profile-name-form"><label for="profile-display-name">Display name</label><div><input id="profile-display-name" name="displayName" maxlength="40" value="${escapeHtml(account.user.user_metadata?.display_name || account.user.user_metadata?.full_name || account.user.user_metadata?.name || '')}" placeholder="What should Atlas call you?"><button class="secondary-action" type="submit">Save name</button></div></form>` : ''}

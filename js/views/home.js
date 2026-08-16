@@ -92,7 +92,7 @@ function upcomingExams(exams, classes, now) {
     const subject = classes.find((item) => item.id === exam.classId);
     const days = daysUntil(exam.date, now);
     return `
-      <article class="home-exam">
+      <article class="atlas-card home-exam">
         <span class="home-exam-date"><strong>${exam.date.slice(8, 10)}</strong><small>${new Date(`${exam.date}T00:00:00`).toLocaleDateString(undefined, { month: 'short' })}</small></span>
         <span><strong>${escapeHtml(exam.title)}</strong><small>${escapeHtml(subject?.code || 'Class')} · ${days === 0 ? 'Today' : `${days}d away`}</small></span>
       </article>`;

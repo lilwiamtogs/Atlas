@@ -250,7 +250,7 @@ function examSection(exams, now) {
         const days = daysUntil(exam.date, now);
         const timing = days < 0 ? `${Math.abs(days)} days ago` : days === 0 ? 'Today' : `In ${days} day${days === 1 ? '' : 's'}`;
         return `
-          <article class="exam-row">
+          <article class="atlas-card exam-row">
             <span class="exam-date"><strong>${exam.date.slice(8, 10)}</strong><small>${new Date(`${exam.date}T00:00:00`).toLocaleDateString(undefined, { month: 'short' })}</small></span>
             <span class="exam-copy"><strong>${escapeHtml(exam.title)}</strong><small>${timing}</small></span>
             <button type="button" data-delete-exam="${escapeHtml(exam.id)}">Delete</button>

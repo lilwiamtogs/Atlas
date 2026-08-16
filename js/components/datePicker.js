@@ -1,3 +1,5 @@
+import Icon from './icon.js';
+
 const MONTH_FORMAT = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' });
 const DATE_FORMAT = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 
@@ -20,12 +22,12 @@ function calendarMarkup() {
       <section class="atlas-calendar" role="dialog" aria-modal="true" aria-labelledby="atlas-calendar-title">
         <header class="atlas-calendar-header">
           <div><p class="eyebrow">Choose date</p><h2 id="atlas-calendar-title"></h2></div>
-          <button class="atlas-calendar-close" type="button" aria-label="Close calendar">×</button>
+          <button class="atlas-calendar-close" type="button" aria-label="Close calendar">${Icon('close')}</button>
         </header>
         <div class="atlas-calendar-nav">
-          <button type="button" data-calendar-previous aria-label="Previous month">←</button>
+          <button type="button" data-calendar-previous aria-label="Previous month">${Icon('arrow-left')}</button>
           <button type="button" data-calendar-today>Today</button>
-          <button type="button" data-calendar-next aria-label="Next month">→</button>
+          <button type="button" data-calendar-next aria-label="Next month">${Icon('arrow-right')}</button>
         </div>
         <div class="atlas-calendar-weekdays" aria-hidden="true">
           ${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => `<span>${day}</span>`).join('')}

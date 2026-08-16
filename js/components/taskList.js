@@ -57,7 +57,7 @@ function taskRow(task, now, editingTaskId, showDueDate) {
     : `${weekLabel(task.dueDate, now)}${task.dueTime ? ` · ${escapeHtml(formatDueTime(task.dueTime))}` : ''}`;
 
   return `
-    <article class="task-row is-${urgency}">
+    <article class="atlas-card task-row is-${urgency}">
       <button class="task-check" type="button" data-toggle-task="${escapeHtml(task.id)}" aria-label="${task.completed ? 'Mark incomplete' : 'Complete task'}" aria-pressed="${task.completed}">
         <span aria-hidden="true">${task.completed ? '✓' : ''}</span>
       </button>

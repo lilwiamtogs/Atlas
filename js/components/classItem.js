@@ -1,5 +1,6 @@
 import { escapeHtml } from '../utils/html.js';
 import { DAY_NAMES, formatTime } from '../utils/time.js';
+import { Button } from './ui.js';
 
 export default function ClassItem(item, options = {}) {
   const { current = false, finished = false, showDay = false, open = false, card = false, taskContent = '', navigate = false, fullPage = false } = options;
@@ -17,7 +18,7 @@ export default function ClassItem(item, options = {}) {
 
   if (navigate) {
     return `
-      <article class="class-item class-card class-card-preview ${current ? 'is-current' : ''} ${finished ? 'is-finished' : ''}">
+      <article class="atlas-card atlas-card--flush class-item class-card class-card-preview ${current ? 'is-current' : ''} ${finished ? 'is-finished' : ''}">
         <button class="class-card-summary" type="button" data-open-class="${escapeHtml(item.id)}" aria-label="Open ${escapeHtml(item.code)} details">
           ${summaryContent}
         </button>
@@ -26,7 +27,7 @@ export default function ClassItem(item, options = {}) {
   }
 
   return `
-    <details class="class-item ${card ? 'class-card' : ''} ${current ? 'is-current' : ''} ${finished ? 'is-finished' : ''} ${open ? 'is-expanded' : ''}" data-class-id="${escapeHtml(item.id)}" ${open ? 'open' : ''}>
+    <details class="class-item ${card ? 'atlas-card atlas-card--flush class-card' : ''} ${current ? 'is-current' : ''} ${finished ? 'is-finished' : ''} ${open ? 'is-expanded' : ''}" data-class-id="${escapeHtml(item.id)}" ${open ? 'open' : ''}>
       <summary>${summaryContent}</summary>
       <div class="class-details-reveal">
         <div class="class-details">
@@ -34,7 +35,7 @@ export default function ClassItem(item, options = {}) {
           <p class="class-detail"><span>Room</span>${escapeHtml(item.room) || 'Not set'}</p>
           ${instructor}
           ${taskContent}
-          ${fullPage ? `<button class="secondary-action open-class-page" type="button" data-open-class="${escapeHtml(item.id)}"><span>Open class page</span><span aria-hidden="true">→</span></button>` : ''}
+          ${fullPage ? Button({ label: 'Open class page', variant: 'secondary', icon: 'arrow-right', iconAfter: true, className: 'secondary-action open-class-page', attributes: `data-open-class="${escapeHtml(item.id)}"` }) : ''}
         </div>
       </div>
     </details>`;
