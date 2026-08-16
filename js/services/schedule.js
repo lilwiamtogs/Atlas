@@ -1,3 +1,5 @@
+import { readStoredJson, writeStoredJson } from './storage.js';
+
 const SCHEDULE_URL = './data/defaultSchedule.json';
 const IMPORTED_SCHEDULE_KEY = 'atlas.schedule';
 
@@ -53,12 +55,7 @@ export function normalizeSchedule(data) {
 }
 
 function readImportedSchedule() {
-  try {
-    const saved = localStorage.getItem(IMPORTED_SCHEDULE_KEY);
-    return saved ? JSON.parse(saved) : null;
-  } catch {
-    return null;
-  }
+  return readStoredJson(IMPORTED_SCHEDULE_KEY, null, normalizeSchedule);
 }
 
 export async function loadSchedule() {
@@ -78,8 +75,7 @@ export const scheduleSource = 'data/defaultSchedule.json';
 
 export function saveImportedSchedule(data) {
   const schedule = normalizeSchedule(data);
-  localStorage.setItem(IMPORTED_SCHEDULE_KEY, JSON.stringify(schedule));
-  return schedule;
+  return writeStoredJson(IMPORTED_SCHEDULE_KEY, schedule);
 }
 
 export function removeImportedSchedule() {

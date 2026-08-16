@@ -3,10 +3,22 @@
   "name": "atlas-vision-api",
   "main": "src/index.js",
   "compatibility_date": "2026-08-10",
+  "compatibility_flags": ["nodejs_compat"],
   "ai": {
     "binding": "AI"
   },
+  "ratelimits": [
+    {
+      "name": "SCAN_RATE_LIMITER",
+      "namespace_id": "360401",
+      "simple": {
+        "limit": 10,
+        "period": 60
+      }
+    }
+  ],
   "observability": {
-    "enabled": true
+    "enabled": true,
+    "head_sampling_rate": 1
   }
 }

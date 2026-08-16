@@ -1,4 +1,5 @@
 import { DOCUMENT_SCHEMA_VERSION, sha256 } from './snapshot.js';
+import { storeSharedPdf } from '../services/sharedFiles.js';
 
 function blobDataUrl(blob) {
   return new Promise((resolve, reject) => {
@@ -23,6 +24,8 @@ async function hydrateNote(note, client, userId) {
     throw new Error('A cloud PDF failed its safety check. Atlas left local data unchanged.');
   }
   copy.content = await blobDataUrl(blob);
+  const fileRef = await storeSharedPdf(blob);
+  if (fileRef) copy.fileRef = fileRef;
   delete copy.cloudFile;
   return copy;
 }

@@ -5090,6 +5090,26 @@ html[data-focus-mode='true'] .route-home .no-exams { display: none; }
   margin-top: 18px;
 }
 
+.import-source-stack,
+.current-data-stack {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.import-source-stack .upload-zone,
+.current-data-stack .saved-course-form,
+.import-source-stack .manual-class-start,
+.current-data-stack #restore-default-schedule {
+  margin-top: 0;
+}
+
+.import-source-stack .upload-zone,
+.current-data-stack .saved-course-form {
+  width: 100%;
+}
+
 .review-manual-actions {
   display: flex;
   justify-content: flex-end;
@@ -5443,7 +5463,12 @@ html[data-focus-mode='true'] .route-home .no-exams { display: none; }
 .exam-composer > summary::-webkit-details-marker { display: none; }
 .exam-composer > summary .atlas-icon { width: 15px; height: 15px; transition: transform 180ms ease; }
 .exam-composer[open] > summary .atlas-icon { transform: rotate(45deg); }
+.exam-composer-body { overflow: hidden; }
 .exam-composer .add-exam-form { margin-top: var(--space-2); padding: var(--space-3); border-radius: var(--radius-control); box-shadow: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .exam-composer > summary .atlas-icon { transition: none; }
+}
 
 .home-toast {
   position: fixed;

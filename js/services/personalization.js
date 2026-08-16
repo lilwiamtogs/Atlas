@@ -1,3 +1,5 @@
+import { readStoredJson, writeStoredJson } from './storage.js';
+
 const PERSONALIZATION_KEY = 'atlas.personalization';
 const DEFAULT_COLORS = { accent: '#7a9e87', highlight: '#a9c8b3', background: '#0f1512', transition1: '#7a9e87', transition2: '#a9c8b3', transition3: '#587662' };
 
@@ -52,8 +54,7 @@ export function activeTheme(value) {
 }
 
 export function loadPersonalization() {
-  try { return normalizePersonalization(JSON.parse(localStorage.getItem(PERSONALIZATION_KEY) || '{}')); }
-  catch { return normalizePersonalization(); }
+  return readStoredJson(PERSONALIZATION_KEY, normalizePersonalization(), normalizePersonalization);
 }
 
 export function applyPersonalization(value) {
@@ -82,7 +83,7 @@ export function applyPersonalization(value) {
 
 export function savePersonalization(value) {
   const personalization = normalizePersonalization(value);
-  localStorage.setItem(PERSONALIZATION_KEY, JSON.stringify(personalization));
+  writeStoredJson(PERSONALIZATION_KEY, personalization);
   applyPersonalization(personalization);
   return personalization;
 }

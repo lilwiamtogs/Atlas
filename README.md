@@ -8,6 +8,8 @@ Atlas stores a common snapshot behind every successful sync and uses determinist
 
 Cloud sync includes private PDF restoration with path and SHA-256 validation, a local recovery snapshot, atomic planner-data application, and a final remote revision check before resolved data is written. Manual Sync now remains available as an explicit status check and recovery control.
 
+PDF notes are stored locally as content-addressed blobs in IndexedDB. Active notes and saved-semester archives reference the same SHA-256 file record, so archiving a semester does not duplicate PDF bytes. Existing inline PDFs migrate automatically and remain recoverable through Atlas's pre-migration backup.
+
 Version 0.4.0 also upgrades schedule importing with pasted images, crop and rotation controls, automatic geometry and lighting correction, table-aware OCR passes, field confidence warnings, local correction learning, and opt-in AI repair limited to uncertain fields. The mobile task editor time picker now remains visible outside its dialog bounds.
 
 Version 0.3.6 refines mobile motion without sacrificing the corrected responsive layout. Class cards now use a FLIP transition so surrounding sections move smoothly without animated-height reflow or scroll-anchor bounce. Mobile page navigation restores Atlas's three-strip wipe as a short, fixed-viewport, transform-only animation with reduced-motion support.
@@ -38,6 +40,12 @@ npm run build
 ```
 
 Serve the generated `dist/` folder through VS Code Live Server or another static server. The build automatically bundles Atlas into content-hashed JavaScript and CSS files and generates the service worker's complete offline precache from those files. Do not deploy the source folder directly.
+
+Run the regression suite before building or deploying:
+
+```sh
+npm test
+```
 
 For quick source-level development, this folder can still be served directly. Browsers block JSON loading when the app is opened with a `file://` address; Atlas will show a clear error instead of a blank screen in that case.
 

@@ -102,7 +102,45 @@ function upcomingExams(exams, classes, now) {
 
 function addExamForm(classes) {
   if (!classes.length) return '';
-  return `<details class="exam-composer"><summary>${Icon('plus')}<span>Add a test</span></summary><form class="add-exam-form home-exam-form" id="home-add-exam-form"><label class="task-form-field">Test / exam name<input name="title" placeholder="e.g. Midterm exam" required></label><label class="task-form-field">Class<select name="classId" required>${classes.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.code)} · ${escapeHtml(item.title)}</option>`).join('')}</select></label><label class="task-form-field">Date<input name="date" type="date" min="${dateInputValue()}" value="${dateInputValue()}" required></label>${Button({ label: 'Save test', variant: 'primary', icon: 'check', type: 'submit' })}${examMessage ? `<p class="note-message" role="status">${escapeHtml(examMessage)}</p>` : ''}</form></details>`;
+  return `<details class="exam-composer"><summary>${Icon('plus')}<span>Add a test</span></summary><div class="exam-composer-body"><form class="add-exam-form home-exam-form" id="home-add-exam-form"><label class="task-form-field">Test / exam name<input name="title" placeholder="e.g. Midterm exam" required></label><label class="task-form-field">Class<select name="classId" required>${classes.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.code)} · ${escapeHtml(item.title)}</option>`).join('')}</select></label><label class="task-form-field">Date<input name="date" type="date" min="${dateInputValue()}" value="${dateInputValue()}" required></label>${Button({ label: 'Save test', variant: 'primary', icon: 'check', type: 'submit' })}${examMessage ? `<p class="note-message" role="status">${escapeHtml(examMessage)}</p>` : ''}</form></div></details>`;
+}
+
+function bindExamComposerAnimation() {
+  const details = document.querySelector('.exam-composer');
+  const summary = details?.querySelector(':scope > summary');
+  const body = details?.querySelector(':scope > .exam-composer-body');
+  if (!details || !summary || !body) return;
+
+  summary.addEventListener('click', async (event) => {
+    event.preventDefault();
+    if (details.dataset.animating === 'true') return;
+
+    const opening = !details.open;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion || typeof body.animate !== 'function') {
+      details.open = opening;
+      return;
+    }
+
+    details.dataset.animating = 'true';
+    if (opening) details.open = true;
+    const height = body.scrollHeight;
+    const frames = opening
+      ? [{ height: '0px', opacity: 0, transform: 'translateY(-6px)' }, { height: `${height}px`, opacity: 1, transform: 'translateY(0)' }]
+      : [{ height: `${height}px`, opacity: 1, transform: 'translateY(0)' }, { height: '0px', opacity: 0, transform: 'translateY(-6px)' }];
+    const animation = body.animate(frames, {
+      duration: opening ? 220 : 170,
+      easing: opening ? 'cubic-bezier(0.22, 1, 0.36, 1)' : 'ease-in',
+    });
+
+    try {
+      await animation.finished;
+    } catch {
+      // A superseding render can cancel the animation safely.
+    }
+    if (!opening) details.open = false;
+    delete details.dataset.animating;
+  });
 }
 
 function feedbackToast() {
@@ -120,6 +158,7 @@ export default {
   },
 
   bind(router, state) {
+    bindExamComposerAnimation();
     document.querySelectorAll('[data-countdown-start]').forEach((element) => { element.textContent = countdownTo({ day: new Date().getDay(), start: element.dataset.countdownStart }, new Date()); });
     document.querySelectorAll('[data-complete-home-task]').forEach((taskButton) => taskButton.addEventListener('click', async () => {
       const task = Store.get().tasks.find((item) => item.id === taskButton.dataset.completeHomeTask);

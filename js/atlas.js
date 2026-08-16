@@ -4,6 +4,7 @@ import { loadSchedule, scheduleSource } from './services/schedule.js';
 import { hideWelcomeScreen, showWelcomeScreen } from './components/welcomeScreen.js';
 import { checkReminders } from './services/notifications.js';
 import { initializeAuth } from './cloud/auth.js';
+import { getStorageIssues } from './services/storage.js';
 
 let renderedMinute = -1;
 
@@ -25,12 +26,13 @@ export default {
 
     try {
       const result = await loadSchedule();
-      Store.set({ schedule: result.schedule, scheduleSource: result.source, scheduleError: '' });
+      Store.set({ schedule: result.schedule, scheduleSource: result.source, scheduleError: '', storageIssues: getStorageIssues() });
     } catch (error) {
       console.error('Atlas could not load its schedule.', error);
       Store.set({
         scheduleError: error.message,
         scheduleSource: scheduleSource,
+        storageIssues: getStorageIssues(),
       });
     }
 

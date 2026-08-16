@@ -1,4 +1,6 @@
 import { normalizeSchedule } from './schedule.js';
+import { readStoredJson, writeStoredJson } from './storage.js';
+import { hydrateStoredPdf, serializePdfNote } from './sharedFiles.js';
 
 const ARCHIVES_KEY = 'atlas.scheduleArchives';
 
@@ -9,7 +11,7 @@ function normalizeArchive(entry) {
 
   const plannerData = entry.plannerData && typeof entry.plannerData === 'object' ? {
     tasks: Array.isArray(entry.plannerData.tasks) ? entry.plannerData.tasks : [],
-    notes: Array.isArray(entry.plannerData.notes) ? entry.plannerData.notes : [],
+    notes: Array.isArray(entry.plannerData.notes) ? entry.plannerData.notes.map(hydrateStoredPdf) : [],
     exams: Array.isArray(entry.plannerData.exams) ? entry.plannerData.exams : [],
   } : null;
 
@@ -23,19 +25,24 @@ function normalizeArchive(entry) {
 }
 
 export function loadArchives() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(ARCHIVES_KEY) || '[]');
-    return Array.isArray(saved)
-      ? saved.map(normalizeArchive).sort((a, b) => b.savedAt.localeCompare(a.savedAt))
-      : [];
-  } catch {
-    return [];
-  }
+  return readStoredJson(ARCHIVES_KEY, [], (saved) => {
+    if (!Array.isArray(saved)) throw new Error('Saved schedules are not a list.');
+    return saved.map(normalizeArchive).sort((a, b) => b.savedAt.localeCompare(a.savedAt));
+  });
 }
 
 export function saveArchives(archives) {
   const normalized = archives.map(normalizeArchive).sort((a, b) => b.savedAt.localeCompare(a.savedAt));
-  localStorage.setItem(ARCHIVES_KEY, JSON.stringify(normalized));
+  const stored = normalized.map((archive) => ({
+    ...archive,
+    ...(archive.plannerData ? {
+      plannerData: {
+        ...archive.plannerData,
+        notes: archive.plannerData.notes.map(serializePdfNote),
+      },
+    } : {}),
+  }));
+  writeStoredJson(ARCHIVES_KEY, stored);
   return normalized;
 }
 

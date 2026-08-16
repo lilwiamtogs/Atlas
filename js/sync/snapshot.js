@@ -1,3 +1,5 @@
+import { getSharedPdfBlob } from '../services/sharedFiles.js';
+
 const DOCUMENT_SCHEMA_VERSION = 1;
 
 function clone(value) {
@@ -21,7 +23,7 @@ async function cloudNote(note, userId, client, uploadedPaths, upload) {
   const copy = clone(note);
   if (copy.mimeType !== 'application/pdf') return copy;
 
-  const blob = dataUrlBlob(copy.content);
+  const blob = await getSharedPdfBlob(copy.fileRef) || dataUrlBlob(copy.content);
   const hash = await sha256(blob);
   const path = `${userId}/${hash}.pdf`;
   if (upload && !uploadedPaths.has(path)) {
@@ -32,6 +34,7 @@ async function cloudNote(note, userId, client, uploadedPaths, upload) {
     uploadedPaths.add(path);
   }
   delete copy.content;
+  delete copy.fileRef;
   copy.cloudFile = { path, hash, size: blob.size };
   return copy;
 }

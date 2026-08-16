@@ -159,12 +159,9 @@ async function runAutomaticSync() {
   autoSyncRunning = true;
   setStatus('checking');
   try {
-    const inspectedData = ['schedule', 'tasks', 'notes', 'exams', 'archives', 'personalization', 'notificationSettings', 'autoSaveSettings']
-      .map((key) => Store.get()[key]);
+    const inspectedRevision = Store.get().plannerRevision;
     const result = await inspectCloudSync();
-    const changedDuringCheck = ['schedule', 'tasks', 'notes', 'exams', 'archives', 'personalization', 'notificationSettings', 'autoSaveSettings']
-      .some((key, index) => Store.get()[key] !== inspectedData[index]);
-    if (changedDuringCheck) {
+    if (Store.get().plannerRevision !== inspectedRevision) {
       autoSyncQueued = true;
       return;
     }
@@ -207,15 +204,13 @@ export function queueAutomaticSync(delay = 900) {
 export function startAutomaticSync() {
   if (autoSyncStarted) return;
   autoSyncStarted = true;
-  const syncKeys = ['schedule', 'tasks', 'notes', 'exams', 'archives', 'personalization', 'notificationSettings', 'autoSaveSettings'];
-  let previousData = Object.fromEntries(syncKeys.map((key) => [key, Store.get()[key]]));
+  let previousRevision = Store.get().plannerRevision;
   let previousUserId = Store.get().account?.user?.id || '';
   Store.subscribe((state) => {
-    const changedKeys = syncKeys.filter((key) => state[key] !== previousData[key]);
-    const dataChanged = changedKeys.length > 0;
+    const dataChanged = state.plannerRevision !== previousRevision;
     const userId = state.account?.user?.id || '';
     const signedInNow = state.account?.status === 'signed-in' && userId && userId !== previousUserId;
-    previousData = Object.fromEntries(syncKeys.map((key) => [key, state[key]]));
+    previousRevision = state.plannerRevision;
     previousUserId = userId;
     if (dataChanged || signedInNow) queueAutomaticSync(dataChanged ? 100 : 250);
   });

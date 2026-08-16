@@ -1,18 +1,15 @@
 import { daysUntil } from './tasks.js';
+import { readStoredJson, writeStoredJson } from './storage.js';
 
 const SETTINGS_KEY = 'atlas.notifications';
 const SENT_KEY = 'atlas.sentNotifications';
 
 export function loadNotificationSettings() {
-  try {
-    return { enabled: JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'false') === true };
-  } catch {
-    return { enabled: false };
-  }
+  return readStoredJson(SETTINGS_KEY, { enabled: false }, (saved) => ({ enabled: saved === true }));
 }
 
 export function saveNotificationSettings(enabled) {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(Boolean(enabled)));
+  writeStoredJson(SETTINGS_KEY, Boolean(enabled));
   return { enabled: Boolean(enabled) };
 }
 

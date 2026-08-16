@@ -1,3 +1,5 @@
+import { readStoredJson, writeStoredJson } from '../services/storage.js';
+
 const SYNC_METADATA_KEY = 'atlas.sync';
 
 function createDeviceId() {
@@ -5,8 +7,9 @@ function createDeviceId() {
 }
 
 export function loadSyncMetadata() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(SYNC_METADATA_KEY) || '{}');
+  return readStoredJson(SYNC_METADATA_KEY, {
+    deviceId: createDeviceId(), userId: '', revision: 0, lastSyncedAt: '', baseSnapshot: null,
+  }, (saved) => {
     return {
       deviceId: String(saved.deviceId || createDeviceId()),
       userId: String(saved.userId || ''),
@@ -14,9 +17,7 @@ export function loadSyncMetadata() {
       lastSyncedAt: String(saved.lastSyncedAt || ''),
       baseSnapshot: saved.baseSnapshot && typeof saved.baseSnapshot === 'object' ? saved.baseSnapshot : null,
     };
-  } catch {
-    return { deviceId: createDeviceId(), userId: '', revision: 0, lastSyncedAt: '', baseSnapshot: null };
-  }
+  });
 }
 
 export function saveSyncMetadata(metadata) {
@@ -27,8 +28,7 @@ export function saveSyncMetadata(metadata) {
     lastSyncedAt: String(metadata.lastSyncedAt || ''),
     baseSnapshot: metadata.baseSnapshot && typeof metadata.baseSnapshot === 'object' ? metadata.baseSnapshot : null,
   };
-  localStorage.setItem(SYNC_METADATA_KEY, JSON.stringify(normalized));
-  return normalized;
+  return writeStoredJson(SYNC_METADATA_KEY, normalized);
 }
 
 export function ensureSyncMetadata(userId) {

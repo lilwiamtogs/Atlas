@@ -228,7 +228,9 @@ function parseCourseListRow(line, matches) {
   const [startMatch] = matches;
   const beforeTime = line.slice(0, startMatch.index).trim();
   if (!beforeTime) return null;
-  const dayMatch = beforeTime.match(/(MWF|TTH|MW|MF|WF|TR|TH|(?:[MTWRFS](?:\s*[\/,&]\s*[MTWRFS])+)|M|T|W|R|F|S)\s*$/i);
+  // A one-letter day code must be a separate token. Without the leading
+  // boundary, words such as "Mathematics" were interpreted as Saturday.
+  const dayMatch = beforeTime.match(/(?:^|\s)(MWF|TTH|MW|MF|WF|TR|TH|(?:[MTWRFS](?:\s*[\/,&]\s*[MTWRFS])+)|M|T|W|R|F|S)\s*$/i);
   if (!dayMatch) return null;
   const days = parseDays(dayMatch[1]);
   const subject = beforeTime.slice(0, dayMatch.index).replace(/^\d+\s+/, '').trim();

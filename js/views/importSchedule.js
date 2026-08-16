@@ -265,12 +265,15 @@ export default {
       </header>
       ${PathSection('Image to schedule', `
         <p class="import-intro">Upload a clear screenshot or photo. Atlas reads it on this device, then lets you correct the result before anything is saved.</p>
-        ${filePicker()}
-        ${draft?.classes?.length ? '' : '<button class="secondary-action manual-class-start" id="add-class-manually" type="button">Add class manually</button>'}`)}
+        <div class="import-source-stack">
+          ${filePicker()}
+          ${draft?.classes?.length ? '' : '<button class="secondary-action manual-class-start" id="add-class-manually" type="button">Add class manually</button>'}
+        </div>`)}
       ${reviewPanel()}
       ${savedSchedulesPanel(state)}
       ${imported ? PathSection('Current data', `
         <p class="import-intro">Update the details Atlas uses to name saved semester files.</p>
+        <div class="current-data-stack">
         <form class="saved-course-form" id="saved-course-form">
           <label class="review-field course-field">Course / program
             <input id="saved-course" value="${escapeHtml(state.schedule.course || '')}" placeholder="e.g. BS Computer Engineering" required>
@@ -283,7 +286,8 @@ export default {
           </label>
           <button class="primary-action" type="submit">Save details</button>
         </form>
-        <button class="secondary-action" id="restore-default-schedule" type="button">Restore default JSON schedule</button>`): ''}
+        <button class="secondary-action" id="restore-default-schedule" type="button">Restore default JSON schedule</button>
+        </div>`): ''}
       ${replacementWarning()}
       ${imageSourcePicker()}`;
   },

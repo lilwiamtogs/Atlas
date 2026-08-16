@@ -83,6 +83,19 @@ function json(body, status, origin) {
   });
 }
 
+function rateLimitKey(request) {
+  const ip = request.headers.get('CF-Connecting-IP') || '';
+  if (ip) return `scan:ip:${ip}`;
+  const origin = request.headers.get('Origin') || 'unknown-origin';
+  return `scan:fallback:${origin}`;
+}
+
+async function scanAllowed(request, env) {
+  if (!env.SCAN_RATE_LIMITER?.limit) return true;
+  const result = await env.SCAN_RATE_LIMITER.limit({ key: rateLimitKey(request) });
+  return result.success;
+}
+
 function responseValue(result) {
   const content = result?.choices?.[0]?.message?.content
     ?? result?.response
@@ -212,6 +225,12 @@ export default {
     }
     if (!request.headers.get('Content-Type')?.toLowerCase().startsWith('application/json')) {
       return json({ error: 'Send the schedule as JSON.' }, 415, corsOrigin);
+    }
+    if (!await scanAllowed(request, env)) {
+      const response = json({ error: 'Too many AI scans. Wait a minute, then try again.' }, 429, corsOrigin);
+      response.headers.set('Retry-After', '60');
+      console.warn(JSON.stringify({ event: 'atlas_scan_rate_limited' }));
+      return response;
     }
 
     try {

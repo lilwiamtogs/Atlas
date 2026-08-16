@@ -2,12 +2,8 @@ import Home from './views/home.js';
 import Schedule from './views/schedule.js';
 import ImportSchedule from './views/importSchedule.js';
 import ClassDetail from './views/classDetail.js';
-import Navbar from './components/navbar.js';
 import DeveloperTools from './components/developerTools.js';
-import ThemeToggle from './components/themeToggle.js';
-import InstallButton from './components/installButton.js';
-import SettingsPanel from './components/settingsPanel.js';
-import ProfilePanel, { SyncReviewPanel } from './components/profilePanel.js';
+import AppShell from './components/appShell.js';
 import Store from './store.js';
 import { requestNotificationAccess, saveNotificationSettings } from './services/notifications.js';
 import { disableAutoSave, enableAutoSave } from './services/autosave.js';
@@ -15,12 +11,10 @@ import { formatClock, getNow, minutesFromTime } from './utils/time.js';
 import enhanceSelects from './components/selectEnhancer.js';
 import enhanceDatePickers from './components/datePicker.js';
 import enhanceTimePickers from './components/timePicker.js';
-import Atmosphere from './components/atmosphere.js';
-import HelpPanel, { helpTopics } from './components/helpPanel.js';
+import { helpTopics } from './components/helpPanel.js';
 import { showFirstOpenTutorial } from './components/onboarding.js';
 import { closeOverlay, openOverlay } from './utils/animations.js';
 import { applyPersonalization, savePersonalization } from './services/personalization.js';
-import Icon from './components/icon.js';
 
 const routes = { home: Home, schedule: Schedule, import: ImportSchedule, class: ClassDetail };
 let transitioning = false;
@@ -43,7 +37,7 @@ function hasOpenTransientUI() {
     '[data-atlas-calendar]:not([hidden])',
     '[data-atlas-select].is-open',
     '.image-source-screen',
-    '.note-upload-screen',
+      '.note-upload-screen',
   ].join(',')));
 }
 
@@ -116,29 +110,6 @@ function drawAtmosphere() {
       if (plate.isConnected) plate.classList.add('is-drawing');
     });
   }));
-}
-
-function accountStatusControl(state) {
-  const account = state.account || {};
-  const signedIn = account.status === 'signed-in' && account.user;
-  const syncState = state.syncStatus?.state || 'disabled';
-  const labels = { ready: 'Ready to sync', checking: 'Checking', review: 'Review needed', syncing: 'Syncing', synced: 'Synced', offline: 'Offline', error: 'Sync error', disabled: 'Not synced' };
-  const lastSync = state.syncStatus?.lastSyncedAt
-    ? new Date(state.syncStatus.lastSyncedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
-    : 'Never synced';
-  return `<button class="account-status-control is-${syncState}" data-open-profile type="button" aria-label="${signedIn ? `${labels[syncState] || 'Account'}. Last sync: ${lastSync}` : 'Sign up or log in'}">
-    <span class="account-status-dot" aria-hidden="true"></span><span><strong>${signedIn ? 'Signed in' : 'Sign up / log in'}</strong><small>${signedIn ? `${labels[syncState] || 'Cloud sync'} · ${lastSync}` : 'Cloud sync'}</small></span>
-  </button>`;
-}
-
-function mobileProfileControl(state) {
-  const account = state.account || {};
-  const signedIn = account.status === 'signed-in' && account.user;
-  const syncState = state.syncStatus?.state || 'disabled';
-  return `<button class="mobile-profile-button is-${syncState}" data-open-profile type="button" aria-label="${signedIn ? 'Open profile and cloud sync' : 'Sign up or log in'}">
-    ${Icon('user')}
-    <span class="mobile-profile-status" aria-hidden="true"></span>
-  </button>`;
 }
 
 function wait(milliseconds) {
@@ -332,28 +303,18 @@ const Router = {
           noteId: routeParts[2] === 'note' ? decodeURIComponent(routeParts[3] || '') : '',
         }
       : {};
-    const atmosphereMarkup = Atmosphere(route);
-
-    Store.get().currentView = route;
-    app.innerHTML = `
-      <main id="main-content" class="app-main route-${route} ${shouldAnimatePage && !suppressPageAnimation && !transitioning ? 'page-enter-active' : ''}" tabindex="-1">${atmosphereMarkup}${routes[route].render(state, now, context)}</main>
-      <div class="app-controls">
-        ${InstallButton()}
-        ${ThemeToggle(state.personalization)}
-        <button class="desktop-settings-button" data-open-settings type="button" aria-label="Open settings">
-          ${Icon('settings')}
-        </button>
-      </div>
-      <div class="nav-dock">
-        ${mobileProfileControl(state)}
-        ${Navbar(route === 'class' ? 'schedule' : route)}
-        <button class="global-help-button" data-open-help type="button" aria-label="Open Atlas help">${Icon('help')}</button>
-      </div>
-      ${DeveloperTools.render(state, now, route)}
-      ${settingsOpen ? SettingsPanel(state, settingsMessage) : ''}
-      ${profileOpen ? ProfilePanel(state) : ''}
-      ${helpOpen ? HelpPanel() : ''}
-      ${syncReviewOpen ? SyncReviewPanel() : ''}`;
+    app.innerHTML = AppShell({
+      state,
+      now,
+      route,
+      routeMarkup: routes[route].render(state, now, context),
+      pageClass: shouldAnimatePage && !suppressPageAnimation && !transitioning ? 'page-enter-active' : '',
+      settingsOpen,
+      settingsMessage,
+      profileOpen,
+      helpOpen,
+      syncReviewOpen,
+    });
 
     app.querySelectorAll('#main-content > .confirm-screen, #main-content > .image-source-screen, #main-content > .note-upload-screen').forEach((overlay) => {
       app.append(overlay);

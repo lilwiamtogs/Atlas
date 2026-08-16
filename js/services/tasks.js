@@ -1,3 +1,5 @@
+import { readStoredJson, writeStoredJson } from './storage.js';
+
 const TASKS_KEY = 'atlas.tasks';
 
 function normalizeTask(task) {
@@ -27,18 +29,15 @@ export function sortTasks(tasks) {
 }
 
 export function loadTasks() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(TASKS_KEY) || '[]');
-    return Array.isArray(saved) ? sortTasks(saved.map(normalizeTask)) : [];
-  } catch {
-    return [];
-  }
+  return readStoredJson(TASKS_KEY, [], (saved) => {
+    if (!Array.isArray(saved)) throw new Error('Saved tasks are not a list.');
+    return sortTasks(saved.map(normalizeTask));
+  });
 }
 
 export function saveTasks(tasks) {
   const normalized = sortTasks(tasks.map(normalizeTask));
-  localStorage.setItem(TASKS_KEY, JSON.stringify(normalized));
-  return normalized;
+  return writeStoredJson(TASKS_KEY, normalized);
 }
 
 export function createTask({ classId, title, description, dueDate, dueTime }) {

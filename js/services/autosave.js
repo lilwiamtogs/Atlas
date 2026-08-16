@@ -1,20 +1,17 @@
 import { archiveNameFor, createArchive, saveArchives } from './scheduleArchives.js';
+import { readStoredJson, writeStoredJson } from './storage.js';
 
 const AUTOSAVE_KEY = 'atlas.autosave';
 
 export function loadAutoSaveSettings() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(AUTOSAVE_KEY) || '{}');
+  return readStoredJson(AUTOSAVE_KEY, { enabled: false, archiveId: '' }, (saved) => {
     return { enabled: saved.enabled === true, archiveId: String(saved.archiveId || '') };
-  } catch {
-    return { enabled: false, archiveId: '' };
-  }
+  });
 }
 
 export function saveAutoSaveSettings(settings) {
   const normalized = { enabled: settings.enabled === true, archiveId: String(settings.archiveId || '') };
-  localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(normalized));
-  return normalized;
+  return writeStoredJson(AUTOSAVE_KEY, normalized);
 }
 
 export function hasCompleteScheduleData(schedule) {

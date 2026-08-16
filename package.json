@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node scripts/build.mjs"
+    "build": "node scripts/build.mjs",
+    "test": "node --test"
   },
   "devDependencies": {
-    "esbuild": "^0.25.8"
+    "esbuild": "^0.25.8",
+    "fake-indexeddb": "^6.2.5"
   }
 }

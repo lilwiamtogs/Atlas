@@ -1,35 +1,38 @@
+import { readStoredJson, writeStoredJson } from './storage.js';
+import { hydrateStoredPdf, serializePdfNote, storeSharedPdf } from './sharedFiles.js';
+
 const NOTES_KEY = 'atlas.notes';
 export const MAX_NOTE_BYTES = 500 * 1024;
 export const MAX_PDF_BYTES = 2 * 1024 * 1024;
 
 function normalizeNote(note) {
-  if (!note?.id || !note.classId || !note.name || typeof note.content !== 'string') {
+  const hydrated = hydrateStoredPdf(note);
+  if (!hydrated?.id || !hydrated.classId || !hydrated.name || typeof hydrated.content !== 'string') {
     throw new Error('A note is missing its class, name, or text content.');
   }
 
   return {
-    id: String(note.id),
-    classId: String(note.classId),
-    name: String(note.name).trim(),
-    fileName: String(note.fileName || ''),
-    content: note.content,
-    mimeType: String(note.mimeType || 'text/plain'),
-    createdAt: String(note.createdAt || new Date().toISOString()),
+    id: String(hydrated.id),
+    classId: String(hydrated.classId),
+    name: String(hydrated.name).trim(),
+    fileName: String(hydrated.fileName || ''),
+    content: hydrated.content,
+    mimeType: String(hydrated.mimeType || 'text/plain'),
+    createdAt: String(hydrated.createdAt || new Date().toISOString()),
+    ...(hydrated.fileRef?.hash ? { fileRef: hydrated.fileRef } : {}),
   };
 }
 
 export function loadNotes() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(NOTES_KEY) || '[]');
-    return Array.isArray(saved) ? saved.map(normalizeNote) : [];
-  } catch {
-    return [];
-  }
+  return readStoredJson(NOTES_KEY, [], (saved) => {
+    if (!Array.isArray(saved)) throw new Error('Saved notes are not a list.');
+    return saved.map(normalizeNote);
+  });
 }
 
 export function saveNotes(notes) {
   const normalized = notes.map(normalizeNote).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  localStorage.setItem(NOTES_KEY, JSON.stringify(normalized));
+  writeStoredJson(NOTES_KEY, normalized.map(serializePdfNote));
   return normalized;
 }
 
@@ -53,11 +56,13 @@ export async function readNoteFile(file) {
   if (isText && file.size > MAX_NOTE_BYTES) throw new Error('TXT notes must be 500 KB or smaller.');
   if (isText) return { content: await file.text(), mimeType: 'text/plain' };
 
+  const pdfBlob = file.type === 'application/pdf' ? file : file.slice(0, file.size, 'application/pdf');
   const content = await new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.addEventListener('load', () => resolve(reader.result), { once: true });
     reader.addEventListener('error', () => reject(new Error('Atlas could not read that PDF.')), { once: true });
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(pdfBlob);
   });
-  return { content, mimeType: 'application/pdf' };
+  const fileRef = await storeSharedPdf(pdfBlob);
+  return { content, mimeType: 'application/pdf', ...(fileRef ? { fileRef } : {}) };
 }

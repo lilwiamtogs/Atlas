@@ -1,3 +1,5 @@
+import { readStoredJson, writeStoredJson } from './storage.js';
+
 const EXAMS_KEY = 'atlas.exams';
 
 function normalizeExam(exam) {
@@ -15,18 +17,15 @@ function normalizeExam(exam) {
 }
 
 export function loadExams() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(EXAMS_KEY) || '[]');
-    return Array.isArray(saved) ? saved.map(normalizeExam).sort((a, b) => a.date.localeCompare(b.date)) : [];
-  } catch {
-    return [];
-  }
+  return readStoredJson(EXAMS_KEY, [], (saved) => {
+    if (!Array.isArray(saved)) throw new Error('Saved tests are not a list.');
+    return saved.map(normalizeExam).sort((a, b) => a.date.localeCompare(b.date));
+  });
 }
 
 export function saveExams(exams) {
   const normalized = exams.map(normalizeExam).sort((a, b) => a.date.localeCompare(b.date));
-  localStorage.setItem(EXAMS_KEY, JSON.stringify(normalized));
-  return normalized;
+  return writeStoredJson(EXAMS_KEY, normalized);
 }
 
 export function createExam({ classId, title, date }) {
