@@ -5521,6 +5521,67 @@ html[data-focus-mode='true'] .route-home .attention-rail { display: none; }
   gap: var(--space-3);
 }
 
+/* Final interaction/layout polish. */
+.week-content-switch {
+  margin: -24px auto 34px;
+}
+
+.weekly-card-grid,
+.week-class-group {
+  align-items: start;
+}
+
+.week-class-group > .class-card {
+  align-self: start;
+  height: auto;
+}
+
+.home-task-dot {
+  overflow: hidden;
+  transition: color 160ms ease, background-color 180ms ease, border-color 180ms ease, transform 180ms var(--motion);
+}
+
+.home-task-dot .atlas-icon {
+  opacity: 0;
+  transform: scale(.35) rotate(-18deg);
+  transition: opacity 140ms ease, transform 200ms var(--motion);
+}
+
+.home-task:hover .home-task-dot,
+.home-task:focus-visible .home-task-dot {
+  color: var(--bg);
+  border-color: var(--primary-light);
+  background: var(--primary-light);
+  transform: scale(1.08);
+}
+
+.home-task:hover .home-task-dot .atlas-icon,
+.home-task:focus-visible .home-task-dot .atlas-icon {
+  opacity: 1;
+  transform: scale(1) rotate(0);
+}
+
+.home-toast {
+  right: auto;
+  left: 50%;
+  width: min(calc(100vw - (var(--space-4) * 2)), 520px);
+  margin-inline: 0;
+  transform: translateX(-50%);
+}
+
+.home-toast button {
+  display: grid;
+  min-width: 64px;
+  min-height: 36px;
+  place-items: center;
+}
+
+@media (max-width: 619px) {
+  .week-content-switch {
+    margin: -28px auto 30px;
+  }
+}
+
 .personal-planner-card {
   padding: var(--space-4);
   border: 1px solid var(--line);

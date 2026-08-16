@@ -128,7 +128,7 @@ export default {
       pendingTaskUndo = { ...task };
       feedback = { message: `“${task.title}” is complete.`, action: 'undo-task' };
       window.clearTimeout(feedbackTimer);
-      feedbackTimer = window.setTimeout(() => { pendingTaskUndo = null; feedback = null; router.render(); }, 8000);
+      feedbackTimer = window.setTimeout(() => { pendingTaskUndo = null; feedback = null; router.render(); }, 6000);
       const latest = Store.get();
       const tasks = saveTasks(latest.tasks.map((item) => item.id === task.id ? { ...item, completed: true } : item));
       Store.set(withAutoSave(latest, { tasks }));
