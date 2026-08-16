@@ -22,6 +22,7 @@ import { saveNotes } from '../services/notes.js';
 import { saveExams } from '../services/exams.js';
 import { disableAutoSave, withAutoSave } from '../services/autosave.js';
 import { closeOverlay } from '../utils/animations.js';
+import Icon from '../components/icon.js';
 
 let selectedFile = null;
 let previewUrl = '';
@@ -74,8 +75,8 @@ function replacementWarning() {
 function filePicker() {
   return `
     ${selectedFile ? '' : `
-      <button class="upload-zone" id="open-image-source-picker" type="button">
-        <span class="upload-ring" aria-hidden="true"></span>
+      <button class="atlas-card upload-zone" id="open-image-source-picker" type="button">
+        <span class="upload-ring" aria-hidden="true">${Icon('import')}</span>
         <strong>Choose image source</strong>
         <span>PNG, JPG, a camera photo, or paste an image</span>
       </button>`}
@@ -108,18 +109,18 @@ function imageSourcePicker() {
   if (!imageSourcePickerOpen) return '';
   return `
     <div class="image-source-screen" id="image-source-screen" role="dialog" aria-modal="true" aria-labelledby="image-source-title">
-      <div class="image-source-card">
+      <div class="atlas-card image-source-card">
         <p class="eyebrow">Schedule image</p>
         <h2 id="image-source-title">Where is your image?</h2>
         <p>Choose an existing screenshot or take a new photo of your schedule.</p>
         <div class="image-source-actions">
           <label class="image-source-option" for="schedule-image-library">
-            <span aria-hidden="true">▧</span>
+            ${Icon('import')}
             <strong>Photo library / Files</strong>
             <small>Choose an image already on this phone</small>
           </label>
           <label class="image-source-option" for="schedule-image-camera">
-            <span aria-hidden="true">○</span>
+            ${Icon('plus')}
             <strong>Take a photo</strong>
             <small>Open the camera</small>
           </label>
@@ -139,7 +140,7 @@ function reviewRow(item, index) {
   const uncertain = new Set(item.uncertainFields || []);
   const uncertainLabel = (field) => uncertain.has(field) ? '<span class="field-confidence" title="Low OCR confidence">Check this</span>' : '';
   return `
-    <article class="review-row review-card ${uncertain.size ? 'has-uncertain-fields' : ''}" data-review-row="${index}">
+    <article class="atlas-card review-row review-card ${uncertain.size ? 'has-uncertain-fields' : ''}" data-review-row="${index}">
       <div class="review-row-heading">
         <span>Class ${index + 1}</span>
         ${draft.classes.length > 1 ? `<button class="remove-class" type="button" data-remove-class="${index}">Remove</button>` : ''}
@@ -213,7 +214,7 @@ function savedSchedulesPanel(state) {
   const archives = state.archives || [];
   const directory = archives.length
     ? `<div class="schedule-archive-list">${archives.map((entry) => `
-        <article class="schedule-archive-card">
+        <article class="atlas-card schedule-archive-card">
           <div>
             <strong>${escapeHtml(entry.name)}</strong>
             <span>${escapeHtml(entry.schedule.course || 'Course not set')} · ${escapeHtml(entry.schedule.yearLevel || 'Year not set')} · ${escapeHtml(entry.schedule.semester || 'Semester not set')}</span>

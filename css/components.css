@@ -5486,3 +5486,223 @@ html[data-focus-mode='true'] .route-home .attention-rail { display: none; }
   .today-next > span { grid-row: auto; }
   .today-timeline-item { grid-template-columns: 52px minmax(0, 1fr) auto; }
 }
+
+/* System rollout: Schedule, Import, and account overlays share one surface language. */
+.week-content-switch,
+.settings-pill {
+  padding: var(--space-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+}
+
+.week-content-switch button,
+.settings-pill button {
+  min-height: 36px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+}
+
+.route-schedule .day-section > .path-heading,
+.route-import .path-section > .path-heading {
+  margin-bottom: var(--space-3);
+}
+
+.route-schedule .day-section > .eyebrow,
+.route-import .path-section > .eyebrow {
+  margin-bottom: var(--space-4);
+  font-size: var(--text-xs);
+}
+
+.weekly-card-grid,
+.week-class-group,
+.week-personal-group {
+  gap: var(--space-3);
+}
+
+.personal-planner-card {
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: 0 12px 36px rgba(122, 158, 135, .035);
+}
+
+.personal-note-row,
+.personal-note-open,
+.personal-note-delete {
+  border-radius: var(--radius-control);
+}
+
+.personal-note-open .atlas-icon,
+.personal-note-delete .atlas-icon,
+.schedule-print-action .atlas-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.week-tools-grid .path-section {
+  padding: var(--space-6);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: 0 12px 36px rgba(122, 158, 135, .035);
+}
+
+.week-tools-grid .path-section::before,
+.week-tools-grid .path-heading { display: none; }
+.week-tools-grid .path-section > .eyebrow { margin-bottom: var(--space-4); }
+
+.route-import .upload-zone.atlas-card {
+  min-height: 220px;
+  padding: var(--space-8) var(--space-6);
+  border: 1px dashed color-mix(in srgb, var(--primary) 58%, var(--line));
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--surface) 94%, var(--primary));
+  box-shadow: 0 14px 44px rgba(122, 158, 135, .045);
+}
+
+.upload-ring {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-control);
+  color: var(--primary-light);
+}
+
+.upload-ring .atlas-icon { width: 21px; height: 21px; }
+.image-actions { gap: var(--space-2); flex-wrap: wrap; }
+
+.review-row.atlas-card,
+.schedule-archive-card.atlas-card {
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: none;
+}
+
+.review-grid { gap: var(--space-3); }
+.review-field { gap: var(--space-2); font-size: var(--text-xs); }
+.review-field input,
+.review-field select,
+.saved-course-form input,
+.saved-course-form select {
+  min-height: 42px;
+  padding: var(--space-3);
+  border-radius: var(--radius-control);
+}
+
+.review-progress-track,
+.progress-track { overflow: hidden; border-radius: var(--radius-pill); }
+.review-navigation { gap: var(--space-3); }
+
+.archive-control-grid { gap: var(--space-3); }
+.archive-control,
+.archive-directory-panel {
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.schedule-archive-card .schedule-archive-actions button {
+  border-radius: var(--radius-control);
+}
+
+.image-source-card.atlas-card,
+.settings-panel.atlas-card,
+.profile-panel.atlas-card,
+.sync-review-card.atlas-card {
+  padding: var(--space-6);
+  border: 1px solid color-mix(in srgb, var(--primary) 42%, var(--line));
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: 0 24px 72px rgba(122, 158, 135, .09);
+}
+
+.image-source-option {
+  padding: var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
+}
+
+.image-source-option > .atlas-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--primary-light);
+}
+
+.settings-header,
+.sync-review-heading {
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.settings-close {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-control);
+}
+
+.settings-section {
+  gap: var(--space-3);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+
+.settings-section:last-child { border-bottom: 0; }
+.settings-section-copy { gap: var(--space-1); }
+.settings-section-copy strong,
+.notification-settings-heading strong { font-size: var(--text-sm); }
+.settings-section-copy span,
+.notification-settings-heading span,
+.notification-rule-list,
+.notification-limit { font-size: var(--text-xs); line-height: 1.6; }
+
+.settings-panel input,
+.settings-panel select,
+.profile-panel input,
+.profile-panel select,
+.sync-review-card input,
+.sync-review-card select,
+.atlas-color-panel {
+  border-radius: var(--radius-control);
+}
+
+.profile-name-form,
+.profile-theme-form { gap: var(--space-3); }
+.profile-name-form input,
+.profile-theme-name input,
+.profile-color-trigger,
+.saved-theme-choice { border-radius: var(--radius-control); }
+.profile-color-grid { gap: var(--space-2); }
+.profile-color-trigger { padding: var(--space-3); background: var(--surface-2); }
+.profile-color-trigger > span { border-radius: var(--radius-control); }
+
+.sync-review-summary,
+.sync-conflict,
+.sync-change-list {
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
+}
+
+.sync-review-actions { gap: var(--space-3); }
+
+@media (max-width: 619px) {
+  .week-tools-grid .path-section,
+  .image-source-card.atlas-card,
+  .settings-panel.atlas-card,
+  .profile-panel.atlas-card,
+  .sync-review-card.atlas-card { padding: var(--space-4); }
+
+  .route-import .upload-zone.atlas-card { min-height: 190px; padding: var(--space-6) var(--space-4); }
+  .settings-section { align-items: stretch; }
+  .review-navigation { grid-template-columns: 1fr 1fr; }
+}

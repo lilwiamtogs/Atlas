@@ -27,7 +27,7 @@ Anything else:
 
   return `
     <div class="settings-screen" id="settings-screen">
-      <section class="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <section class="atlas-card settings-panel" role="dialog" aria-modal="true" aria-labelledby="settings-title">
         <header class="settings-header">
           <div>
             <p class="eyebrow">Atlas</p>
@@ -89,7 +89,7 @@ Anything else:
             <strong>Schedule import</strong>
             <span>Import a new schedule, replace the current one, or manage saved semester copies.</span>
           </div>
-          <button class="secondary-action" id="settings-open-import" type="button">Open schedule import</button>
+          <button class="secondary-action" id="settings-open-import" type="button">${Icon('import')}<span>Open schedule import</span></button>
         </div>
 
         <div class="settings-section settings-help-tools">
@@ -97,7 +97,7 @@ Anything else:
             <strong>Atlas guide</strong>
             <span>Find quick instructions for tasks, notes, classes, exams, and syncing.</span>
           </div>
-          <button class="secondary-action" id="settings-open-help" type="button">Open help</button>
+          <button class="secondary-action" id="settings-open-help" type="button">${Icon('help')}<span>Open help</span></button>
         </div>
 
         <div class="settings-section settings-install">
@@ -115,7 +115,7 @@ Anything else:
             <strong>Have an idea for Atlas?</strong>
             <span>Send a feature request using a ready-made email template.</span>
           </div>
-          <a class="secondary-action settings-email-link" href="${featureRequestLink}">Request a feature <span aria-hidden="true">↗</span></a>
+          <a class="secondary-action settings-email-link" href="${featureRequestLink}"><span>Request a feature</span>${Icon('arrow-right')}</a>
           <span class="settings-email-address">williamtogonon@gmail.com</span>
         </div>
       </section>

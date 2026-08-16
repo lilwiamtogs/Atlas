@@ -8,6 +8,7 @@ import { escapeHtml } from '../utils/html.js';
 import { DAY_NAMES, getClassState, minutesFromTime } from '../utils/time.js';
 import { transitionAddConfirmation, transitionClassDisclosure, transitionStrikeRemoval, transitionTaskRow } from '../utils/animations.js';
 import { withAutoSave } from '../services/autosave.js';
+import Icon from '../components/icon.js';
 
 let noteMessage = '';
 let weekMessage = '';
@@ -223,12 +224,12 @@ function personalDayPlanner(day, tasks, notes, now) {
       <div class="personal-plans-heading"><span>Notes</span><span>${dayNotes.length}</span></div>
       ${dayNotes.map((note) => `
         <article class="personal-note-row">
-          <button class="personal-note-open" data-open-personal-note="${escapeHtml(note.id)}" data-personal-day="${day}" type="button"><span>${note.mimeType === 'application/pdf' ? 'PDF' : 'TXT'}</span><strong>${escapeHtml(note.name)}</strong><i aria-hidden="true">→</i></button>
-          <button class="personal-note-delete" data-delete-personal-note="${escapeHtml(note.id)}" type="button" aria-label="Remove ${escapeHtml(note.name)}">×</button>
+          <button class="personal-note-open" data-open-personal-note="${escapeHtml(note.id)}" data-personal-day="${day}" type="button"><span>${note.mimeType === 'application/pdf' ? 'PDF' : 'TXT'}</span><strong>${escapeHtml(note.name)}</strong>${Icon('arrow-right')}</button>
+          <button class="personal-note-delete" data-delete-personal-note="${escapeHtml(note.id)}" type="button" aria-label="Remove ${escapeHtml(note.name)}">${Icon('trash')}</button>
         </article>`).join('')}
     </div>` : '';
   return `
-    <article class="personal-planner-card">
+    <article class="atlas-card personal-planner-card">
       <div class="personal-planner-title">
         <div><p class="class-code">Personal</p><h3>Plans for ${DAY_NAMES[day]}</h3></div>
         <span>${dayTasks.length + dayNotes.length}</span>
@@ -312,7 +313,7 @@ export default {
         ${PathSection('Keep a note', addNotePanel(classes), { className: 'add-note-section' })}
       </div>
       <div class="schedule-print-action">
-        <button class="secondary-action" id="print-schedule" type="button"><span>Print schedule</span><span aria-hidden="true">↗</span></button>
+        <button class="secondary-action" id="print-schedule" type="button"><span>Print schedule</span>${Icon('arrow-right')}</button>
       </div>`;
   },
 
