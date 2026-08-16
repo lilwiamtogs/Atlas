@@ -1,5 +1,5 @@
 import { escapeHtml } from '../utils/html.js';
-import { getPendingSyncReview } from '../sync/sync.js?v=5';
+import { getPendingSyncReview } from '../sync/sync.js';
 import { BUILT_IN_THEMES } from '../services/personalization.js';
 
 const syncLabels = { ready: 'Ready to sync', checking: 'Checking', review: 'Review needed', syncing: 'Syncing', synced: 'Synced', offline: 'Offline', error: 'Sync error', disabled: 'Cloud sync off' };

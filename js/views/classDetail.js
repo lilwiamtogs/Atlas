@@ -1,14 +1,14 @@
 import PathSection from '../components/pathSection.js';
 import Store from '../store.js';
 import { createTask, daysUntil, saveTasks, sortTasks, urgencyFor } from '../services/tasks.js';
-import { createNote, readNoteFile, saveNotes } from '../services/notes.js?v=37';
+import { createNote, readNoteFile, saveNotes } from '../services/notes.js';
 import { escapeHtml } from '../utils/html.js';
 import { DAY_NAMES, formatTime } from '../utils/time.js';
-import { closeOverlay, transitionAddConfirmation, transitionStrikeRemoval, transitionTaskRow } from '../utils/animations.js?v=9';
+import { closeOverlay, transitionAddConfirmation, transitionStrikeRemoval, transitionTaskRow } from '../utils/animations.js';
 import { createExam, saveExams } from '../services/exams.js';
 import { saveImportedSchedule } from '../services/schedule.js';
 import { withAutoSave } from '../services/autosave.js';
-import { extractPdfPages } from '../services/pdfText.js?v=38';
+import { extractPdfPages } from '../services/pdfText.js';
 
 let noteMessage = '';
 let pendingDeleteNoteId = '';

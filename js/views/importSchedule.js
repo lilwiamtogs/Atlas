@@ -2,9 +2,9 @@ import PathSection from '../components/pathSection.js';
 import Store from '../store.js';
 import { escapeHtml } from '../utils/html.js';
 import { DAY_NAMES } from '../utils/time.js';
-import { prepareScheduleImageFile, scanScheduleImage } from '../services/ocr.js?v=42';
-import { scanScheduleWithAi } from '../services/aiSchedule.js?v=5';
-import { parseScheduleText } from '../services/scheduleParser.js?v=47';
+import { prepareScheduleImageFile, scanScheduleImage } from '../services/ocr.js';
+import { scanScheduleWithAi } from '../services/aiSchedule.js';
+import { parseScheduleText } from '../services/scheduleParser.js';
 import { applyLearnedOcrCorrections, learnOcrCorrections } from '../services/ocrCorrections.js';
 import {
   loadSchedule,
@@ -18,10 +18,10 @@ import {
   saveArchives,
 } from '../services/scheduleArchives.js';
 import { saveTasks } from '../services/tasks.js';
-import { saveNotes } from '../services/notes.js?v=37';
+import { saveNotes } from '../services/notes.js';
 import { saveExams } from '../services/exams.js';
 import { disableAutoSave, withAutoSave } from '../services/autosave.js';
-import { closeOverlay } from '../utils/animations.js?v=4';
+import { closeOverlay } from '../utils/animations.js';
 
 let selectedFile = null;
 let previewUrl = '';

@@ -1,5 +1,5 @@
 import { loadTasks } from './services/tasks.js';
-import { loadNotes } from './services/notes.js?v=37';
+import { loadNotes } from './services/notes.js';
 import { loadArchives } from './services/scheduleArchives.js';
 import { loadExams } from './services/exams.js';
 import { loadNotificationSettings } from './services/notifications.js';

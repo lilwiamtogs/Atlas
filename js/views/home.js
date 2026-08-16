@@ -1,14 +1,14 @@
 import PathSection from '../components/pathSection.js';
-import ClassItem from '../components/classItem.js?v=3';
+import ClassItem from '../components/classItem.js';
 import { escapeHtml } from '../utils/html.js';
 import { daysUntil, saveTasks, sortTasks, urgencyFor } from '../services/tasks.js';
 import { DAY_NAMES, formatDate, formatTime, getClassState, minutesFromTime } from '../utils/time.js';
 import Store from '../store.js';
 import { createExam, saveExams } from '../services/exams.js';
-import { closeOverlay, openOverlay, transitionClassDisclosure, transitionTaskRow } from '../utils/animations.js?v=9';
+import { closeOverlay, openOverlay, transitionClassDisclosure, transitionTaskRow } from '../utils/animations.js';
 import { withAutoSave } from '../services/autosave.js';
-import enhanceDatePickers from '../components/datePicker.js?v=3';
-import enhanceTimePickers from '../components/timePicker.js?v=2';
+import enhanceDatePickers from '../components/datePicker.js';
+import enhanceTimePickers from '../components/timePicker.js';
 
 let examMessage = '';
 let homeMessage = '';

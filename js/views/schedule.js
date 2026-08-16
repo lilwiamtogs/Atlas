@@ -1,12 +1,12 @@
 import PathSection from '../components/pathSection.js';
-import ClassItem from '../components/classItem.js?v=3';
-import TaskList from '../components/taskList.js?v=3';
+import ClassItem from '../components/classItem.js';
+import TaskList from '../components/taskList.js';
 import Store from '../store.js';
 import { createTask, daysUntil, saveTasks, sortTasks } from '../services/tasks.js';
-import { createNote, readNoteFile, saveNotes } from '../services/notes.js?v=37';
+import { createNote, readNoteFile, saveNotes } from '../services/notes.js';
 import { escapeHtml } from '../utils/html.js';
 import { DAY_NAMES, getClassState, minutesFromTime } from '../utils/time.js';
-import { transitionAddConfirmation, transitionClassDisclosure, transitionStrikeRemoval, transitionTaskRow } from '../utils/animations.js?v=9';
+import { transitionAddConfirmation, transitionClassDisclosure, transitionStrikeRemoval, transitionTaskRow } from '../utils/animations.js';
 import { withAutoSave } from '../services/autosave.js';
 
 let noteMessage = '';

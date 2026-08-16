@@ -1,25 +1,25 @@
-import Home from './views/home.js?v=62';
-import Schedule from './views/schedule.js?v=79';
-import ImportSchedule from './views/importSchedule.js?v=69';
-import ClassDetail from './views/classDetail.js?v=57';
-import Navbar from './components/navbar.js?v=3';
+import Home from './views/home.js';
+import Schedule from './views/schedule.js';
+import ImportSchedule from './views/importSchedule.js';
+import ClassDetail from './views/classDetail.js';
+import Navbar from './components/navbar.js';
 import DeveloperTools from './components/developerTools.js';
-import ThemeToggle from './components/themeToggle.js?v=2';
+import ThemeToggle from './components/themeToggle.js';
 import InstallButton from './components/installButton.js';
-import SettingsPanel from './components/settingsPanel.js?v=10';
-import ProfilePanel, { SyncReviewPanel } from './components/profilePanel.js?v=10';
+import SettingsPanel from './components/settingsPanel.js';
+import ProfilePanel, { SyncReviewPanel } from './components/profilePanel.js';
 import Store from './store.js';
 import { requestNotificationAccess, saveNotificationSettings } from './services/notifications.js';
 import { disableAutoSave, enableAutoSave } from './services/autosave.js';
 import { formatClock, getNow, minutesFromTime } from './utils/time.js';
-import enhanceSelects from './components/selectEnhancer.js?v=43';
-import enhanceDatePickers from './components/datePicker.js?v=3';
-import enhanceTimePickers from './components/timePicker.js?v=2';
-import Atmosphere from './components/atmosphere.js?v=6';
-import HelpPanel, { helpTopics } from './components/helpPanel.js?v=4';
-import { showFirstOpenTutorial } from './components/onboarding.js?v=38';
-import { closeOverlay, openOverlay } from './utils/animations.js?v=9';
-import { applyPersonalization, savePersonalization } from './services/personalization.js?v=2';
+import enhanceSelects from './components/selectEnhancer.js';
+import enhanceDatePickers from './components/datePicker.js';
+import enhanceTimePickers from './components/timePicker.js';
+import Atmosphere from './components/atmosphere.js';
+import HelpPanel, { helpTopics } from './components/helpPanel.js';
+import { showFirstOpenTutorial } from './components/onboarding.js';
+import { closeOverlay, openOverlay } from './utils/animations.js';
+import { applyPersonalization, savePersonalization } from './services/personalization.js';
 
 const routes = { home: Home, schedule: Schedule, import: ImportSchedule, class: ClassDetail };
 let transitioning = false;
@@ -504,7 +504,7 @@ const Router = {
       suppressPageAnimation = true;
       try {
         const data = new FormData(event.currentTarget);
-        const { requestSignIn } = await import('./cloud/auth.js?v=2');
+        const { requestSignIn } = await import('./cloud/auth.js');
         await requestSignIn(String(data.get('email') || '').trim());
       } catch (error) {
         Store.set({ account: { ...Store.get().account, error: error.message, message: '' } });
@@ -513,7 +513,7 @@ const Router = {
     document.getElementById('google-sign-in')?.addEventListener('click', async () => {
       suppressPageAnimation = true;
       try {
-        const { requestGoogleSignIn } = await import('./cloud/auth.js?v=2');
+        const { requestGoogleSignIn } = await import('./cloud/auth.js');
         await requestGoogleSignIn();
       } catch (error) {
         Store.set({ account: { ...Store.get().account, error: error.message, message: '' } });
@@ -528,7 +528,7 @@ const Router = {
     document.getElementById('sign-out-atlas')?.addEventListener('click', async () => {
       suppressPageAnimation = true;
       try {
-        const { signOut } = await import('./cloud/auth.js?v=2');
+        const { signOut } = await import('./cloud/auth.js');
         await signOut();
         window.location.reload();
       } catch (error) {
@@ -540,7 +540,7 @@ const Router = {
       suppressPageAnimation = true;
       try {
         const data = new FormData(event.currentTarget);
-        const { updateDisplayName } = await import('./cloud/auth.js?v=2');
+        const { updateDisplayName } = await import('./cloud/auth.js');
         await updateDisplayName(data.get('displayName'));
       } catch (error) {
         Store.set({ account: { ...Store.get().account, error: error.message, message: '' } });
@@ -612,7 +612,7 @@ const Router = {
     document.getElementById('sync-atlas-now')?.addEventListener('click', async () => {
       suppressPageAnimation = true;
       try {
-        const { checkSyncNow } = await import('./sync/sync.js?v=5');
+        const { checkSyncNow } = await import('./sync/sync.js');
         await checkSyncNow();
         this.render();
       } catch (error) {
@@ -621,7 +621,7 @@ const Router = {
     });
     const cancelSyncReview = async () => {
       await closeOverlay(document.getElementById('sync-review-screen'));
-      const { cancelSyncReview } = await import('./sync/sync.js?v=5');
+      const { cancelSyncReview } = await import('./sync/sync.js');
       cancelSyncReview();
       syncReviewOpen = false;
       this.render();
@@ -630,7 +630,7 @@ const Router = {
     document.querySelector('[data-cancel-sync-review]')?.addEventListener('click', cancelSyncReview);
     document.getElementById('confirm-safe-sync')?.addEventListener('click', async () => {
       try {
-        const { confirmSyncReview } = await import('./sync/sync.js?v=5');
+        const { confirmSyncReview } = await import('./sync/sync.js');
         await closeOverlay(document.getElementById('sync-review-screen'));
         syncReviewOpen = false;
         await confirmSyncReview();
@@ -645,7 +645,7 @@ const Router = {
       const choices = {};
       new FormData(event.currentTarget).forEach((value, key) => { choices[key.replace('conflict-', '')] = value; });
       try {
-        const { confirmSyncReview } = await import('./sync/sync.js?v=5');
+        const { confirmSyncReview } = await import('./sync/sync.js');
         await closeOverlay(document.getElementById('sync-review-screen'));
         syncReviewOpen = false;
         await confirmSyncReview(choices);

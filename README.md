@@ -30,7 +30,16 @@ If the private scan cannot identify enough rows, Atlas offers an optional AI sca
 
 ## Run Atlas
 
-Serve this folder through VS Code Live Server or another local static server, then open `index.html` through that server. Browsers block JSON loading when the file is opened directly with a `file://` address; Atlas will show a clear error instead of a blank screen in that case.
+Install dependencies once, then create the production-ready app:
+
+```sh
+npm install
+npm run build
+```
+
+Serve the generated `dist/` folder through VS Code Live Server or another static server. The build automatically bundles Atlas into content-hashed JavaScript and CSS files and generates the service worker's complete offline precache from those files. Do not deploy the source folder directly.
+
+For quick source-level development, this folder can still be served directly. Browsers block JSON loading when the app is opened with a `file://` address; Atlas will show a clear error instead of a blank screen in that case.
 
 ## Install Atlas
 

@@ -1,11 +1,11 @@
 import Store from '../store.js';
 import { saveImportedSchedule } from '../services/schedule.js';
 import { saveTasks } from '../services/tasks.js';
-import { saveNotes } from '../services/notes.js?v=37';
+import { saveNotes } from '../services/notes.js';
 import { saveExams } from '../services/exams.js';
 import { saveArchives } from '../services/scheduleArchives.js';
 import { loadTasks } from '../services/tasks.js';
-import { loadNotes } from '../services/notes.js?v=37';
+import { loadNotes } from '../services/notes.js';
 import { loadExams } from '../services/exams.js';
 import { loadArchives } from '../services/scheduleArchives.js';
 import { loadPersonalization, savePersonalization } from '../services/personalization.js';

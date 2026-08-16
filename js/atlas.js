@@ -1,9 +1,9 @@
-import Router from './router.js?v=152';
+import Router from './router.js';
 import Store from './store.js';
 import { loadSchedule, scheduleSource } from './services/schedule.js';
-import { hideWelcomeScreen, showWelcomeScreen } from './components/welcomeScreen.js?v=47';
+import { hideWelcomeScreen, showWelcomeScreen } from './components/welcomeScreen.js';
 import { checkReminders } from './services/notifications.js';
-import { initializeAuth } from './cloud/auth.js?v=2';
+import { initializeAuth } from './cloud/auth.js';
 
 let renderedMinute = -1;
 
@@ -34,7 +34,7 @@ export default {
     }
 
     await authReady;
-    import('./sync/sync.js?v=5')
+    import('./sync/sync.js')
       .then(({ startAutomaticSync }) => startAutomaticSync())
       .catch((error) => console.error('Atlas automatic sync setup failed.', error));
 
