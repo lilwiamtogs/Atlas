@@ -62,3 +62,13 @@ export function createExam({ classId, title, examType, subject, date }) {
     createdAt: new Date().toISOString(),
   });
 }
+
+export function updateExam(exam, { classId, examType, subject, date }) {
+  return normalizeExam({
+    ...exam,
+    classId,
+    title: examTitle(examType, subject),
+    examType,
+    date,
+  });
+}

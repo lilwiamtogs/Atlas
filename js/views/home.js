@@ -5,11 +5,12 @@ import { escapeHtml } from '../utils/html.js';
 import { daysUntil, saveTasks, sortTasks, urgencyFor } from '../services/tasks.js';
 import { DAY_NAMES, formatDate, formatTime, getClassState, minutesFromTime } from '../utils/time.js';
 import Store from '../store.js';
-import { createExam, examLabel, EXAM_TYPES, saveExams } from '../services/exams.js';
+import { createExam, examLabel, EXAM_TYPES, saveExams, updateExam } from '../services/exams.js';
 import { transitionStrikeRemoval, transitionTaskRow } from '../utils/animations.js';
 import { withAutoSave } from '../services/autosave.js';
 
 let examMessage = '';
+let editingExamId = '';
 let feedback = null;
 let pendingTaskUndo = null;
 let feedbackTimer = 0;
@@ -102,7 +103,8 @@ function upcomingExams(exams, classes, now) {
     const subject = classes.find((item) => item.id === exam.classId);
     const days = daysUntil(exam.date, now);
     const label = examLabel(exam, subject);
-    return `<article class="home-exam"><span class="home-exam-date"><strong>${exam.date.slice(8, 10)}</strong><small>${new Date(`${exam.date}T00:00:00`).toLocaleDateString(undefined, { month: 'short' })}</small></span><span class="home-exam-copy"><strong>${escapeHtml(label)}</strong><small>${escapeHtml(subject?.code || 'Class')} · ${days === 0 ? 'Today' : `${days}d away`}</small></span><button class="home-exam-remove" type="button" data-delete-home-exam="${escapeHtml(exam.id)}" aria-label="Remove ${escapeHtml(label)}">${Icon('trash')}</button></article>`;
+    const editor = editingExamId === exam.id ? `<form class="home-exam-edit" data-edit-home-exam-form="${escapeHtml(exam.id)}"><label>Exam type<select name="examType" required>${EXAM_TYPES.map((type) => `<option value="${type}" ${type === exam.examType ? 'selected' : ''}>${type}</option>`).join('')}</select></label><label>Subject<select name="classId" required>${classes.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === exam.classId ? 'selected' : ''}>${escapeHtml(item.code)} · ${escapeHtml(item.title)}</option>`).join('')}</select></label><label>Date<input name="date" type="date" value="${escapeHtml(exam.date)}" required></label><div class="home-exam-edit-actions"><button class="primary-action" type="submit">Save</button><button class="secondary-action" type="button" data-cancel-home-exam-edit>Cancel</button></div></form>` : '';
+    return `<article class="home-exam ${editingExamId === exam.id ? 'is-editing' : ''}"><span class="home-exam-date"><strong>${exam.date.slice(8, 10)}</strong><small>${new Date(`${exam.date}T00:00:00`).toLocaleDateString(undefined, { month: 'short' })}</small></span><span class="home-exam-copy"><strong>${escapeHtml(label)}</strong><small>${escapeHtml(subject?.code || 'Class')} · ${days === 0 ? 'Today' : `${days}d away`}</small></span><span class="home-exam-actions"><button class="home-exam-edit-button" type="button" data-edit-home-exam="${escapeHtml(exam.id)}" aria-label="Edit ${escapeHtml(label)}">${Icon('edit')}</button><button class="home-exam-remove" type="button" data-delete-home-exam="${escapeHtml(exam.id)}" aria-label="Remove ${escapeHtml(label)}">${Icon('trash')}</button></span>${editor}</article>`;
   }).join('')}</div>`;
 }
 
@@ -265,6 +267,33 @@ export default {
         const exams = saveExams((Store.get().exams || []).filter((exam) => exam.id !== button.dataset.deleteHomeExam));
         Store.set({ exams });
       });
+    });
+    document.querySelectorAll('[data-edit-home-exam]').forEach((button) => {
+      button.addEventListener('click', () => {
+        editingExamId = button.dataset.editHomeExam;
+        router.render();
+      });
+    });
+    document.querySelector('[data-cancel-home-exam-edit]')?.addEventListener('click', () => {
+      editingExamId = '';
+      router.render();
+    });
+    document.querySelector('[data-edit-home-exam-form]')?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      try {
+        const data = new FormData(event.currentTarget);
+        const current = (Store.get().exams || []).find((exam) => exam.id === event.currentTarget.dataset.editHomeExamForm);
+        const subject = Store.get().schedule.classes.find((item) => item.id === data.get('classId'));
+        if (!current || !subject) throw new Error('Choose a valid exam and subject.');
+        const updated = updateExam(current, { classId: data.get('classId'), examType: data.get('examType'), subject, date: data.get('date') });
+        editingExamId = '';
+        feedback = makeFeedback(`${updated.title} was updated.`, 'week', UNDO_FEEDBACK_DURATION);
+        dismissFeedbackAfter(router, UNDO_FEEDBACK_DURATION);
+        Store.set({ exams: saveExams((Store.get().exams || []).map((exam) => exam.id === updated.id ? updated : exam)) });
+      } catch (error) {
+        examMessage = error.message;
+        router.render();
+      }
     });
     document.getElementById('home-add-exam-form')?.addEventListener('submit', (event) => {
       event.preventDefault();
