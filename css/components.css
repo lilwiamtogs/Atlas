@@ -1239,19 +1239,19 @@
 .exam-date small,
 .home-exam-date small,
 .exam-copy small,
-.home-exam > span:last-child small {
+.home-exam-copy small {
   color: var(--text-muted);
   font-size: 0.55rem;
 }
 
 .exam-copy,
-.home-exam > span:last-child {
+.home-exam-copy {
   display: grid;
   gap: 4px;
 }
 
 .exam-copy > strong,
-.home-exam > span:last-child > strong {
+.home-exam-copy > strong {
   font-size: 0.69rem;
   line-height: 1.45;
 }
@@ -5452,11 +5452,15 @@ html[data-focus-mode='true'] .route-home .no-exams { display: none; }
 .home-task-copy span { overflow: hidden; color: var(--text-muted); font-size: .625rem; text-overflow: ellipsis; white-space: nowrap; }
 .home-task-days { padding: var(--space-1) var(--space-2); border: 1px solid color-mix(in srgb, var(--warning) 60%, var(--line)); border-radius: var(--radius-pill); color: var(--warning); font-size: .625rem; white-space: nowrap; }
 
-.home-exam { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-3); align-items: center; padding: var(--space-3) 0; border: 0; border-bottom: 1px solid var(--line); background: transparent; }
+.home-exam { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-3); align-items: center; padding: var(--space-3) 0; border: 0; border-bottom: 1px solid var(--line); background: transparent; }
 .home-exam-date { display: grid; width: 42px; height: 42px; place-content: center; border: 1px solid color-mix(in srgb, var(--warning) 64%, var(--line)); border-radius: var(--radius-control); text-align: center; }
 .home-exam-date strong { font-size: var(--text-md); }
-.home-exam > span:last-child { min-width: 0; }
-.home-exam > span:last-child > strong { overflow: hidden; font-size: var(--text-xs); text-overflow: ellipsis; white-space: nowrap; }
+.home-exam-copy { min-width: 0; }
+.home-exam-copy > strong { overflow: hidden; font-size: var(--text-xs); text-overflow: ellipsis; white-space: nowrap; }
+.home-exam-remove { display: grid; width: 34px; height: 34px; place-items: center; padding: 0; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--text-muted); transition: color 160ms ease, background-color 160ms ease, transform 160ms var(--motion); }
+.home-exam-remove:hover,
+.home-exam-remove:focus-visible { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); transform: scale(1.04); }
+.home-exam-remove .atlas-icon { width: 16px; height: 16px; }
 
 .exam-composer { margin-top: var(--space-3); }
 .exam-composer > summary { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) 0; color: var(--primary-light); font-size: var(--text-xs); cursor: pointer; list-style: none; }

@@ -6,7 +6,7 @@ import { daysUntil, saveTasks, sortTasks, urgencyFor } from '../services/tasks.j
 import { DAY_NAMES, formatDate, formatTime, getClassState, minutesFromTime } from '../utils/time.js';
 import Store from '../store.js';
 import { createExam, EXAM_TYPES, saveExams } from '../services/exams.js';
-import { transitionTaskRow } from '../utils/animations.js';
+import { transitionStrikeRemoval, transitionTaskRow } from '../utils/animations.js';
 import { withAutoSave } from '../services/autosave.js';
 
 let examMessage = '';
@@ -101,7 +101,7 @@ function upcomingExams(exams, classes, now) {
   return `<div class="home-exam-list">${items.map((exam) => {
     const subject = classes.find((item) => item.id === exam.classId);
     const days = daysUntil(exam.date, now);
-    return `<article class="home-exam"><span class="home-exam-date"><strong>${exam.date.slice(8, 10)}</strong><small>${new Date(`${exam.date}T00:00:00`).toLocaleDateString(undefined, { month: 'short' })}</small></span><span><strong>${escapeHtml(exam.title)}</strong><small>${escapeHtml(subject?.code || 'Class')} · ${days === 0 ? 'Today' : `${days}d away`}</small></span></article>`;
+    return `<article class="home-exam"><span class="home-exam-date"><strong>${exam.date.slice(8, 10)}</strong><small>${new Date(`${exam.date}T00:00:00`).toLocaleDateString(undefined, { month: 'short' })}</small></span><span class="home-exam-copy"><strong>${escapeHtml(exam.title)}</strong><small>${escapeHtml(subject?.code || 'Class')} · ${days === 0 ? 'Today' : `${days}d away`}</small></span><button class="home-exam-remove" type="button" data-delete-home-exam="${escapeHtml(exam.id)}" aria-label="Remove ${escapeHtml(exam.title)}">${Icon('trash')}</button></article>`;
   }).join('')}</div>`;
 }
 
@@ -257,6 +257,13 @@ export default {
     });
     document.querySelectorAll('[data-open-class]').forEach((button) => {
       button.addEventListener('click', () => router.go(`class/${encodeURIComponent(button.dataset.openClass)}`));
+    });
+    document.querySelectorAll('[data-delete-home-exam]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        await transitionStrikeRemoval(button.closest('.home-exam'));
+        const exams = saveExams((Store.get().exams || []).filter((exam) => exam.id !== button.dataset.deleteHomeExam));
+        Store.set({ exams });
+      });
     });
     document.getElementById('home-add-exam-form')?.addEventListener('submit', (event) => {
       event.preventDefault();
