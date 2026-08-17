@@ -202,6 +202,12 @@ const Router = {
         suppressNextStoreRender = false;
         return;
       }
+      const syncStatusOnly = changedKeys.length && changedKeys.every((key) => key === 'syncStatus');
+      if (syncStatusOnly && !profileOpen && !syncReviewOpen) {
+        const profileButton = document.querySelector('.mobile-profile-button');
+        if (profileButton) profileButton.className = `mobile-profile-button is-${state.syncStatus?.state || 'disabled'}`;
+        return;
+      }
       const backgroundAccountUpdate = changedKeys.length && changedKeys.every((key) => key === 'syncStatus' || key === 'account');
       if (backgroundAccountUpdate && (settingsOpen || profileOpen || helpOpen || hasOpenTransientUI())) return;
       this.render();

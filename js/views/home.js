@@ -13,6 +13,9 @@ let examMessage = '';
 let feedback = null;
 let pendingTaskUndo = null;
 let feedbackTimer = 0;
+let feedbackClearTimer = 0;
+let feedbackSequence = 0;
+let renderedFeedbackId = 0;
 const TASK_FEEDBACK_DURATION = 3200;
 const UNDO_FEEDBACK_DURATION = 2400;
 
@@ -109,11 +112,64 @@ function addExamForm(classes) {
 
 function dismissFeedbackAfter(router, duration, clearUndo = false) {
   window.clearTimeout(feedbackTimer);
+  window.clearTimeout(feedbackClearTimer);
   feedbackTimer = window.setTimeout(() => {
-    if (clearUndo) pendingTaskUndo = null;
-    feedback = null;
-    router.render();
-  }, duration);
+    document.querySelector('.home-toast')?.classList.add('is-leaving');
+    feedbackClearTimer = window.setTimeout(() => {
+      if (clearUndo) pendingTaskUndo = null;
+      feedback = null;
+      router.render();
+    }, 170);
+  }, Math.max(0, duration - 170));
+}
+
+function makeFeedback(message, action, duration) {
+  return { id: ++feedbackSequence, message, action, duration };
+}
+
+function waitForAnimation(animation, fallback = 160) {
+  if (!animation) return new Promise((resolve) => window.setTimeout(resolve, fallback));
+  return Promise.race([
+    animation.finished.catch(() => {}),
+    new Promise((resolve) => window.setTimeout(resolve, fallback + 40)),
+  ]);
+}
+
+async function transitionFeedbackOut() {
+  const toast = document.querySelector('.home-toast');
+  if (!toast || window.matchMedia('(prefers-reduced-motion: reduce)').matches || typeof toast.animate !== 'function') return;
+  await waitForAnimation(toast.animate(
+    [{ opacity: 1, transform: 'translate(-50%, 0) scale(1)' }, { opacity: 0, transform: 'translate(-50%, 4px) scale(.99)' }],
+    { duration: 140, easing: 'ease-in', fill: 'forwards' },
+  ), 140);
+}
+
+function captureUrgentTaskLayout() {
+  return new Map([...document.querySelectorAll('[data-complete-home-task]')]
+    .map((element) => [element.dataset.completeHomeTask, element.getBoundingClientRect()]));
+}
+
+function animateUrgentTaskRestore(before, restoredId) {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  requestAnimationFrame(() => {
+    document.querySelectorAll('[data-complete-home-task]').forEach((element) => {
+      if (typeof element.animate !== 'function') return;
+      const previous = before.get(element.dataset.completeHomeTask);
+      if (previous) {
+        const current = element.getBoundingClientRect();
+        const deltaY = previous.top - current.top;
+        if (Math.abs(deltaY) > 1) element.animate(
+          [{ transform: `translateY(${deltaY}px)` }, { transform: 'translateY(0)' }],
+          { duration: 260, easing: 'cubic-bezier(.22,1,.36,1)' },
+        );
+      } else if (element.dataset.completeHomeTask === restoredId) {
+        element.animate(
+          [{ opacity: 0, transform: 'translateY(-8px) scale(.98)' }, { opacity: 1, transform: 'translateY(0) scale(1)' }],
+          { duration: 240, easing: 'cubic-bezier(.22,1,.36,1)' },
+        );
+      }
+    });
+  });
 }
 
 function bindExamComposerAnimation() {
@@ -157,7 +213,9 @@ function bindExamComposerAnimation() {
 function feedbackToast() {
   if (!feedback) return '';
   const action = feedback.action === 'undo-task' ? '<button type="button" data-undo-home-task>Undo</button>' : '<button type="button" data-route="schedule">Open Week</button>';
-  return `<div class="home-toast" role="status" style="--toast-life:${feedback.duration || TASK_FEEDBACK_DURATION}ms"><span>${Icon('check')}${escapeHtml(feedback.message)}</span>${action}</div>`;
+  const entering = feedback.id !== renderedFeedbackId;
+  renderedFeedbackId = feedback.id;
+  return `<div class="home-toast ${entering ? 'is-entering' : ''}" role="status"><span>${Icon('check')}${escapeHtml(feedback.message)}</span>${action}</div>`;
 }
 
 export default {
@@ -176,22 +234,26 @@ export default {
       if (!task) return;
       await transitionTaskRow(taskButton, true);
       pendingTaskUndo = { ...task };
-      feedback = { message: `“${task.title}” is complete.`, action: 'undo-task', duration: TASK_FEEDBACK_DURATION };
+      feedback = makeFeedback(`“${task.title}” is complete.`, 'undo-task', TASK_FEEDBACK_DURATION);
       dismissFeedbackAfter(router, TASK_FEEDBACK_DURATION, true);
       const latest = Store.get();
       const tasks = saveTasks(latest.tasks.map((item) => item.id === task.id ? { ...item, completed: true } : item));
       Store.set(withAutoSave(latest, { tasks }));
     }));
-    document.querySelector('[data-undo-home-task]')?.addEventListener('click', () => {
+    document.querySelector('[data-undo-home-task]')?.addEventListener('click', async () => {
       if (!pendingTaskUndo) return;
       window.clearTimeout(feedbackTimer);
+      window.clearTimeout(feedbackClearTimer);
       const task = pendingTaskUndo;
       pendingTaskUndo = null;
-      feedback = { message: `“${task.title}” was restored.`, action: 'week', duration: UNDO_FEEDBACK_DURATION };
+      const taskLayout = captureUrgentTaskLayout();
+      await transitionFeedbackOut();
+      feedback = makeFeedback(`“${task.title}” was restored.`, 'week', UNDO_FEEDBACK_DURATION);
       dismissFeedbackAfter(router, UNDO_FEEDBACK_DURATION);
       const latest = Store.get();
       const tasks = saveTasks(latest.tasks.map((item) => item.id === task.id ? { ...item, completed: false } : item));
       Store.set(withAutoSave(latest, { tasks }));
+      animateUrgentTaskRestore(taskLayout, task.id);
     });
     document.querySelectorAll('[data-open-class]').forEach((button) => {
       button.addEventListener('click', () => router.go(`class/${encodeURIComponent(button.dataset.openClass)}`));
@@ -203,7 +265,7 @@ export default {
         const subject = Store.get().schedule.classes.find((item) => item.id === data.get('classId'));
         const exam = createExam({ classId: data.get('classId'), examType: data.get('examType'), subject, date: data.get('date') });
         examMessage = `${exam.title} was saved.`;
-        feedback = { message: `${exam.title} was added to Tests & exams.`, action: 'week', duration: TASK_FEEDBACK_DURATION };
+        feedback = makeFeedback(`${exam.title} was added to Tests & exams.`, 'week', TASK_FEEDBACK_DURATION);
         dismissFeedbackAfter(router, TASK_FEEDBACK_DURATION);
         Store.set({ exams: saveExams([...(Store.get().exams || []), exam]) });
       } catch (error) {
