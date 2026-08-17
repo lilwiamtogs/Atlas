@@ -290,6 +290,7 @@ const Router = {
 
   render() {
     const app = document.getElementById('app');
+    document.querySelectorAll('body > .home-toast').forEach((toast) => toast.remove());
     const continuity = captureUiContinuity(app);
     const previousRoute = app.querySelector('#main-content')?.className.match(/route-([^\s]+)/)?.[1];
     const previousLayout = previousRoute === this.getRoute() && !shouldAnimatePage
@@ -321,6 +322,9 @@ const Router = {
       helpOpen,
       syncReviewOpen,
     });
+
+    const floatingToast = app.querySelector('.home-toast');
+    if (floatingToast) document.body.append(floatingToast);
 
     app.querySelectorAll('#main-content > .confirm-screen, #main-content > .image-source-screen, #main-content > .note-upload-screen').forEach((overlay) => {
       app.append(overlay);
