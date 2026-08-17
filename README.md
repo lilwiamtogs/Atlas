@@ -10,6 +10,21 @@ Cloud sync includes private PDF restoration with path and SHA-256 validation, a 
 
 PDF notes are stored locally as content-addressed blobs in IndexedDB. Active notes and saved-semester archives reference the same SHA-256 file record, so archiving a semester does not duplicate PDF bytes. Existing inline PDFs migrate automatically and remain recoverable through Atlas's pre-migration backup.
 
+## Configure cloud sync
+
+Atlas's publishable Supabase URL and key live in `js/cloud/config.js`. A publishable key is expected in browser code; never place a Supabase secret or `service_role` key there.
+
+The database table, private PDF bucket, grants, and per-user row-level security policies are versioned in `supabase/migrations/`. To provision another Supabase project:
+
+1. Install the Supabase CLI and authenticate with `supabase login`.
+2. Link the repository with `supabase link --project-ref <project-ref>`.
+3. Review pending migrations with `supabase migration list`.
+4. Apply them with `supabase db push`.
+5. Replace the publishable URL and key in `js/cloud/config.js`.
+6. Add the production app URL and any local development URL to the allowed redirect URLs in Supabase Authentication URL Configuration.
+
+The migration creates `public.atlas_documents` and the private `atlas-note-files` bucket. Their policies restrict every document and PDF path to the authenticated user's UUID. After applying it, test with two separate accounts and confirm neither account can read the other's document or PDF.
+
 Version 0.4.0 also upgrades schedule importing with pasted images, crop and rotation controls, automatic geometry and lighting correction, table-aware OCR passes, field confidence warnings, local correction learning, and opt-in AI repair limited to uncertain fields. The mobile task editor time picker now remains visible outside its dialog bounds.
 
 Version 0.3.6 refines mobile motion without sacrificing the corrected responsive layout. Class cards now use a FLIP transition so surrounding sections move smoothly without animated-height reflow or scroll-anchor bounce. Mobile page navigation restores Atlas's three-strip wipe as a short, fixed-viewport, transform-only animation with reduced-motion support.
@@ -46,6 +61,17 @@ Run the regression suite before building or deploying:
 ```sh
 npm test
 ```
+
+Validate the Cloudflare Worker separately before deploying it:
+
+```sh
+cd worker
+npm install
+npm test
+npm run deploy:check
+```
+
+The Worker URL used by the browser is configured in `js/services/aiSchedule.js`. If you deploy a separate Worker, update that URL and review the Worker's allowed-origin configuration before publishing the app.
 
 For quick source-level development, this folder can still be served directly. Browsers block JSON loading when the app is opened with a `file://` address; Atlas will show a clear error instead of a blank screen in that case.
 
