@@ -5,7 +5,7 @@ import { escapeHtml } from '../utils/html.js';
 import { daysUntil, saveTasks, sortTasks, urgencyFor } from '../services/tasks.js';
 import { DAY_NAMES, formatDate, formatTime, getClassState, minutesFromTime } from '../utils/time.js';
 import Store from '../store.js';
-import { createExam, EXAM_TYPES, saveExams } from '../services/exams.js';
+import { createExam, examLabel, EXAM_TYPES, saveExams } from '../services/exams.js';
 import { transitionStrikeRemoval, transitionTaskRow } from '../utils/animations.js';
 import { withAutoSave } from '../services/autosave.js';
 
@@ -101,7 +101,8 @@ function upcomingExams(exams, classes, now) {
   return `<div class="home-exam-list">${items.map((exam) => {
     const subject = classes.find((item) => item.id === exam.classId);
     const days = daysUntil(exam.date, now);
-    return `<article class="home-exam"><span class="home-exam-date"><strong>${exam.date.slice(8, 10)}</strong><small>${new Date(`${exam.date}T00:00:00`).toLocaleDateString(undefined, { month: 'short' })}</small></span><span class="home-exam-copy"><strong>${escapeHtml(exam.title)}</strong><small>${escapeHtml(subject?.code || 'Class')} · ${days === 0 ? 'Today' : `${days}d away`}</small></span><button class="home-exam-remove" type="button" data-delete-home-exam="${escapeHtml(exam.id)}" aria-label="Remove ${escapeHtml(exam.title)}">${Icon('trash')}</button></article>`;
+    const label = examLabel(exam, subject);
+    return `<article class="home-exam"><span class="home-exam-date"><strong>${exam.date.slice(8, 10)}</strong><small>${new Date(`${exam.date}T00:00:00`).toLocaleDateString(undefined, { month: 'short' })}</small></span><span class="home-exam-copy"><strong>${escapeHtml(label)}</strong><small>${escapeHtml(subject?.code || 'Class')} · ${days === 0 ? 'Today' : `${days}d away`}</small></span><button class="home-exam-remove" type="button" data-delete-home-exam="${escapeHtml(exam.id)}" aria-label="Remove ${escapeHtml(label)}">${Icon('trash')}</button></article>`;
   }).join('')}</div>`;
 }
 

@@ -5,7 +5,7 @@ import { createNote, readNoteFile, saveNotes } from '../services/notes.js';
 import { escapeHtml } from '../utils/html.js';
 import { DAY_NAMES, formatTime } from '../utils/time.js';
 import { closeOverlay, transitionAddConfirmation, transitionStrikeRemoval, transitionTaskRow } from '../utils/animations.js';
-import { createExam, EXAM_TYPES, saveExams } from '../services/exams.js';
+import { createExam, examLabel, EXAM_TYPES, saveExams } from '../services/exams.js';
 import { saveImportedSchedule } from '../services/schedule.js';
 import { withAutoSave } from '../services/autosave.js';
 import { extractPdfPages } from '../services/pdfText.js';
@@ -245,7 +245,7 @@ function addNoteForm() {
     </form>`;
 }
 
-function examSection(exams, now) {
+function examSection(exams, now, subject) {
   const list = exams.length
     ? `<div class="exam-list">${exams.map((exam) => {
         const days = daysUntil(exam.date, now);
@@ -253,7 +253,7 @@ function examSection(exams, now) {
         return `
           <article class="atlas-card exam-row">
             <span class="exam-date"><strong>${exam.date.slice(8, 10)}</strong><small>${new Date(`${exam.date}T00:00:00`).toLocaleDateString(undefined, { month: 'short' })}</small></span>
-            <span class="exam-copy"><strong>${escapeHtml(exam.title)}</strong><small>${timing}</small></span>
+            <span class="exam-copy"><strong>${escapeHtml(examLabel(exam, subject))}</strong><small>${timing}</small></span>
             <button type="button" data-delete-exam="${escapeHtml(exam.id)}">Delete</button>
           </article>`;
       }).join('')}</div>`
@@ -366,7 +366,7 @@ export default {
       ${PathSection('Upcoming assignments', `${assignmentSection(upcoming, now, 'No upcoming assignments.')}${addTaskForm()}`)}
       ${PathSection('Class notes', `${noteSection(notes)}${addNoteForm()}`)}
       ${PathSection('Past assignments', assignmentSection(past, now, 'Completed assignments will appear here.'))}
-      ${PathSection('Tests & exams', examSection(exams, now))}
+      ${PathSection('Tests & exams', examSection(exams, now, item))}
       ${deleteNoteDialog(state.notes || [])}`;
   },
 

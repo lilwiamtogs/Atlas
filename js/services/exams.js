@@ -4,7 +4,7 @@ const EXAMS_KEY = 'atlas.exams';
 export const EXAM_TYPES = ['Prelims', 'Midterms', 'Finals'];
 
 export function subjectInitials(subject = {}) {
-  const code = String(subject.code || '').trim().toUpperCase().replace(/\s+/g, '');
+  const code = (String(subject.code || '').match(/[A-Za-z]+/g) || []).join('').toUpperCase();
   if (code) return code;
   const initials = String(subject.title || '')
     .trim()
@@ -19,6 +19,10 @@ export function subjectInitials(subject = {}) {
 export function examTitle(examType, subject) {
   if (!EXAM_TYPES.includes(examType)) throw new Error('Choose Prelims, Midterms, or Finals.');
   return `${examType} · ${subjectInitials(subject)}`;
+}
+
+export function examLabel(exam, subject) {
+  return exam?.examType ? examTitle(exam.examType, subject) : String(exam?.title || 'Exam');
 }
 
 function normalizeExam(exam) {

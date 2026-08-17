@@ -1,4 +1,5 @@
 import { daysUntil } from './tasks.js';
+import { examLabel } from './exams.js';
 import { readStoredJson, writeStoredJson } from './storage.js';
 
 const SETTINGS_KEY = 'atlas.notifications';
@@ -83,6 +84,6 @@ export async function checkReminders(state, now = new Date()) {
     const days = daysUntil(exam.date, now);
     if (days !== 7) continue;
     const subject = state.schedule.classes.find((item) => item.id === exam.classId);
-    await sendOnce(`exam-${exam.id}-7`, `${exam.title} is in 7 days`, `${subject?.code || 'Class'} · ${exam.date}`, `./#/class/${encodeURIComponent(exam.classId)}`);
+    await sendOnce(`exam-${exam.id}-7`, `${examLabel(exam, subject)} is in 7 days`, `${subject?.code || 'Class'} · ${exam.date}`, `./#/class/${encodeURIComponent(exam.classId)}`);
   }
 }
