@@ -5467,6 +5467,7 @@ html[data-focus-mode='true'] .route-home .no-exams { display: none; }
 .home-exam-edit-button .atlas-icon,
 .home-exam-remove .atlas-icon { width: 16px; height: 16px; }
 .home-exam-edit { grid-column: 1 / -1; display: grid; gap: var(--space-2); padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-control); background: color-mix(in srgb, var(--surface) 96%, transparent); }
+.home-exam-edit.is-opening { height: 0; overflow: hidden; opacity: 0; }
 .home-exam-edit label { display: grid; gap: var(--space-1); color: var(--text-muted); font-size: var(--text-xs); font-weight: 700; }
 .home-exam-edit select,
 .home-exam-edit input { width: 100%; min-height: 42px; }

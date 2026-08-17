@@ -4,16 +4,16 @@ const EXAMS_KEY = 'atlas.exams';
 export const EXAM_TYPES = ['Prelims', 'Midterms', 'Finals'];
 
 export function subjectInitials(subject = {}) {
-  const code = (String(subject.code || '').match(/[A-Za-z]+/g) || []).join('').toUpperCase();
-  if (code) return code;
   const initials = String(subject.title || '')
     .trim()
     .split(/\s+/)
-    .filter((word) => !/^(and|of|the|to|in|for)$/i.test(word))
+    .filter((word) => !/^(and|of|the|in|for)$/i.test(word))
     .map((word) => word.match(/[A-Za-z0-9]/)?.[0] || '')
     .join('')
     .toUpperCase();
-  return initials || 'CLASS';
+  if (initials) return initials;
+  const code = (String(subject.code || '').match(/[A-Za-z]+/g) || []).join('').toUpperCase();
+  return code || 'CLASS';
 }
 
 export function examTitle(examType, subject) {

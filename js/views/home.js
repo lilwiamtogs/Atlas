@@ -11,6 +11,7 @@ import { withAutoSave } from '../services/autosave.js';
 
 let examMessage = '';
 let editingExamId = '';
+let openingExamEditorId = '';
 let feedback = null;
 let pendingTaskUndo = null;
 let feedbackTimer = 0;
@@ -103,7 +104,7 @@ function upcomingExams(exams, classes, now) {
     const subject = classes.find((item) => item.id === exam.classId);
     const days = daysUntil(exam.date, now);
     const label = examLabel(exam, subject);
-    const editor = editingExamId === exam.id ? `<form class="home-exam-edit" data-edit-home-exam-form="${escapeHtml(exam.id)}"><label>Exam type<select name="examType" required>${EXAM_TYPES.map((type) => `<option value="${type}" ${type === exam.examType ? 'selected' : ''}>${type}</option>`).join('')}</select></label><label>Subject<select name="classId" required>${classes.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === exam.classId ? 'selected' : ''}>${escapeHtml(item.code)} · ${escapeHtml(item.title)}</option>`).join('')}</select></label><label>Date<input name="date" type="date" value="${escapeHtml(exam.date)}" required></label><div class="home-exam-edit-actions"><button class="primary-action" type="submit">Save</button><button class="secondary-action" type="button" data-cancel-home-exam-edit>Cancel</button></div></form>` : '';
+    const editor = editingExamId === exam.id ? `<form class="home-exam-edit ${openingExamEditorId === exam.id ? 'is-opening' : ''}" data-edit-home-exam-form="${escapeHtml(exam.id)}"><label>Exam type<select name="examType" required>${EXAM_TYPES.map((type) => `<option value="${type}" ${type === exam.examType ? 'selected' : ''}>${type}</option>`).join('')}</select></label><label>Subject<select name="classId" required>${classes.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === exam.classId ? 'selected' : ''}>${escapeHtml(item.code)} · ${escapeHtml(item.title)}</option>`).join('')}</select></label><label>Date<input name="date" type="date" value="${escapeHtml(exam.date)}" required></label><div class="home-exam-edit-actions"><button class="primary-action" type="submit">Save</button><button class="secondary-action" type="button" data-cancel-home-exam-edit>Cancel</button></div></form>` : '';
     return `<article class="home-exam ${editingExamId === exam.id ? 'is-editing' : ''}"><span class="home-exam-date"><strong>${exam.date.slice(8, 10)}</strong><small>${new Date(`${exam.date}T00:00:00`).toLocaleDateString(undefined, { month: 'short' })}</small></span><span class="home-exam-copy"><strong>${escapeHtml(label)}</strong><small>${escapeHtml(subject?.code || 'Class')} · ${days === 0 ? 'Today' : `${days}d away`}</small></span><span class="home-exam-actions"><button class="home-exam-edit-button" type="button" data-edit-home-exam="${escapeHtml(exam.id)}" aria-label="Edit ${escapeHtml(label)}">${Icon('edit')}</button><button class="home-exam-remove" type="button" data-delete-home-exam="${escapeHtml(exam.id)}" aria-label="Remove ${escapeHtml(label)}">${Icon('trash')}</button></span>${editor}</article>`;
   }).join('')}</div>`;
 }
@@ -213,6 +214,22 @@ function bindExamComposerAnimation() {
   });
 }
 
+async function animateExamEditor(form, opening) {
+  if (!form || window.matchMedia('(prefers-reduced-motion: reduce)').matches || typeof form.animate !== 'function') return;
+  const height = opening ? form.scrollHeight : form.getBoundingClientRect().height;
+  form.style.overflow = 'hidden';
+  const animation = form.animate(
+    opening
+      ? [{ height: '0px', opacity: 0, transform: 'translateY(-6px)' }, { height: `${height}px`, opacity: 1, transform: 'translateY(0)' }]
+      : [{ height: `${height}px`, opacity: 1, transform: 'translateY(0)' }, { height: '0px', opacity: 0, transform: 'translateY(-6px)' }],
+    { duration: opening ? 220 : 170, easing: opening ? 'cubic-bezier(.22,1,.36,1)' : 'ease-in', fill: 'both' },
+  );
+  try { await animation.finished; } catch { /* A rerender can cancel safely. */ }
+  animation.cancel();
+  form.classList.remove('is-opening');
+  form.style.removeProperty('overflow');
+}
+
 function feedbackToast() {
   if (!feedback) return '';
   const action = feedback.action === 'undo-task' ? '<button type="button" data-undo-home-task>Undo</button>' : '<button type="button" data-route="schedule">Open Week</button>';
@@ -231,6 +248,11 @@ export default {
 
   bind(router, state) {
     bindExamComposerAnimation();
+    const openingEditor = openingExamEditorId ? document.querySelector(`[data-edit-home-exam-form="${CSS.escape(openingExamEditorId)}"]`) : null;
+    if (openingEditor) {
+      animateExamEditor(openingEditor, true);
+      openingExamEditorId = '';
+    }
     document.querySelectorAll('[data-countdown-start]').forEach((element) => { element.textContent = countdownTo({ day: new Date().getDay(), start: element.dataset.countdownStart }, new Date()); });
     document.querySelectorAll('[data-complete-home-task]').forEach((taskButton) => taskButton.addEventListener('click', async () => {
       const task = Store.get().tasks.find((item) => item.id === taskButton.dataset.completeHomeTask);
@@ -269,16 +291,21 @@ export default {
       });
     });
     document.querySelectorAll('[data-edit-home-exam]').forEach((button) => {
-      button.addEventListener('click', () => {
+      button.addEventListener('click', async () => {
+        if (editingExamId && editingExamId !== button.dataset.editHomeExam) {
+          await animateExamEditor(document.querySelector('[data-edit-home-exam-form]'), false);
+        }
         editingExamId = button.dataset.editHomeExam;
+        openingExamEditorId = editingExamId;
         router.render();
       });
     });
-    document.querySelector('[data-cancel-home-exam-edit]')?.addEventListener('click', () => {
+    document.querySelector('[data-cancel-home-exam-edit]')?.addEventListener('click', async () => {
+      await animateExamEditor(document.querySelector('[data-edit-home-exam-form]'), false);
       editingExamId = '';
       router.render();
     });
-    document.querySelector('[data-edit-home-exam-form]')?.addEventListener('submit', (event) => {
+    document.querySelector('[data-edit-home-exam-form]')?.addEventListener('submit', async (event) => {
       event.preventDefault();
       try {
         const data = new FormData(event.currentTarget);
@@ -286,6 +313,7 @@ export default {
         const subject = Store.get().schedule.classes.find((item) => item.id === data.get('classId'));
         if (!current || !subject) throw new Error('Choose a valid exam and subject.');
         const updated = updateExam(current, { classId: data.get('classId'), examType: data.get('examType'), subject, date: data.get('date') });
+        await animateExamEditor(event.currentTarget, false);
         editingExamId = '';
         feedback = makeFeedback(`${updated.title} was updated.`, 'week', UNDO_FEEDBACK_DURATION);
         dismissFeedbackAfter(router, UNDO_FEEDBACK_DURATION);
