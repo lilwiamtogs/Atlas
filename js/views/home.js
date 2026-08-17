@@ -5,7 +5,7 @@ import { escapeHtml } from '../utils/html.js';
 import { daysUntil, saveTasks, sortTasks, urgencyFor } from '../services/tasks.js';
 import { DAY_NAMES, formatDate, formatTime, getClassState, minutesFromTime } from '../utils/time.js';
 import Store from '../store.js';
-import { createExam, saveExams } from '../services/exams.js';
+import { createExam, EXAM_TYPES, saveExams } from '../services/exams.js';
 import { transitionTaskRow } from '../utils/animations.js';
 import { withAutoSave } from '../services/autosave.js';
 
@@ -13,6 +13,8 @@ let examMessage = '';
 let feedback = null;
 let pendingTaskUndo = null;
 let feedbackTimer = 0;
+const TASK_FEEDBACK_DURATION = 3200;
+const UNDO_FEEDBACK_DURATION = 2400;
 
 function dateInputValue(date = new Date()) {
   const offset = date.getTimezoneOffset();
@@ -102,7 +104,16 @@ function upcomingExams(exams, classes, now) {
 
 function addExamForm(classes) {
   if (!classes.length) return '';
-  return `<details class="exam-composer"><summary>${Icon('plus')}<span>Add a test</span></summary><div class="exam-composer-body"><form class="add-exam-form home-exam-form" id="home-add-exam-form"><label class="task-form-field">Test / exam name<input name="title" placeholder="e.g. Midterm exam" required></label><label class="task-form-field">Class<select name="classId" required>${classes.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.code)} · ${escapeHtml(item.title)}</option>`).join('')}</select></label><label class="task-form-field">Date<input name="date" type="date" min="${dateInputValue()}" value="${dateInputValue()}" required></label>${Button({ label: 'Save test', variant: 'primary', icon: 'check', type: 'submit' })}${examMessage ? `<p class="note-message" role="status">${escapeHtml(examMessage)}</p>` : ''}</form></div></details>`;
+  return `<details class="exam-composer"><summary>${Icon('plus')}<span>Add an exam</span></summary><div class="exam-composer-body"><form class="add-exam-form home-exam-form" id="home-add-exam-form"><label class="task-form-field">Exam type<select name="examType" required>${EXAM_TYPES.map((type) => `<option value="${type}">${type}</option>`).join('')}</select></label><label class="task-form-field">Subject<select name="classId" required>${classes.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.code)} · ${escapeHtml(item.title)}</option>`).join('')}</select></label><label class="task-form-field">Date<input name="date" type="date" min="${dateInputValue()}" value="${dateInputValue()}" required></label>${Button({ label: 'Save exam', variant: 'primary', icon: 'check', type: 'submit' })}${examMessage ? `<p class="note-message" role="status">${escapeHtml(examMessage)}</p>` : ''}</form></div></details>`;
+}
+
+function dismissFeedbackAfter(router, duration, clearUndo = false) {
+  window.clearTimeout(feedbackTimer);
+  feedbackTimer = window.setTimeout(() => {
+    if (clearUndo) pendingTaskUndo = null;
+    feedback = null;
+    router.render();
+  }, duration);
 }
 
 function bindExamComposerAnimation() {
@@ -146,7 +157,7 @@ function bindExamComposerAnimation() {
 function feedbackToast() {
   if (!feedback) return '';
   const action = feedback.action === 'undo-task' ? '<button type="button" data-undo-home-task>Undo</button>' : '<button type="button" data-route="schedule">Open Week</button>';
-  return `<div class="home-toast" role="status"><span>${Icon('check')}${escapeHtml(feedback.message)}</span>${action}</div>`;
+  return `<div class="home-toast" role="status" style="--toast-life:${feedback.duration || TASK_FEEDBACK_DURATION}ms"><span>${Icon('check')}${escapeHtml(feedback.message)}</span>${action}</div>`;
 }
 
 export default {
@@ -165,9 +176,8 @@ export default {
       if (!task) return;
       await transitionTaskRow(taskButton, true);
       pendingTaskUndo = { ...task };
-      feedback = { message: `“${task.title}” is complete.`, action: 'undo-task' };
-      window.clearTimeout(feedbackTimer);
-      feedbackTimer = window.setTimeout(() => { pendingTaskUndo = null; feedback = null; router.render(); }, 6000);
+      feedback = { message: `“${task.title}” is complete.`, action: 'undo-task', duration: TASK_FEEDBACK_DURATION };
+      dismissFeedbackAfter(router, TASK_FEEDBACK_DURATION, true);
       const latest = Store.get();
       const tasks = saveTasks(latest.tasks.map((item) => item.id === task.id ? { ...item, completed: true } : item));
       Store.set(withAutoSave(latest, { tasks }));
@@ -177,7 +187,8 @@ export default {
       window.clearTimeout(feedbackTimer);
       const task = pendingTaskUndo;
       pendingTaskUndo = null;
-      feedback = { message: `“${task.title}” was restored.`, action: 'week' };
+      feedback = { message: `“${task.title}” was restored.`, action: 'week', duration: UNDO_FEEDBACK_DURATION };
+      dismissFeedbackAfter(router, UNDO_FEEDBACK_DURATION);
       const latest = Store.get();
       const tasks = saveTasks(latest.tasks.map((item) => item.id === task.id ? { ...item, completed: false } : item));
       Store.set(withAutoSave(latest, { tasks }));
@@ -189,9 +200,11 @@ export default {
       event.preventDefault();
       try {
         const data = new FormData(event.currentTarget);
-        const exam = createExam({ classId: data.get('classId'), title: data.get('title'), date: data.get('date') });
+        const subject = Store.get().schedule.classes.find((item) => item.id === data.get('classId'));
+        const exam = createExam({ classId: data.get('classId'), examType: data.get('examType'), subject, date: data.get('date') });
         examMessage = `${exam.title} was saved.`;
-        feedback = { message: `${exam.title} was added to Tests & exams.`, action: 'week' };
+        feedback = { message: `${exam.title} was added to Tests & exams.`, action: 'week', duration: TASK_FEEDBACK_DURATION };
+        dismissFeedbackAfter(router, TASK_FEEDBACK_DURATION);
         Store.set({ exams: saveExams([...(Store.get().exams || []), exam]) });
       } catch (error) {
         examMessage = error.message;

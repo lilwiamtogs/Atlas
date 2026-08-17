@@ -5468,6 +5468,12 @@ html[data-focus-mode='true'] .route-home .no-exams { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .exam-composer > summary .atlas-icon { transition: none; }
+  .home-toast { animation-name: home-toast-fade; }
+}
+
+@keyframes home-toast-fade {
+  0%, 100% { opacity: 0; }
+  4%, 94% { opacity: 1; }
 }
 
 .home-toast {
@@ -5488,6 +5494,13 @@ html[data-focus-mode='true'] .route-home .no-exams { display: none; }
   background: color-mix(in srgb, var(--surface) 94%, var(--success));
   box-shadow: 0 18px 48px rgba(0, 0, 0, .2);
   font-size: var(--text-xs);
+  animation: home-toast-life var(--toast-life, 3200ms) both;
+}
+
+@keyframes home-toast-life {
+  0% { opacity: 0; transform: translate(-50%, 10px) scale(.98); }
+  9%, 88% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, 5px) scale(.99); }
 }
 
 .home-toast > span { display: flex; align-items: center; gap: var(--space-2); }

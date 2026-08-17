@@ -5,7 +5,7 @@ import { createNote, readNoteFile, saveNotes } from '../services/notes.js';
 import { escapeHtml } from '../utils/html.js';
 import { DAY_NAMES, formatTime } from '../utils/time.js';
 import { closeOverlay, transitionAddConfirmation, transitionStrikeRemoval, transitionTaskRow } from '../utils/animations.js';
-import { createExam, saveExams } from '../services/exams.js';
+import { createExam, EXAM_TYPES, saveExams } from '../services/exams.js';
 import { saveImportedSchedule } from '../services/schedule.js';
 import { withAutoSave } from '../services/autosave.js';
 import { extractPdfPages } from '../services/pdfText.js';
@@ -262,13 +262,15 @@ function examSection(exams, now) {
   return `
     ${list}
     <form class="add-exam-form" id="add-exam-form">
-      <label class="task-form-field">Test / exam name
-        <input name="title" placeholder="e.g. Midterm exam" required>
+      <label class="task-form-field">Exam type
+        <select name="examType" required>
+          ${EXAM_TYPES.map((type) => `<option value="${type}">${type}</option>`).join('')}
+        </select>
       </label>
       <label class="task-form-field">Date
         <input name="date" type="date" min="${dateInputValue()}" value="${dateInputValue()}" required>
       </label>
-      <button class="primary-action" type="submit">Save test</button>
+      <button class="primary-action" type="submit">Save exam</button>
       ${examMessage ? `<p class="note-message" role="status">${escapeHtml(examMessage)}</p>` : ''}
     </form>`;
 }
@@ -569,7 +571,7 @@ export default {
       event.preventDefault();
       try {
         const data = new FormData(event.currentTarget);
-        const exam = createExam({ classId: context.classId, title: data.get('title'), date: data.get('date') });
+        const exam = createExam({ classId: context.classId, examType: data.get('examType'), subject: item, date: data.get('date') });
         examMessage = `${exam.title} was saved to this class.`;
         actionMessage = examMessage;
         Store.set({ exams: saveExams([...(state.exams || []), exam]) });
