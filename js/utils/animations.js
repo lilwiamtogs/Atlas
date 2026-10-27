@@ -1,6 +1,7 @@
 import Icon from '../components/icon.js';
 
 const STRIKE_DURATION = 320;
+const CONFETTI_COLORS = ['#7a9e87', '#a9c8b3', '#d7b46a', '#d77a68', '#8ca6c9'];
 const overlayStates = new WeakMap();
 const FOCUSABLE = [
   'a[href]',
@@ -14,6 +15,37 @@ const FOCUSABLE = [
 
 function wait(duration) {
   return new Promise((resolve) => window.setTimeout(resolve, duration));
+}
+
+// A single, compositor-friendly arc: capped particles, no animation loop,
+// and automatic cleanup keep this comfortable on lower-powered phones.
+export function celebrateSemesterComplete() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const compactScreen = window.matchMedia('(max-width: 619px), (pointer: coarse)').matches;
+  const count = compactScreen ? 14 : 22;
+  const burst = document.createElement('div');
+  burst.className = 'atlas-confetti';
+  burst.setAttribute('aria-hidden', 'true');
+  const particles = document.createDocumentFragment();
+
+  for (let index = 0; index < count; index += 1) {
+    const particle = document.createElement('i');
+    particle.className = 'atlas-confetti-piece';
+    const horizontalDistance = Math.round((Math.random() - 0.5) * 88);
+    particle.style.setProperty('--confetti-x', `${horizontalDistance}vw`);
+    particle.style.setProperty('--confetti-apex-x', `${Math.round(horizontalDistance * (0.34 + Math.random() * 0.18))}vw`);
+    particle.style.setProperty('--confetti-up', `-${Math.round(30 + Math.random() * 20)}vh`);
+    particle.style.setProperty('--confetti-down', `${Math.round(18 + Math.random() * 30)}vh`);
+    particle.style.setProperty('--confetti-rotate', `${Math.round((Math.random() - 0.5) * 900)}deg`);
+    particle.style.setProperty('--confetti-apex-rotate', `${Math.round((Math.random() - 0.5) * 420)}deg`);
+    particle.style.setProperty('--confetti-delay', `${Math.round(Math.random() * 180)}ms`);
+    particle.style.backgroundColor = CONFETTI_COLORS[index % CONFETTI_COLORS.length];
+    particles.append(particle);
+  }
+
+  burst.append(particles);
+  document.body.append(burst);
+  window.setTimeout(() => burst.remove(), 2200);
 }
 
 async function collapseRemoval(element) {

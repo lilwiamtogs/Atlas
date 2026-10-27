@@ -21,7 +21,7 @@ import { saveTasks } from '../services/tasks.js';
 import { saveNotes } from '../services/notes.js';
 import { saveExams } from '../services/exams.js';
 import { disableAutoSave, withAutoSave } from '../services/autosave.js';
-import { closeOverlay } from '../utils/animations.js';
+import { celebrateSemesterComplete, closeOverlay } from '../utils/animations.js';
 import Icon from '../components/icon.js';
 
 let selectedFile = null;
@@ -36,6 +36,7 @@ let archiveDirectoryOpen = false;
 let animateArchiveDirectory = false;
 let archiveMessage = '';
 let pendingScheduleReplacement = null;
+let clearScheduleRequested = false;
 let imageSourcePickerOpen = false;
 let pasteListener = null;
 let imageEdit = { rotation: 0, crop: { top: 0, right: 0, bottom: 0, left: 0 } };
@@ -67,6 +68,22 @@ function replacementWarning() {
         <div class="confirm-actions">
           <button class="secondary-action" id="cancel-schedule-replacement" data-overlay-close type="button">Keep current</button>
           <button class="danger-action" id="confirm-schedule-replacement" type="button">Replace anyway</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function clearScheduleWarning() {
+  if (!clearScheduleRequested) return '';
+  return `
+    <div class="confirm-screen" role="dialog" aria-modal="true" aria-labelledby="clear-schedule-title">
+      <div class="atlas-card confirm-card">
+        <p class="eyebrow">Semester complete</p>
+        <h2 id="clear-schedule-title">Clear this semester?</h2>
+        <p>This removes the current classes, tasks, notes, and exams from Atlas. Your Saved Schedules directory stays intact, so save this semester there first if you want to keep it.</p>
+        <div class="confirm-actions">
+          <button class="secondary-action" id="cancel-clear-schedule" data-overlay-close type="button">Keep it</button>
+          <button class="danger-action" id="confirm-clear-schedule" type="button">Clear semester</button>
         </div>
       </div>
     </div>`;
@@ -228,13 +245,16 @@ function savedSchedulesPanel(state) {
     : '<p class="empty-state">Saved semesters will appear here after you confirm a schedule.</p>';
 
   return PathSection('Saved schedules', `
-    <div class="archive-control-grid ${state.autoSaveSettings?.enabled ? 'is-single' : ''}">
+    <div class="archive-control-grid">
       ${state.autoSaveSettings?.enabled ? '' : `
         <button class="archive-control" id="save-current-schedule" type="button" ${state.schedule.classes.length ? '' : 'disabled'}>
           <span>Save</span><strong>Current schedule</strong>
         </button>`}
       <button class="archive-control" id="toggle-archive-directory" type="button" aria-expanded="${archiveDirectoryOpen}">
         <span>${archives.length} saved</span><strong>Schedule directory</strong>
+      </button>
+      <button class="archive-control archive-clear-control" id="clear-current-schedule" type="button" ${state.schedule.classes.length ? '' : 'disabled'}>
+        <span>Finish</span><strong>Clear semester</strong>
       </button>
     </div>
     ${state.autoSaveSettings?.enabled ? '<p class="archive-message autosave-active-message">Autosave is keeping the current saved semester updated.</p>' : ''}
@@ -289,6 +309,7 @@ export default {
         <button class="secondary-action" id="restore-default-schedule" type="button">Restore default JSON schedule</button>
         </div>`): ''}
       ${replacementWarning()}
+      ${clearScheduleWarning()}
       ${imageSourcePicker()}`;
   },
 
@@ -344,6 +365,30 @@ export default {
       await closeOverlay(document.querySelector('.confirm-screen'));
       pendingScheduleReplacement = null;
       action?.();
+    });
+    document.getElementById('clear-current-schedule')?.addEventListener('click', () => {
+      clearScheduleRequested = true;
+      router.render();
+    });
+    document.getElementById('cancel-clear-schedule')?.addEventListener('click', async () => {
+      await closeOverlay(document.querySelector('.confirm-screen'));
+      clearScheduleRequested = false;
+      router.render();
+    });
+    document.getElementById('confirm-clear-schedule')?.addEventListener('click', async () => {
+      await closeOverlay(document.querySelector('.confirm-screen'));
+      clearScheduleRequested = false;
+      const schedule = saveImportedSchedule({ course: '', yearLevel: '', semester: '', classes: [] });
+      Store.set({
+        schedule,
+        tasks: saveTasks([]),
+        notes: saveNotes([]),
+        exams: saveExams([]),
+        autoSaveSettings: disableAutoSave(state),
+        scheduleSource: 'No active schedule',
+        scheduleError: '',
+      });
+      celebrateSemesterComplete();
     });
     const useScheduleImage = (file) => {
       if (!file) return;

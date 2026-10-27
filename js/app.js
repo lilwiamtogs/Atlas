@@ -2,6 +2,7 @@ import Atlas from './atlas.js';
 import { isMobileWeb, markInstallKnown, showFirstOpenTutorial, showInstallGate } from './components/onboarding.js';
 
 let installPrompt = null;
+let reloadingForServiceWorker = false;
 
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault();
@@ -37,7 +38,13 @@ window.addEventListener('DOMContentLoaded', async () => {
 
 window.addEventListener('load', () => {
   if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloadingForServiceWorker) return;
+    reloadingForServiceWorker = true;
+    window.location.reload();
+  });
   navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then((registration) => {
+    registration.update().catch(() => {});
     window.setInterval(() => registration.update().catch(() => {}), 60 * 60 * 1000);
   }).catch((error) => console.error('Atlas could not enable offline mode.', error));
 });

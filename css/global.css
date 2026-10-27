@@ -22,7 +22,20 @@ body {
   color: var(--text);
   font-family: var(--ui-font);
   -webkit-font-smoothing: antialiased;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: default;
   transition: background-color 180ms ease, color 180ms ease;
+}
+
+/* Treat displayed planner copy like native app UI, while leaving every editable
+   control usable for typing, selecting, copying, and pasting. */
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),
+textarea,
+[contenteditable='true'] {
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: text;
 }
 
 button,

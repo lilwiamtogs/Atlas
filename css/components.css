@@ -3257,6 +3257,34 @@ html.is-page-transitioning body {
   animation: welcome-leave 600ms ease both;
 }
 
+.atlas-confetti {
+  position: fixed;
+  z-index: 200;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  contain: layout paint style;
+}
+
+.atlas-confetti-piece {
+  position: absolute;
+  top: 66%;
+  left: 50%;
+  width: 10px;
+  height: 16px;
+  border-radius: 1px;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: atlas-confetti-burst 1.8s cubic-bezier(.18, .72, .24, 1) var(--confetti-delay) both;
+}
+
+@keyframes atlas-confetti-burst {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotate(0); }
+  9% { opacity: 1; }
+  48% { opacity: 1; transform: translate3d(var(--confetti-apex-x), var(--confetti-up), 0) rotate(var(--confetti-apex-rotate)); }
+  100% { opacity: 0; transform: translate3d(var(--confetti-x), var(--confetti-down), 0) rotate(var(--confetti-rotate)); }
+}
+
 @keyframes welcome-arrive {
   from {
     transform: translateY(8px);
@@ -3673,6 +3701,14 @@ html.is-page-transitioning body {
 .archive-control:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+.archive-clear-control:hover:not(:disabled) {
+  border-color: var(--danger);
+}
+
+.archive-clear-control:hover:not(:disabled) strong {
+  color: var(--danger);
 }
 
 .archive-control span {

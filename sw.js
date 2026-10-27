@@ -32,7 +32,10 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   if (event.request.mode === 'navigate') {
-    const networkResponse = fetch(event.request).then((response) => {
+    // Always ask the server for the HTML shell. Its hashed bundle references
+    // are the signal that lets a fresh deployment replace an older app cache.
+    const networkRequest = new Request(event.request, { cache: 'no-store' });
+    const networkResponse = fetch(networkRequest).then((response) => {
       if (response.ok) {
         const responseForCache = response.clone();
         caches.open(CACHE_NAME)
