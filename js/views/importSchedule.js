@@ -253,9 +253,6 @@ function savedSchedulesPanel(state) {
       <button class="archive-control" id="toggle-archive-directory" type="button" aria-expanded="${archiveDirectoryOpen}">
         <span>${archives.length} saved</span><strong>Schedule directory</strong>
       </button>
-      <button class="archive-control archive-clear-control" id="clear-current-schedule" type="button" ${state.schedule.classes.length ? '' : 'disabled'}>
-        <span>Finish</span><strong>Clear semester</strong>
-      </button>
     </div>
     ${state.autoSaveSettings?.enabled ? '<p class="archive-message autosave-active-message">Autosave is keeping the current saved semester updated.</p>' : ''}
     ${archiveMessage ? `<p class="archive-message" role="status">${escapeHtml(archiveMessage)}</p>` : ''}
@@ -265,6 +262,18 @@ function savedSchedulesPanel(state) {
         <label class="secondary-action import-json-action" for="schedule-json">Import saved JSON</label>
         <input class="visually-hidden" id="schedule-json" type="file" accept="application/json,.json">
       </div>` : ''}
+  `);
+}
+
+function semesterFinishPanel(state) {
+  if (!state.schedule.classes.length) return '';
+  return PathSection('Semester finish line', `
+    <div class="atlas-card finish-semester-card">
+      <p class="eyebrow">You made it</p>
+      <h2>Ready to wrap this one up?</h2>
+      <p>Save the semester in your directory, then clear the active planner and start fresh for what comes next.</p>
+      <button class="danger-action finish-semester-button" id="clear-current-schedule" type="button">Finish semester</button>
+    </div>
   `);
 }
 
@@ -291,6 +300,7 @@ export default {
         </div>`)}
       ${reviewPanel()}
       ${savedSchedulesPanel(state)}
+      ${semesterFinishPanel(state)}
       ${imported ? PathSection('Current data', `
         <p class="import-intro">Update the details Atlas uses to name saved semester files.</p>
         <div class="current-data-stack">

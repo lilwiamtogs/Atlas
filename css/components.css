@@ -3703,14 +3703,6 @@ html.is-page-transitioning body {
   opacity: 0.5;
 }
 
-.archive-clear-control:hover:not(:disabled) {
-  border-color: var(--danger);
-}
-
-.archive-clear-control:hover:not(:disabled) strong {
-  color: var(--danger);
-}
-
 .archive-control span {
   color: var(--text-muted);
   font-size: 0.56rem;
@@ -3731,6 +3723,32 @@ html.is-page-transitioning body {
   color: var(--text-muted);
   font-size: 0.62rem;
   line-height: 1.6;
+}
+
+.finish-semester-card {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  padding: clamp(22px, 5vw, 32px);
+  border-color: color-mix(in srgb, var(--primary) 66%, var(--line));
+  background:
+    radial-gradient(circle at 88% 15%, color-mix(in srgb, var(--primary-light) 22%, transparent), transparent 34%),
+    var(--surface);
+}
+
+.finish-semester-card h2 {
+  font-size: clamp(1.35rem, 5vw, 1.9rem);
+}
+
+.finish-semester-card > p:not(.eyebrow) {
+  max-width: 46ch;
+  color: var(--text-muted);
+  font-size: .66rem;
+  line-height: 1.65;
+}
+
+.finish-semester-button {
+  margin-top: 8px;
 }
 
 .archive-directory-panel {
@@ -5136,9 +5154,12 @@ html[data-focus-mode='true'] .route-home .no-exams { display: none; }
 
 .import-source-stack .upload-zone,
 .current-data-stack .saved-course-form,
-.import-source-stack .manual-class-start,
 .current-data-stack #restore-default-schedule {
   margin-top: 0;
+}
+
+.import-source-stack .manual-class-start {
+  margin-top: var(--space-4);
 }
 
 .import-source-stack .upload-zone,
